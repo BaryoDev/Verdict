@@ -36,21 +36,10 @@ jobs:
           find src -name "*.csproj" -type f -exec sed -i "s/<Version>.*<\/Version>/<Version>$VERSION<\/Version>/g" {} \;
 
       - name: Pack packages
-        run: |
-          dotnet pack src/Upshot/Upshot.csproj --configuration Release --no-build --output ./nupkgs
-          dotnet pack src/Upshot.Extensions/Upshot.Extensions.csproj --configuration Release --no-build --output ./nupkgs
-          dotnet pack src/Upshot.Async/Upshot.Async.csproj --configuration Release --no-build --output ./nupkgs
-          dotnet pack src/Upshot.Rich/Upshot.Rich.csproj --configuration Release --no-build --output ./nupkgs
-          dotnet pack src/Upshot.Logging/Upshot.Logging.csproj --configuration Release --no-build --output ./nupkgs
-          dotnet pack src/Upshot.AspNetCore/Upshot.AspNetCore.csproj --configuration Release --no-build --output ./nupkgs
-          dotnet pack src/Upshot.Fluent/Upshot.Fluent.csproj --configuration Release --no-build --output ./nupkgs
+        run: dotnet pack Upshot.sln --configuration Release --output ./nupkgs
 
       - name: Publish to NuGet
-        run: |
-          dotnet nuget push "./nupkgs/*.nupkg" \
-            --api-key ${{ secrets.NUGET_API_KEY }} \
-            --source https://api.nuget.org/v3/index.json \
-            --skip-duplicate
+        run: dotnet nuget push ./nupkgs/*.nupkg --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
 
       - name: Create Git tag
         run: |
