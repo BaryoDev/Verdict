@@ -84,7 +84,9 @@ public readonly struct Result<T>
 
     private Result(Error error)
     {
-        _value = default;
+        // Safe to use default! because _isSuccess=false guarantees Value property will never be accessed
+        // The Value getter throws InvalidOperationException when IsFailure is true
+        _value = default!;
         _error = error;
         _isSuccess = false;
     }

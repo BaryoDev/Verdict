@@ -26,17 +26,16 @@ internal class MetadataStore
 /// </summary>
 public static class ResultMetadata
 {
-    private static readonly ConditionalWeakTable<object, MetadataStore> _metadata = new();
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<object, MetadataStore> _metadata = new();
 
     /// <summary>
     /// Gets or creates metadata storage for the specified result.
     /// </summary>
     internal static MetadataStore GetOrCreate<T>(Result<T> result)
     {
-        // Box the struct to use as a key
-        // ConditionalWeakTable will automatically clean up when the boxed result is GC'd
-        var key = (object)result;
-        return _metadata.GetOrCreateValue(key);
+        // Use the struct as a key. ConcurrentDictionary will use value equality
+        // when comparing the boxed objects.
+        return _metadata.GetOrAdd(result, _ => new MetadataStore());
     }
 
     /// <summary>
@@ -44,7 +43,6 @@ public static class ResultMetadata
     /// </summary>
     internal static MetadataStore GetOrCreate(Result result)
     {
-        var key = (object)result;
-        return _metadata.GetOrCreateValue(key);
+        return _metadata.GetOrAdd(result, _ => new MetadataStore());
     }
 }

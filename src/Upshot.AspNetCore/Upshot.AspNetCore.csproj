@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+
+    <PackageId>Upshot.AspNetCore</PackageId>
+    <Version>1.0.0</Version>
+    <Authors>Baryo.Dev</Authors>
+    <Company>Baryo.Dev</Company>
+    <Description>Baryo.Dev: ASP.NET Core integration for Upshot. Automatic Result to IResult conversion, ProblemDetails RFC 7807 support, and Minimal API extensions.</Description>
+    <PackageLicenseExpression>MPL-2.0</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/BaryoDev/Upshot</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/BaryoDev/Upshot</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageTags>result;aspnetcore;minimal-api;problemdetails</PackageTags>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Upshot\Upshot.csproj" />
+    <ProjectReference Include="..\Upshot.Extensions\Upshot.Extensions.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+</Project>

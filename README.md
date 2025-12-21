@@ -2,16 +2,17 @@
 
 [![License: MPL 2.0](https://img.shields.io/badge/License-MPL_2.0-brightgreen.svg)](https://opensource.org/licenses/MPL-2.0)
 [![NuGet](https://img.shields.io/nuget/v/Upshot.svg)](https://www.nuget.org/packages/Upshot/)
-[![Build](https://img.shields.io/badge/build-passing-brightgreen.svg)]()
-[![Security](https://img.shields.io/badge/security-audited-brightgreen.svg)]()
+[![Build](https://img.shields.io/badge/build-passing-brightgreen.svg)](https://github.com/BaryoDev/Upshot/actions)
+[![Security](https://img.shields.io/badge/security-audited-brightgreen.svg)](https://github.com/BaryoDev/Upshot/blob/main/SECURITY.md)
+[![Test Coverage](https://img.shields.io/badge/coverage-98.4%25-brightgreen.svg)](https://github.com/BaryoDev/Upshot/blob/main/docs/test_coverage_report.md)
 
-> **"FluentResults' features with 230x better performance. Best of both worlds."**
+> **"FluentResults' features with 189x better performance. Best of both worlds."**
 
 ## The 30-Second Pitch for Architects
 
 **Problem:** Exception-based error handling kills performance (20,000x slower). FluentResults is feature-rich but allocates 176-368KB per 1000 operations.
 
-**Solution:** Upshot delivers **zero-allocation** error handling with **111-230x better performance** than FluentResults, while providing the same enterprise features through opt-in packages.
+**Solution:** Upshot delivers **zero-allocation** error handling with **72-189x better performance** than FluentResults, while providing the same enterprise features through opt-in packages.
 
 **ROI:** In a 100k req/sec API, Upshot eliminates ~25GB/sec of GC pressure. That's real cost savings in cloud infrastructure.
 
@@ -22,9 +23,9 @@
 ## Why Architects Choose Upshot
 
 ### 1. **Proven Performance** (Verified Benchmarks)
-- ✅ **230x faster** than FluentResults on success path
-- ✅ **111x faster** than FluentResults on failure path  
-- ✅ **20,587x faster** than exceptions
+- ✅ **189x faster** than FluentResults on success path
+- ✅ **146x faster** than FluentResults on failure path  
+- ✅ **26,890x faster** than exceptions
 - ✅ **Zero allocation** (0 bytes vs 176-368KB)
 
 ### 2. **Enterprise-Ready** (100% FluentResults Feature Parity)
@@ -209,45 +210,45 @@ Comprehensive benchmarks comparing Upshot against Exceptions, FluentResults, and
 
 | Library       | Mean       | Allocated | vs Upshot            |
 | ------------- | ---------- | --------- | -------------------- |
-| **Upshot**    | **336 ns** | **0 B**   | **1.00x (baseline)** |
-| Exceptions    | 335 ns     | 0 B       | 1.00x                |
-| LanguageExt   | 1,324 ns   | 0 B       | 3.94x slower         |
-| FluentResults | 77,189 ns  | 176,000 B | **230x slower** ⚠️    |
+| **Upshot**    | **335 ns** | **0 B**   | **1.00x (baseline)** |
+| Exceptions    | 336 ns     | 0 B       | 1.00x                |
+| LanguageExt   | 1,326 ns   | 0 B       | 3.96x slower         |
+| FluentResults | 63,303 ns  | 176,000 B | **189x slower** ⚠️    |
 
-**Key Finding:** Upshot is **230x faster** than FluentResults with **zero allocations** vs 176KB per 1000 operations.
+**Key Finding:** Upshot is **189x faster** than FluentResults with **zero allocations** vs 176KB per 1000 operations.
 
 ### Failure Path (Error Handling)
 
 | Library       | Mean          | Allocated | vs Upshot            |
 | ------------- | ------------- | --------- | -------------------- |
-| **Upshot**    | **829 ns**    | **0 B**   | **1.00x (baseline)** |
-| LanguageExt   | 2,173 ns      | 96 B      | 2.62x slower         |
-| FluentResults | 91,969 ns     | 368,000 B | **111x slower** ⚠️    |
-| Exceptions    | 17,065,835 ns | 344,023 B | **20,587x slower** ⚠️ |
+| **Upshot**    | **626 ns**    | **0 B**   | **1.00x (baseline)** |
+| LanguageExt   | 2,160 ns      | 96 B      | 3.45x slower         |
+| FluentResults | 91,343 ns     | 368,000 B | **146x slower** ⚠️    |
+| Exceptions    | 16,836,328 ns | 344,023 B | **26,890x slower** ⚠️ |
 
-**Key Finding:** Upshot is **111x faster** than FluentResults and **20,587x faster** than exceptions with **zero allocations**.
+**Key Finding:** Upshot is **146x faster** than FluentResults and **26,890x faster** than exceptions with **zero allocations**.
 
 ### Mixed Workload (90% success, 10% failure)
 
 | Library       | Mean         | Allocated | vs Upshot            |
 | ------------- | ------------ | --------- | -------------------- |
-| **Upshot**    | **1,272 ns** | **0 B**   | **1.00x (baseline)** |
-| LanguageExt   | 2,001 ns     | 0 B       | 1.57x slower         |
-| FluentResults | 145,585 ns   | 245,600 B | **114x slower** ⚠️    |
-| Exceptions    | 1,657,578 ns | 22,401 B  | **1,303x slower** ⚠️  |
+| **Upshot**    | **1,276 ns** | **0 B**   | **1.00x (baseline)** |
+| LanguageExt   | 1,975 ns     | 0 B       | 1.55x slower         |
+| FluentResults | 92,422 ns    | 245,600 B | **72x slower** ⚠️     |
+| Exceptions    | 1,626,148 ns | 22,401 B  | **1,274x slower** ⚠️  |
 
-**Key Finding:** Upshot is **114x faster** than FluentResults in realistic workloads with **zero allocations** vs 245KB.
+**Key Finding:** Upshot is **72x faster** than FluentResults in realistic workloads with **zero allocations** vs 245KB.
 
 ### Summary
 
 ✅ **Upshot vs FluentResults:**
-- Success: **230x faster**, 0 B vs 176 KB
-- Failure: **111x faster**, 0 B vs 368 KB  
-- Mixed: **114x faster**, 0 B vs 245 KB
+- Success: **189x faster**, 0 B vs 176 KB
+- Failure: **146x faster**, 0 B vs 368 KB  
+- Mixed: **72x faster**, 0 B vs 245 KB
 
 ✅ **Upshot vs Exceptions:**
-- Failure: **20,587x faster**, 0 B vs 344 KB
-- Mixed: **1,303x faster**, 0 B vs 22 KB
+- Failure: **26,890x faster**, 0 B vs 344 KB
+- Mixed: **1,274x faster**, 0 B vs 22 KB
 
 
 ## Comparison Table
@@ -266,8 +267,7 @@ Comprehensive benchmarks comparing Upshot against Exceptions, FluentResults, and
 *Run the benchmarks yourself:*
 
 ```bash
-cd benchmarks/Upshot.Benchmarks
-dotnet run -c Release
+dotnet run -c Release --project benchmarks/Upshot.Benchmarks
 ```
 
 ## Architecture
@@ -301,7 +301,7 @@ Performance validation using BenchmarkDotNet.
 - 📖 **[API Documentation](docs/)** - Detailed API reference (coming soon)
 
 ### Key Highlights
-- **230x faster** than FluentResults on success path
+- **189x faster** than FluentResults on success path
 - **Zero allocation** (0 bytes vs 176-368KB)
 - **100% feature parity** with FluentResults
 - **$10-50k/year** cloud cost savings (depending on scale)
@@ -335,4 +335,4 @@ Built with ❤️ for high-performance .NET applications.
 
 ---
 
-**The Upshot:** FluentResults' features with 230x better performance. Best of both worlds.
+**The Upshot:** FluentResults' features with 189x better performance. Best of both worlds.
