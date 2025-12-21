@@ -17,7 +17,7 @@ We take the security of Upshot seriously. If you believe you have found a securi
 
 ### Reporting Process
 
-1.  **Email**: Send an email to `security@baryo.dev` with the details of the vulnerability.
+1.  **Email**: Send an email to `baryodev@gmail.com` with the details of the vulnerability.
 2.  **Details to Include**:
     *   A description of the vulnerability.
     *   The version(s) affected.
