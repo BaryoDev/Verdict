@@ -38,6 +38,13 @@ jobs:
       - name: Pack packages
         run: dotnet pack Upshot.sln --configuration Release --output ./nupkgs
 
+      - name: Check for NuGet API Key
+        run: |
+          if [ -z "${{ secrets.NUGET_API_KEY }}" ]; then
+            echo "Error: NUGET_API_KEY secret is not set. Please add it to your repository secrets."
+            exit 1
+          fi
+
       - name: Publish to NuGet
         run: dotnet nuget push ./nupkgs/*.nupkg --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
 
