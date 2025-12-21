@@ -25,23 +25,15 @@ jobs:
         run: dotnet restore
 
       - name: Build
-        run: dotnet build --configuration Release --no-restore
-
-      - name: Update package versions
-        run: |
-          VERSION="${{ github.event.inputs.version }}"
-          echo "Updating all packages to version $VERSION"
-
-          # Update all .csproj files
-          find src -name "*.csproj" -type f -exec sed -i "s/<Version>.*<\/Version>/<Version>$VERSION<\/Version>/g" {} \;
+        run: dotnet build --configuration Release --no-restore /p:Version=${{ github.event.inputs.version }}
 
       - name: Pack packages
-        run: dotnet pack Verdict.sln --configuration Release --output ./nupkgs
+        run: dotnet pack Verdict.sln --configuration Release --output ./nupkgs /p:Version=${{ github.event.inputs.version }}
 
       - name: Check for NuGet API Key
         run: |
           if [ -z "${{ secrets.NUGET_API_KEY }}" ]; then
-            echo "Error: NUGET_API_KEY secret is not set. Please add it to your repository secrets."
+            echo "::error::NUGET_API_KEY secret is not set. Please add it to your repository settings."
             exit 1
           fi
 
