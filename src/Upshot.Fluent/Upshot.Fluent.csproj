@@ -16,7 +16,12 @@
     <RepositoryUrl>https://github.com/BaryoDev/Upshot</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageTags>result;error-handling;functional;fluent;extensions</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="../../README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Upshot\Upshot.csproj" />

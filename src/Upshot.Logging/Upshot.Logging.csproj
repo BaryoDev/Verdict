@@ -14,7 +14,12 @@
     <RepositoryUrl>https://github.com/BaryoDev/Upshot</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageTags>result;logging;microsoft-extensions-logging</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="../../README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Upshot\Upshot.csproj" />
