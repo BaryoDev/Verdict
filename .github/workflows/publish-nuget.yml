@@ -1,0 +1,58 @@
+name: Publish to NuGet
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to publish (e.g., 1.0.0)'
+        required: true
+        type: string
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'
+    
+    - name: Restore dependencies
+      run: dotnet restore
+    
+    - name: Build
+      run: dotnet build --configuration Release --no-restore
+    
+    - name: Update package versions
+      run: |
+        VERSION="${{ github.event.inputs.version }}"
+        echo "Updating all packages to version $VERSION"
+        
+        # Update all .csproj files
+        find src -name "*.csproj" -type f -exec sed -i "s/<Version>.*<\/Version>/<Version>$VERSION<\/Version>/g" {} \;
+    
+    - name: Pack packages
+      run: |
+        dotnet pack src/Upshot/Upshot.csproj --configuration Release --no-build --output ./nupkgs
+        dotnet pack src/Upshot.Extensions/Upshot.Extensions.csproj --configuration Release --no-build --output ./nupkgs
+        dotnet pack src/Upshot.Async/Upshot.Async.csproj --configuration Release --no-build --output ./nupkgs
+        dotnet pack src/Upshot.Rich/Upshot.Rich.csproj --configuration Release --no-build --output ./nupkgs
+        dotnet pack src/Upshot.Fluent/Upshot.Fluent.csproj --configuration Release --no-build --output ./nupkgs
+    
+    - name: Publish to NuGet
+      run: |
+        dotnet nuget push "./nupkgs/*.nupkg" \
+          --api-key ${{ secrets.NUGET_API_KEY }} \
+          --source https://api.nuget.org/v3/index.json \
+          --skip-duplicate
+    
+    - name: Create Git tag
+      run: |
+        git config user.name "GitHub Actions"
+        git config user.email "actions@github.com"
+        git tag -a "v${{ github.event.inputs.version }}" -m "Release v${{ github.event.inputs.version }}"
+        git push origin "v${{ github.event.inputs.version }}"

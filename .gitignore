@@ -1,14 +1,28 @@
-# Dependencies
-node_modules/
-vendor/
-
-# Build outputs
-dist/
-build/
-*.exe
+# .NET Build Outputs
+bin/
+obj/
 *.dll
-*.so
-*.dylib
+*.exe
+*.pdb
+*.user
+*.suo
+*.cache
+*.log
+
+# NuGet
+*.nupkg
+*.snupkg
+packages/
+.nuget/
+
+# BenchmarkDotNet
+BenchmarkDotNet.Artifacts/
+**/BenchmarkDotNet.Artifacts/
+
+# Test Results
+TestResults/
+*.trx
+*.coverage
 
 # IDE
 .vscode/
@@ -16,11 +30,19 @@ build/
 *.swp
 *.swo
 *~
+.vs/
 
 # OS
 .DS_Store
 Thumbs.db
 
-# Environment
+# Environment & Secrets
 .env
 .env.local
+*.pfx
+*.key
+secrets.json
+
+# Dependencies
+node_modules/
+vendor/

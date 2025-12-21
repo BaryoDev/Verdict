@@ -1,0 +1,64 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{9661D15E-4A54-4852-866D-15727B4E4F29}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Upshot", "src\Upshot\Upshot.csproj", "{60F7A265-BE29-4CFD-852F-BB563E3AA085}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Upshot.Fluent", "src\Upshot.Fluent\Upshot.Fluent.csproj", "{5A91204E-3834-4350-A888-DACE0DF0AD2A}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "benchmarks", "benchmarks", "{34318781-1174-4BA7-AD73-DFE963A7AA47}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Upshot.Benchmarks", "benchmarks\Upshot.Benchmarks\Upshot.Benchmarks.csproj", "{84DC41F6-F2BF-4731-8A75-3CF5467D8013}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Upshot.Extensions", "src\Upshot.Extensions\Upshot.Extensions.csproj", "{E5C45BFF-8A27-47B1-A481-FDB17730D62D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Upshot.Async", "src\Upshot.Async\Upshot.Async.csproj", "{491FDDE1-509C-4D05-A310-C122A327848B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Upshot.Rich", "src\Upshot.Rich\Upshot.Rich.csproj", "{6F853687-6188-4ED1-A3B0-4E31E267772A}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{60F7A265-BE29-4CFD-852F-BB563E3AA085}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{60F7A265-BE29-4CFD-852F-BB563E3AA085}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{60F7A265-BE29-4CFD-852F-BB563E3AA085}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{60F7A265-BE29-4CFD-852F-BB563E3AA085}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5A91204E-3834-4350-A888-DACE0DF0AD2A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5A91204E-3834-4350-A888-DACE0DF0AD2A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5A91204E-3834-4350-A888-DACE0DF0AD2A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5A91204E-3834-4350-A888-DACE0DF0AD2A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{84DC41F6-F2BF-4731-8A75-3CF5467D8013}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{84DC41F6-F2BF-4731-8A75-3CF5467D8013}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{84DC41F6-F2BF-4731-8A75-3CF5467D8013}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{84DC41F6-F2BF-4731-8A75-3CF5467D8013}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E5C45BFF-8A27-47B1-A481-FDB17730D62D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E5C45BFF-8A27-47B1-A481-FDB17730D62D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E5C45BFF-8A27-47B1-A481-FDB17730D62D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E5C45BFF-8A27-47B1-A481-FDB17730D62D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{491FDDE1-509C-4D05-A310-C122A327848B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{491FDDE1-509C-4D05-A310-C122A327848B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{491FDDE1-509C-4D05-A310-C122A327848B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{491FDDE1-509C-4D05-A310-C122A327848B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6F853687-6188-4ED1-A3B0-4E31E267772A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6F853687-6188-4ED1-A3B0-4E31E267772A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6F853687-6188-4ED1-A3B0-4E31E267772A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6F853687-6188-4ED1-A3B0-4E31E267772A}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{60F7A265-BE29-4CFD-852F-BB563E3AA085} = {9661D15E-4A54-4852-866D-15727B4E4F29}
+		{5A91204E-3834-4350-A888-DACE0DF0AD2A} = {9661D15E-4A54-4852-866D-15727B4E4F29}
+		{84DC41F6-F2BF-4731-8A75-3CF5467D8013} = {34318781-1174-4BA7-AD73-DFE963A7AA47}
+		{E5C45BFF-8A27-47B1-A481-FDB17730D62D} = {9661D15E-4A54-4852-866D-15727B4E4F29}
+		{491FDDE1-509C-4D05-A310-C122A327848B} = {9661D15E-4A54-4852-866D-15727B4E4F29}
+		{6F853687-6188-4ED1-A3B0-4E31E267772A} = {9661D15E-4A54-4852-866D-15727B4E4F29}
+	EndGlobalSection
+EndGlobal
