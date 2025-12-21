@@ -6,7 +6,7 @@
     <Nullable>enable</Nullable>
     
     <!-- Package Metadata -->
-    <PackageId>Baryo.Verdict.Extensions</PackageId>
+    <PackageId>Verdict.Extensions</PackageId>
     <Version>1.0.0</Version>
     <Authors>Baryo.Dev</Authors>
     <Company>Baryo.Dev</Company>
