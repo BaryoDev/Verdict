@@ -1,10 +1,10 @@
-# Upshot
+# Verdict
 
 [![License: MPL 2.0](https://img.shields.io/badge/License-MPL_2.0-brightgreen.svg)](https://opensource.org/licenses/MPL-2.0)
-[![NuGet](https://img.shields.io/nuget/v/Upshot.svg)](https://www.nuget.org/packages/Upshot/)
-[![Build](https://img.shields.io/badge/build-passing-brightgreen.svg)](https://github.com/BaryoDev/Upshot/actions)
-[![Security](https://img.shields.io/badge/security-audited-brightgreen.svg)](https://github.com/BaryoDev/Upshot/blob/main/SECURITY.md)
-[![Test Coverage](https://img.shields.io/badge/coverage-98.4%25-brightgreen.svg)](https://github.com/BaryoDev/Upshot/blob/main/docs/test_coverage_report.md)
+[![NuGet](https://img.shields.io/nuget/v/Verdict.svg)](https://www.nuget.org/packages/Verdict/)
+[![Build](https://img.shields.io/badge/build-passing-brightgreen.svg)](https://github.com/BaryoDev/Verdict/actions)
+[![Security](https://img.shields.io/badge/security-audited-brightgreen.svg)](https://github.com/BaryoDev/Verdict/blob/main/SECURITY.md)
+[![Test Coverage](https://img.shields.io/badge/coverage-98.4%25-brightgreen.svg)](https://github.com/BaryoDev/Verdict/blob/main/docs/test_coverage_report.md)
 
 > **"FluentResults' features with 189x better performance. Best of both worlds."**
 
@@ -12,15 +12,15 @@
 
 **Problem:** Exception-based error handling kills performance (20,000x slower). FluentResults is feature-rich but allocates 176-368KB per 1000 operations.
 
-**Solution:** Upshot delivers **zero-allocation** error handling with **72-189x better performance** than FluentResults, while providing the same enterprise features through opt-in packages.
+**Solution:** Verdict delivers **zero-allocation** error handling with **72-189x better performance** than FluentResults, while providing the same enterprise features through opt-in packages.
 
-**ROI:** In a 100k req/sec API, Upshot eliminates ~25GB/sec of GC pressure. That's real cost savings in cloud infrastructure.
+**ROI:** In a 100k req/sec API, Verdict eliminates ~25GB/sec of GC pressure. That's real cost savings in cloud infrastructure.
 
 **Risk:** Zero. Drop-in replacement. Start with core (zero allocation), add features as needed. No vendor lock-in (MPL-2.0).
 
 ---
 
-## Why Architects Choose Upshot
+## Why Architects Choose Verdict
 
 ### 1. **Proven Performance** (Verified Benchmarks)
 - ✅ **189x faster** than FluentResults on success path
@@ -53,41 +53,41 @@
 
 ### Core Package (Zero Dependencies)
 ```bash
-dotnet add package Upshot
+dotnet add package Verdict
 ```
 
 ### Extension Packages (Opt-In Features)
 ```bash
 # Multi-error support, validation, combine operations
-dotnet add package Upshot.Extensions
+dotnet add package Verdict.Extensions
 
 # Async/await fluent API
-dotnet add package Upshot.Async
+dotnet add package Verdict.Async
 
 # Success/error metadata, global factories
-dotnet add package Upshot.Rich
+dotnet add package Verdict.Rich
 
 # Auto-logging integration
-dotnet add package Upshot.Logging
+dotnet add package Verdict.Logging
 
 # ASP.NET Core integration
-dotnet add package Upshot.AspNetCore
+dotnet add package Verdict.AspNetCore
 
 # Original fluent extensions
-dotnet add package Upshot.Fluent
+dotnet add package Verdict.Fluent
 ```
 
 ## Package Ecosystem
 
 | Package               | Purpose                 | Dependencies          | Allocation       |
 | --------------------- | ----------------------- | --------------------- | ---------------- |
-| **Upshot**            | Core Result types       | Zero                  | 0 bytes          |
-| **Upshot.Extensions** | Multi-error, validation | System.Memory         | ~200 bytes       |
-| **Upshot.Async**      | Async fluent API        | Zero                  | Task only        |
-| **Upshot.Rich**       | Success/error metadata  | Zero                  | ~160-350 bytes   |
-| **Upshot.Logging**    | Auto-logging            | MS.Extensions.Logging | Logging overhead |
-| **Upshot.AspNetCore** | Web integration         | ASP.NET Core          | HTTP overhead    |
-| **Upshot.Fluent**     | Original fluent API     | Zero                  | 0 bytes          |
+| **Verdict**            | Core Result types       | Zero                  | 0 bytes          |
+| **Verdict.Extensions** | Multi-error, validation | System.Memory         | ~200 bytes       |
+| **Verdict.Async**      | Async fluent API        | Zero                  | Task only        |
+| **Verdict.Rich**       | Success/error metadata  | Zero                  | ~160-350 bytes   |
+| **Verdict.Logging**    | Auto-logging            | MS.Extensions.Logging | Logging overhead |
+| **Verdict.AspNetCore** | Web integration         | ASP.NET Core          | HTTP overhead    |
+| **Verdict.Fluent**     | Original fluent API     | Zero                  | 0 bytes          |
 
 **Design Philosophy:** Start with zero-allocation core. Scale to enterprise features through opt-in packages. Never compromise on speed.
 
@@ -97,7 +97,7 @@ dotnet add package Upshot.Fluent
 ### Basic Usage
 
 ```csharp
-using Upshot;
+using Verdict;
 
 // Success case
 Result<int> Divide(int numerator, int denominator)
@@ -123,7 +123,7 @@ else
 ### Implicit Conversions
 
 ```csharp
-using Upshot;
+using Verdict;
 
 Result<int> GetValue()
 {
@@ -141,8 +141,8 @@ Result<string> GetError()
 ### Fluent Extensions
 
 ```csharp
-using Upshot;
-using Upshot.Fluent;
+using Verdict;
+using Verdict.Fluent;
 
 var result = Divide(10, 2)
     .Map(x => x * 2)                    // Transform success value
@@ -161,11 +161,11 @@ var message = result.Match(
 > **"We're replacing Exceptions for logic flow and FluentResults for object wrappers."**
 >
 > If you're building a generic business app, use FluentResults.  
-> But if you're building a **High-Performance System** (like a Headless CMS, API Gateway, or microservice) where every millisecond and every byte of memory counts, you use **Upshot**.
+> But if you're building a **High-Performance System** (like a Headless CMS, API Gateway, or microservice) where every millisecond and every byte of memory counts, you use **Verdict**.
 
-## Why Upshot? The "Kill List"
+## Why Verdict? The "Kill List"
 
-Upshot replaces three categories of "Standard Practice" that are either **Too Slow**, **Too Heavy**, or **Too Complex** for modern, high-performance microservices.
+Verdict replaces three categories of "Standard Practice" that are either **Too Slow**, **Too Heavy**, or **Too Complex** for modern, high-performance microservices.
 
 ### 1. The Native Enemy: **Exceptions** (try/catch)
 
@@ -175,7 +175,7 @@ Upshot replaces three categories of "Standard Practice" that are either **Too Sl
 - Throwing an exception forces the runtime to halt, capture the stack trace (expensive), and unwind the stack.
 - In a high-throughput API (e.g., 10k requests/sec), throwing exceptions for "expected" errors (like validation failures) kills your CPU.
 
-**The Upshot Win:** Upshot returns a struct. It's just a value return. It's **~50,000x faster** than throwing an exception.
+**The Verdict Win:** Verdict returns a struct. It's just a value return. It's **~50,000x faster** than throwing an exception.
 
 ### 2. The Heavyweight Champion: **FluentResults**
 
@@ -185,7 +185,7 @@ Upshot replaces three categories of "Standard Practice" that are either **Too Sl
 - FluentResults is **class-based**. Every time you return `Result.Ok()`, it allocates memory on the heap.
 - It creates linked lists for errors and reasons. It's feature-rich but "heavy."
 
-**The Upshot Win:** Upshot uses a `readonly struct`.
+**The Verdict Win:** Verdict uses a `readonly struct`.
 - **Success Path:** 0 bytes allocated
 - **Failure Path:** 0 bytes allocated
 - Your library creates **zero garbage** for the Garbage Collector to clean up.
@@ -197,63 +197,63 @@ Upshot replaces three categories of "Standard Practice" that are either **Too Sl
 **Why we replace it:** **Cognitive Load.**
 - To use LanguageExt, your team has to learn functional programming concepts (Monads, Functors). It changes how you write C#.
 
-**The Upshot Win:** Upshot is **C# idiomatic**.
+**The Verdict Win:** Verdict is **C# idiomatic**.
 - It doesn't force you to learn Monads.
 - It just gives you `.IsSuccess` and `.Error`.
 - Junior developers understand it instantly.
 
 ## Competitive Benchmarks (Verified Results)
 
-Comprehensive benchmarks comparing Upshot against Exceptions, FluentResults, and LanguageExt on Apple M1:
+Comprehensive benchmarks comparing Verdict against Exceptions, FluentResults, and LanguageExt on Apple M1:
 
 ### Success Path (Happy Path)
 
-| Library       | Mean       | Allocated | vs Upshot            |
+| Library       | Mean       | Allocated | vs Verdict            |
 | ------------- | ---------- | --------- | -------------------- |
-| **Upshot**    | **335 ns** | **0 B**   | **1.00x (baseline)** |
+| **Verdict**    | **335 ns** | **0 B**   | **1.00x (baseline)** |
 | Exceptions    | 336 ns     | 0 B       | 1.00x                |
 | LanguageExt   | 1,326 ns   | 0 B       | 3.96x slower         |
 | FluentResults | 63,303 ns  | 176,000 B | **189x slower** ⚠️    |
 
-**Key Finding:** Upshot is **189x faster** than FluentResults with **zero allocations** vs 176KB per 1000 operations.
+**Key Finding:** Verdict is **189x faster** than FluentResults with **zero allocations** vs 176KB per 1000 operations.
 
 ### Failure Path (Error Handling)
 
-| Library       | Mean          | Allocated | vs Upshot            |
+| Library       | Mean          | Allocated | vs Verdict            |
 | ------------- | ------------- | --------- | -------------------- |
-| **Upshot**    | **626 ns**    | **0 B**   | **1.00x (baseline)** |
+| **Verdict**    | **626 ns**    | **0 B**   | **1.00x (baseline)** |
 | LanguageExt   | 2,160 ns      | 96 B      | 3.45x slower         |
 | FluentResults | 91,343 ns     | 368,000 B | **146x slower** ⚠️    |
 | Exceptions    | 16,836,328 ns | 344,023 B | **26,890x slower** ⚠️ |
 
-**Key Finding:** Upshot is **146x faster** than FluentResults and **26,890x faster** than exceptions with **zero allocations**.
+**Key Finding:** Verdict is **146x faster** than FluentResults and **26,890x faster** than exceptions with **zero allocations**.
 
 ### Mixed Workload (90% success, 10% failure)
 
-| Library       | Mean         | Allocated | vs Upshot            |
+| Library       | Mean         | Allocated | vs Verdict            |
 | ------------- | ------------ | --------- | -------------------- |
-| **Upshot**    | **1,276 ns** | **0 B**   | **1.00x (baseline)** |
+| **Verdict**    | **1,276 ns** | **0 B**   | **1.00x (baseline)** |
 | LanguageExt   | 1,975 ns     | 0 B       | 1.55x slower         |
 | FluentResults | 92,422 ns    | 245,600 B | **72x slower** ⚠️     |
 | Exceptions    | 1,626,148 ns | 22,401 B  | **1,274x slower** ⚠️  |
 
-**Key Finding:** Upshot is **72x faster** than FluentResults in realistic workloads with **zero allocations** vs 245KB.
+**Key Finding:** Verdict is **72x faster** than FluentResults in realistic workloads with **zero allocations** vs 245KB.
 
 ### Summary
 
-✅ **Upshot vs FluentResults:**
+✅ **Verdict vs FluentResults:**
 - Success: **189x faster**, 0 B vs 176 KB
 - Failure: **146x faster**, 0 B vs 368 KB  
 - Mixed: **72x faster**, 0 B vs 245 KB
 
-✅ **Upshot vs Exceptions:**
+✅ **Verdict vs Exceptions:**
 - Failure: **26,890x faster**, 0 B vs 344 KB
 - Mixed: **1,274x faster**, 0 B vs 22 KB
 
 
 ## Comparison Table
 
-| Feature                | Upshot (Baryo.Dev)    | FluentResults | Exceptions | LanguageExt       |
+| Feature                | Verdict (Baryo.Dev)    | FluentResults | Exceptions | LanguageExt       |
 | ---------------------- | --------------------- | ------------- | ---------- | ----------------- |
 | **Philosophy**         | Digital Essentialism  | Feature Rich  | Native     | Functional Purity |
 | **Memory**             | Stack (Struct)        | Heap (Class)  | Expensive  | Heap/Mixed        |
@@ -267,33 +267,33 @@ Comprehensive benchmarks comparing Upshot against Exceptions, FluentResults, and
 *Run the benchmarks yourself:*
 
 ```bash
-dotnet run -c Release --project benchmarks/Upshot.Benchmarks
+dotnet run -c Release --project benchmarks/Verdict.Benchmarks
 ```
 
 ## Architecture
 
-Upshot follows a clean separation of concerns:
+Verdict follows a clean separation of concerns:
 
-### Core (`Upshot`)
+### Core (`Verdict`)
 Pure data structures with zero dependencies:
 - `Result<T>`: The core result type
 - `Error`: Lightweight error representation
 
-### Fluent (`Upshot.Fluent`)
+### Fluent (`Verdict.Fluent`)
 Optional functional extensions:
 - `Match<T, TOut>`: Pattern matching
 - `Map<T, K>`: Functor mapping
 - `OnSuccess`: Side-effect on success
 - `OnFailure`: Side-effect on failure
 
-### Benchmarks (`Upshot.Benchmarks`)
+### Benchmarks (`Verdict.Benchmarks`)
 Performance validation using BenchmarkDotNet.
 
 ## Documentation
 
 ### For Architects & Decision Makers
 - 📊 **[Architect's Decision Guide](docs/architects_decision_guide.md)** - ROI calculations, migration strategy, risk assessment
-- 🎯 **[How Upshot Does It Better](docs/how_upshot_does_it_better.md)** - Feature-by-feature comparison with FluentResults
+- 🎯 **[How Verdict Does It Better](docs/how_verdict_does_it_better.md)** - Feature-by-feature comparison with FluentResults
 - 🔒 **[Security Audit](docs/security_audit.md)** - Comprehensive security assessment (zero vulnerabilities)
 
 ### For Developers
@@ -335,4 +335,4 @@ Built with ❤️ for high-performance .NET applications.
 
 ---
 
-**The Upshot:** FluentResults' features with 189x better performance. Best of both worlds.
+**The Verdict:** FluentResults' features with 189x better performance. Best of both worlds.

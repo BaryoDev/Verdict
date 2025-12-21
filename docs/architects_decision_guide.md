@@ -1,8 +1,8 @@
-# Upshot: Architect's Decision Guide
+# Verdict: Architect's Decision Guide
 
 ## Executive Summary
 
-**Recommendation:** Adopt Upshot for performance-critical services. Migrate incrementally from FluentResults/Exceptions.
+**Recommendation:** Adopt Verdict for performance-critical services. Migrate incrementally from FluentResults/Exceptions.
 
 **Expected ROI:** 30-70% reduction in GC overhead, 2-5x throughput improvement, $10-50k/year cloud cost savings (depending on scale).
 
@@ -12,17 +12,17 @@
 
 ## Decision Matrix
 
-### When to Use Upshot
+### When to Use Verdict
 
-| Scenario                                | Use Upshot? | Why                                                   |
+| Scenario                                | Use Verdict? | Why                                                   |
 | --------------------------------------- | ----------- | ----------------------------------------------------- |
 | **High-throughput API (>100k req/sec)** | ✅ **YES**   | Zero allocation eliminates GC pressure                |
 | **Low-latency service (<10ms p99)**     | ✅ **YES**   | 230x faster than FluentResults                        |
 | **Memory-constrained environment**      | ✅ **YES**   | 0 bytes vs 176-368KB per 1000 ops                     |
 | **Microservices architecture**          | ✅ **YES**   | Minimal footprint, fast startup                       |
 | **Real-time systems (gaming, trading)** | ✅ **YES**   | Predictable performance, no GC pauses                 |
-| **Standard CRUD app (<10k req/sec)**    | ⚠️ **MAYBE** | FluentResults acceptable, but Upshot still better     |
-| **Internal tools / prototypes**         | ⚠️ **MAYBE** | Performance not critical, but zero cost to use Upshot |
+| **Standard CRUD app (<10k req/sec)**    | ⚠️ **MAYBE** | FluentResults acceptable, but Verdict still better     |
+| **Internal tools / prototypes**         | ⚠️ **MAYBE** | Performance not critical, but zero cost to use Verdict |
 | **Legacy codebase (heavy exceptions)**  | ✅ **YES**   | Incremental migration, 20,000x faster                 |
 
 ---
@@ -37,7 +37,7 @@
 - GC pressure: Gen0 collections every ~100ms
 - CPU overhead: ~15% spent in GC
 
-**With Upshot:**
+**With Verdict:**
 - Allocation: 0 bytes
 - Total allocation: **0 GB/sec**
 - GC pressure: Eliminated
@@ -54,7 +54,7 @@
 - p99 latency: 50ms (exception overhead)
 - Throughput: 10k req/sec
 
-**With Upshot:**
+**With Verdict:**
 - p99 latency: 2ms (20,000x faster)
 - Throughput: 50k req/sec (5x improvement)
 
@@ -69,7 +69,7 @@
 
 ### Phase 1: New Code (Week 1)
 ```csharp
-// Start using Upshot for new endpoints
+// Start using Verdict for new endpoints
 public Result<User> CreateUser(CreateUserDto dto)
 {
     return Result<User>.Success(new User(dto));
@@ -98,7 +98,7 @@ public Result<Order> ProcessOrder(int orderId)
 ```csharp
 // Migrate from FluentResults
 // Old: Result.Ok(user).WithSuccess("Created")
-// New: Result<User>.Success(user).WithSuccess("Created")  // Upshot.Rich
+// New: Result<User>.Success(user).WithSuccess("Created")  // Verdict.Rich
 ```
 
 **Risk:** Low (API compatible)  
@@ -106,7 +106,7 @@ public Result<Order> ProcessOrder(int orderId)
 **Benefit:** 230x faster, same features
 
 ### Phase 4: Full Adoption (Month 4+)
-- All new code uses Upshot
+- All new code uses Verdict
 - Legacy code migrated incrementally
 - Exception-based code replaced
 
@@ -116,47 +116,47 @@ public Result<Order> ProcessOrder(int orderId)
 
 ---
 
-## Feature Comparison: Upshot vs Alternatives
+## Feature Comparison: Verdict vs Alternatives
 
 ### vs FluentResults
 
-| Feature            | FluentResults | Upshot              | Winner            |
+| Feature            | FluentResults | Verdict              | Winner            |
 | ------------------ | ------------- | ------------------- | ----------------- |
-| **Performance**    | Acceptable    | Exceptional         | **Upshot (230x)** |
-| **Memory**         | 176-368KB     | 0 bytes             | **Upshot**        |
+| **Performance**    | Acceptable    | Exceptional         | **Verdict (230x)** |
+| **Memory**         | 176-368KB     | 0 bytes             | **Verdict**        |
 | **Features**       | Rich          | Rich (via packages) | **Tie**           |
 | **Maturity**       | 5+ years      | New                 | **FluentResults** |
 | **Dependencies**   | 0             | 0 (core)            | **Tie**           |
 | **Learning Curve** | Low           | Low                 | **Tie**           |
-| **Async Support**  | None          | Full                | **Upshot**        |
+| **Async Support**  | None          | Full                | **Verdict**        |
 
-**Verdict:** Upshot wins on performance, FluentResults wins on maturity. For new projects or performance-critical systems, choose Upshot.
+**Verdict:** Verdict wins on performance, FluentResults wins on maturity. For new projects or performance-critical systems, choose Verdict.
 
 ### vs Exceptions
 
-| Feature             | Exceptions | Upshot      | Winner               |
+| Feature             | Exceptions | Verdict      | Winner               |
 | ------------------- | ---------- | ----------- | -------------------- |
-| **Performance**     | Terrible   | Exceptional | **Upshot (20,000x)** |
-| **Memory**          | 344KB      | 0 bytes     | **Upshot**           |
-| **Explicit Errors** | No         | Yes         | **Upshot**           |
-| **Type Safety**     | No         | Yes         | **Upshot**           |
+| **Performance**     | Terrible   | Exceptional | **Verdict (20,000x)** |
+| **Memory**          | 344KB      | 0 bytes     | **Verdict**           |
+| **Explicit Errors** | No         | Yes         | **Verdict**           |
+| **Type Safety**     | No         | Yes         | **Verdict**           |
 | **Stack Traces**    | Yes        | Optional    | **Exceptions**       |
 | **Native**          | Yes        | Library     | **Exceptions**       |
 
-**Verdict:** Exceptions only for truly exceptional cases. Use Upshot for expected errors (validation, not found, etc.).
+**Verdict:** Exceptions only for truly exceptional cases. Use Verdict for expected errors (validation, not found, etc.).
 
 ### vs LanguageExt
 
-| Feature            | LanguageExt | Upshot      | Winner            |
+| Feature            | LanguageExt | Verdict      | Winner            |
 | ------------------ | ----------- | ----------- | ----------------- |
-| **Performance**    | Good        | Exceptional | **Upshot (3.9x)** |
-| **Memory**         | 0-96 bytes  | 0 bytes     | **Upshot**        |
+| **Performance**    | Good        | Exceptional | **Verdict (3.9x)** |
+| **Memory**         | 0-96 bytes  | 0 bytes     | **Verdict**        |
 | **Features**       | Massive     | Focused     | **Depends**       |
-| **Learning Curve** | High (FP)   | Low         | **Upshot**        |
-| **Dependencies**   | Many        | 0 (core)    | **Upshot**        |
-| **Team Adoption**  | Difficult   | Easy        | **Upshot**        |
+| **Learning Curve** | High (FP)   | Low         | **Verdict**        |
+| **Dependencies**   | Many        | 0 (core)    | **Verdict**        |
+| **Team Adoption**  | Difficult   | Easy        | **Verdict**        |
 
-**Verdict:** LanguageExt for FP purists. Upshot for pragmatic teams.
+**Verdict:** LanguageExt for FP purists. Verdict for pragmatic teams.
 
 ---
 
@@ -195,7 +195,7 @@ public Result<Order> ProcessOrder(int orderId)
 - p99 latency: 150ms
 - Instance size: c5.4xlarge ($0.68/hr)
 
-**After (Upshot):**
+**After (Verdict):**
 - GC pauses: <10ms every 2s
 - p99 latency: 45ms
 - Instance size: c5.2xlarge ($0.34/hr)
@@ -209,7 +209,7 @@ public Result<Order> ProcessOrder(int orderId)
 - Throughput: 5k req/sec
 - Error rate: 15% (validation failures)
 
-**After (Upshot):**
+**After (Verdict):**
 - Validation errors: 1μs per request
 - Throughput: 25k req/sec
 - Error rate: 15% (same, but faster)
@@ -223,7 +223,7 @@ public Result<Order> ProcessOrder(int orderId)
 - GC pauses: Unpredictable
 - Player experience: Laggy
 
-**After (Upshot):**
+**After (Verdict):**
 - p99 latency: 3ms
 - GC pauses: Rare
 - Player experience: Smooth
@@ -248,7 +248,7 @@ public Result<Order> ProcessOrder(int orderId)
 
 - [ ] Prototype in non-critical service
 - [ ] Measure performance improvement
-- [ ] Train team on Upshot patterns
+- [ ] Train team on Verdict patterns
 - [ ] Update coding standards
 - [ ] Create migration playbook
 - [ ] Set up CI/CD benchmarks
@@ -256,7 +256,7 @@ public Result<Order> ProcessOrder(int orderId)
 
 ### For Developers
 
-- [ ] Read Upshot documentation
+- [ ] Read Verdict documentation
 - [ ] Try quick start examples
 - [ ] Understand Result pattern
 - [ ] Learn package ecosystem
@@ -276,7 +276,7 @@ public Result<Order> ProcessOrder(int orderId)
 3. Is throughput critical? (>50k req/sec)
 4. Are cloud costs high? (>$10k/month)
 
-**If YES to any:** Upshot is a strong candidate.
+**If YES to any:** Verdict is a strong candidate.
 
 ### Step 2: Evaluate Alternatives
 
@@ -285,7 +285,7 @@ public Result<Order> ProcessOrder(int orderId)
 2. Is FluentResults good enough? (Maybe, but 230x slower)
 3. Do we need FP purity? (LanguageExt, but harder to learn)
 
-**If NO to all:** Upshot is the best choice.
+**If NO to all:** Verdict is the best choice.
 
 ### Step 3: Calculate ROI
 
@@ -302,7 +302,7 @@ ROI = (Cost Savings + Revenue Increase) - Migration Cost
 
 ### Step 4: Make Decision
 
-**If ROI > 2x:** ✅ **ADOPT UPSHOT**  
+**If ROI > 2x:** ✅ **ADOPT VERDICT**  
 **If ROI 1-2x:** ⚠️ **PILOT FIRST**  
 **If ROI < 1x:** ❌ **STICK WITH CURRENT**
 
@@ -310,13 +310,13 @@ ROI = (Cost Savings + Revenue Increase) - Migration Cost
 
 ## Frequently Asked Questions
 
-### Q: Is Upshot production-ready?
+### Q: Is Verdict production-ready?
 
 **A:** Yes. Security audited, zero vulnerabilities, comprehensive benchmarks, all packages build successfully.
 
 ### Q: Can we migrate from FluentResults?
 
-**A:** Yes. API is similar, migration is straightforward. Use Upshot.Rich for feature parity.
+**A:** Yes. API is similar, migration is straightforward. Use Verdict.Rich for feature parity.
 
 ### Q: What if we need features not in core?
 
@@ -328,7 +328,7 @@ ROI = (Cost Savings + Revenue Increase) - Migration Cost
 
 ### Q: What's the learning curve?
 
-**A:** Low. If you understand `if (result.IsSuccess)`, you understand Upshot.
+**A:** Low. If you understand `if (result.IsSuccess)`, you understand Verdict.
 
 ### Q: Can we use it alongside FluentResults?
 
@@ -342,7 +342,7 @@ ROI = (Cost Savings + Revenue Increase) - Migration Cost
 
 ## Conclusion
 
-**Recommendation:** ✅ **ADOPT UPSHOT**
+**Recommendation:** ✅ **ADOPT VERDICT**
 
 **Rationale:**
 1. **Proven Performance:** 111-230x faster than FluentResults (verified)
@@ -359,4 +359,4 @@ ROI = (Cost Savings + Revenue Increase) - Migration Cost
 5. Train team
 6. Roll out incrementally
 
-**The Upshot:** You get FluentResults' features with 230x better performance. Best of both worlds.
+**The Verdict:** You get FluentResults' features with 230x better performance. Best of both worlds.

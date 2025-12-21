@@ -2,7 +2,7 @@
 
 ## Supported Versions
 
-The following versions of Upshot are currently supported with security updates:
+The following versions of Verdict are currently supported with security updates:
 
 | Version | Supported          |
 | ------- | ------------------ |
@@ -11,7 +11,7 @@ The following versions of Upshot are currently supported with security updates:
 
 ## Reporting a Vulnerability
 
-We take the security of Upshot seriously. If you believe you have found a security vulnerability in this project, please report it to us as described below.
+We take the security of Verdict seriously. If you believe you have found a security vulnerability in this project, please report it to us as described below.
 
 **Please do not report security vulnerabilities through public GitHub issues.**
 
@@ -38,7 +38,7 @@ We follow a policy of coordinated vulnerability disclosure. We ask that you give
 
 ## Security Audit
 
-Upshot is built with a "zero-trust" approach to memory safety and performance. We use `readonly struct` and avoid unnecessary allocations to minimize the attack surface related to memory corruption and DOS attacks.
+Verdict is built with a "zero-trust" approach to memory safety and performance. We use `readonly struct` and avoid unnecessary allocations to minimize the attack surface related to memory corruption and DOS attacks.
 
 ---
 *Last Updated: December 2025*

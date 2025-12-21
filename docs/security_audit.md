@@ -1,4 +1,4 @@
-# Upshot 1.0 Security Audit
+# Verdict 1.0 Security Audit
 
 **Date:** 2025-12-26  
 **Version:** 1.0.0  
@@ -8,7 +8,7 @@
 
 ## Executive Summary
 
-✅ **PASS** - Upshot 1.0 has passed all security checks with zero critical vulnerabilities.
+✅ **PASS** - Verdict 1.0 has passed all security checks with zero critical vulnerabilities.
 
 **Key Findings:**
 - ✅ Zero external dependencies (core package)
@@ -22,18 +22,18 @@
 
 ## 1. Dependency Analysis
 
-### Core Package (Upshot)
+### Core Package (Verdict)
 - **Dependencies:** 0
 - **Risk:** ✅ **NONE** - Zero attack surface from dependencies
 
 ### Extension Packages
 | Package           | Dependencies                       | Risk Level                             |
 | ----------------- | ---------------------------------- | -------------------------------------- |
-| Upshot.Extensions | System.Memory (Microsoft)          | ✅ **LOW** - Official Microsoft package |
-| Upshot.Async      | 0                                  | ✅ **NONE**                             |
-| Upshot.Rich       | 0                                  | ✅ **NONE**                             |
-| Upshot.Logging    | MS.Extensions.Logging.Abstractions | ✅ **LOW** - Official Microsoft package |
-| Upshot.AspNetCore | ASP.NET Core                       | ✅ **LOW** - Official Microsoft package |
+| Verdict.Extensions | System.Memory (Microsoft)          | ✅ **LOW** - Official Microsoft package |
+| Verdict.Async      | 0                                  | ✅ **NONE**                             |
+| Verdict.Rich       | 0                                  | ✅ **NONE**                             |
+| Verdict.Logging    | MS.Extensions.Logging.Abstractions | ✅ **LOW** - Official Microsoft package |
+| Verdict.AspNetCore | ASP.NET Core                       | ✅ **LOW** - Official Microsoft package |
 
 **Verdict:** ✅ **PASS** - All dependencies are official Microsoft packages with strong security track records.
 
@@ -129,8 +129,8 @@ secrets.json
 
 ```xml
 <PackageLicenseExpression>MPL-2.0</PackageLicenseExpression>
-<PackageProjectUrl>https://github.com/BaryoDev/Upshot</PackageProjectUrl>
-<RepositoryUrl>https://github.com/BaryoDev/Upshot</RepositoryUrl>
+<PackageProjectUrl>https://github.com/BaryoDev/Verdict</PackageProjectUrl>
+<RepositoryUrl>https://github.com/BaryoDev/Verdict</RepositoryUrl>
 ```
 
 ✅ **PASS** - Proper licensing and source attribution.
@@ -282,7 +282,7 @@ Build succeeded.
 
 **Recommendation:** **APPROVED FOR RELEASE**
 
-Upshot 1.0 demonstrates excellent security practices with:
+Verdict 1.0 demonstrates excellent security practices with:
 - Minimal attack surface (zero dependencies)
 - Immutable, thread-safe design
 - Proper input validation
@@ -315,4 +315,4 @@ Upshot 1.0 demonstrates excellent security practices with:
 - dotnet CLI for dependency analysis
 - BenchmarkDotNet for performance validation
 
-**Conclusion:** Upshot 1.0 is secure and ready for production use.
+**Conclusion:** Verdict 1.0 is secure and ready for production use.

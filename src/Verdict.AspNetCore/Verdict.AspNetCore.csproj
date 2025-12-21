@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+
+    <PackageId>Baryo.Verdict.AspNetCore</PackageId>
+    <Version>1.0.0</Version>
+    <Authors>Baryo.Dev</Authors>
+    <Company>Baryo.Dev</Company>
+    <Description>Baryo.Dev: ASP.NET Core integration for Verdict. Automatic Result to IResult conversion, ProblemDetails RFC 7807 support, and Minimal API extensions.</Description>
+    <PackageLicenseExpression>MPL-2.0</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/BaryoDev/Verdict</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/BaryoDev/Verdict</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageTags>result;aspnetcore;minimal-api;problemdetails</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="../../README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Verdict\Verdict.csproj" />
+    <ProjectReference Include="..\Verdict.Extensions\Verdict.Extensions.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+</Project>

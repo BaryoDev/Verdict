@@ -1,17 +1,17 @@
 using System;
-using Upshot;
-using Upshot.Fluent;
+using Verdict;
+using Verdict.Fluent;
 
-namespace Upshot.Examples;
+namespace Verdict.Examples;
 
 /// <summary>
-/// Example demonstrating Upshot usage patterns.
+/// Example demonstrating Verdict usage patterns.
 /// </summary>
 public class Examples
 {
     public static void Main()
     {
-        Console.WriteLine("=== Upshot Examples ===\n");
+        Console.WriteLine("=== Verdict Examples ===\n");
         
         BasicUsageExample();
         ImplicitConversionExample();

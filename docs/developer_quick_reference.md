@@ -1,11 +1,11 @@
-# Upshot: Developer Quick Reference
+# Verdict: Developer Quick Reference
 
 ## Common Patterns
 
 ### 1. Basic Success/Failure
 
 ```csharp
-using Upshot;
+using Verdict;
 
 // Success
 public Result<User> GetUser(int id)
@@ -31,7 +31,7 @@ public Result<User> GetUser(int id)
 ### 2. Validation (Multi-Error)
 
 ```csharp
-using Upshot.Extensions;
+using Verdict.Extensions;
 
 public MultiResult<User> ValidateUser(User user)
 {
@@ -58,7 +58,7 @@ if (result.IsFailure)
 ### 3. Async Operations
 
 ```csharp
-using Upshot.Async;
+using Verdict.Async;
 
 public async Task<Result<OrderDto>> ProcessOrderAsync(int orderId)
 {
@@ -75,7 +75,7 @@ public async Task<Result<OrderDto>> ProcessOrderAsync(int orderId)
 ### 4. Success Metadata (Audit Trails)
 
 ```csharp
-using Upshot.Rich;
+using Verdict.Rich;
 
 public Result<User> CreateUser(CreateUserDto dto)
 {
@@ -102,7 +102,7 @@ foreach (var success in result.GetSuccesses())
 ### 5. Error Metadata (Debugging)
 
 ```csharp
-using Upshot.Rich;
+using Verdict.Rich;
 
 public Result<Payment> ProcessPayment(PaymentRequest request)
 {
@@ -125,7 +125,7 @@ public Result<Payment> ProcessPayment(PaymentRequest request)
 ### 6. ASP.NET Core Integration
 
 ```csharp
-using Upshot.AspNetCore;
+using Verdict.AspNetCore;
 
 [ApiController]
 [Route("api/[controller]")]
@@ -163,7 +163,7 @@ public class UsersController : ControllerBase
 ### 7. Combining Results
 
 ```csharp
-using Upshot.Extensions;
+using Verdict.Extensions;
 
 // Combine multiple results
 var emailResult = ValidateEmail(email);
@@ -194,7 +194,7 @@ else
 ### 8. Try/Catch Helpers
 
 ```csharp
-using Upshot.Extensions;
+using Verdict.Extensions;
 
 // Convert exceptions to Results
 public Result<User> GetUserSafe(int id)
@@ -241,7 +241,7 @@ var user = GetUser(id).ValueOr(User.Guest); // fallback value
 ### 10. Logging Integration
 
 ```csharp
-using Upshot.Logging;
+using Verdict.Logging;
 
 public Result<User> GetUser(int id)
 {
@@ -334,10 +334,10 @@ var result = Result.Ok(user)
     .WithSuccess("Email sent");
 ```
 
-### After (Upshot)
+### After (Verdict)
 
 ```csharp
-using Upshot;
+using Verdict;
 
 public Result<User> GetUser(int id)
 {
@@ -348,15 +348,15 @@ public Result<User> GetUser(int id)
     return Result<User>.Success(user);
 }
 
-// Validation (Upshot.Extensions)
-using Upshot.Extensions;
+// Validation (Verdict.Extensions)
+using Verdict.Extensions;
 
 var result = Result<User>.Success(user)
     .Ensure(u => u.Email.Contains("@"), "INVALID_EMAIL", "Invalid email")
     .Ensure(u => u.Age >= 18, "UNDERAGE", "Must be 18+");
 
-// Success messages (Upshot.Rich)
-using Upshot.Rich;
+// Success messages (Verdict.Rich)
+using Verdict.Rich;
 
 var result = Result<User>.Success(user)
     .WithSuccess("User created")
@@ -364,9 +364,9 @@ var result = Result<User>.Success(user)
 ```
 
 **Key Differences:**
-1. Upshot requires error codes (better for APIs)
-2. Upshot has separate packages for features (opt-in)
-3. Upshot is 230x faster with zero allocation
+1. Verdict requires error codes (better for APIs)
+2. Verdict has separate packages for features (opt-in)
+3. Verdict is 230x faster with zero allocation
 
 ---
 
@@ -389,7 +389,7 @@ public Result<decimal> CalculateTotal(Order order)
 // Warm path (called thousands of times)
 public MultiResult<Order> ValidateOrder(Order order)
 {
-    // Use Upshot.Extensions - minimal allocation
+    // Use Verdict.Extensions - minimal allocation
     return ValidationExtensions.ValidateAll(order, ...);
 }
 ```
@@ -400,7 +400,7 @@ public MultiResult<Order> ValidateOrder(Order order)
 // Cold path (called rarely, needs audit)
 public Result<User> CreateUser(CreateUserDto dto)
 {
-    // Use Upshot.Rich - metadata overhead acceptable
+    // Use Verdict.Rich - metadata overhead acceptable
     return Result<User>.Success(new User(dto))
         .WithSuccess("User created")
         .WithSuccess(new SuccessInfo("Audit logged")
@@ -496,10 +496,10 @@ public MultiResult<RegistrationDto> ValidateRegistration(RegistrationDto dto)
 
 ---
 
-## The Upshot
+## The Verdict
 
 **Start simple:** Use core `Result<T>` for basic success/failure.  
 **Add features:** Use extension packages as needed.  
 **Stay fast:** Zero allocation, 230x faster than FluentResults.
 
-**Questions?** Check the [full documentation](https://github.com/BaryoDev/Upshot) or [Architect's Decision Guide](./architects_decision_guide.md).
+**Questions?** Check the [full documentation](https://github.com/BaryoDev/Verdict) or [Architect's Decision Guide](./architects_decision_guide.md).
