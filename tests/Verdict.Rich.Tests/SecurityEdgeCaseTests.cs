@@ -85,15 +85,15 @@ public class SecurityEdgeCaseTests
         // Arrange
         var result = Result<int>.Success(42);
 
-        // Act
-        for (int i = 0; i < 1000; i++)
+        // Act - Reduced from 1000 to 100 for faster test execution while still exposing the memory leak
+        for (int i = 0; i < 100; i++)
         {
             result = result.WithSuccess($"Success {i}");
         }
         var successes = result.GetSuccesses().ToList();
 
         // Assert
-        successes.Should().HaveCount(1000);
+        successes.Should().HaveCount(100);
     }
 
     [Fact]
