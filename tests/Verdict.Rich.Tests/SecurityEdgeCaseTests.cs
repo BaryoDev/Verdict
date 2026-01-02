@@ -23,8 +23,8 @@ public class SecurityEdgeCaseTests
         var result2 = Result<int>.Success(2).WithSuccess("Second success");
 
         // Act
-        var successes1 = result1.GetSuccesses().ToList();
-        var successes2 = result2.GetSuccesses().ToList();
+        var successes1 = result1.Successes.ToList();
+        var successes2 = result2.Successes.ToList();
 
         // Assert
         successes1.Should().HaveCount(1);
@@ -37,7 +37,7 @@ public class SecurityEdgeCaseTests
     public void ResultMetadata_WithSuccess_NullMessage_ShouldThrow()
     {
         // Arrange
-        var result = Result<int>.Success(42);
+        RichResult<int> result = Result<int>.Success(42);
 
         // Act & Assert
         Action act = () => result.WithSuccess(null!);
@@ -48,11 +48,11 @@ public class SecurityEdgeCaseTests
     public void ResultMetadata_WithSuccess_EmptyMessage_ShouldStore()
     {
         // Arrange
-        var result = Result<int>.Success(42);
+        RichResult<int> result = Result<int>.Success(42);
 
         // Act
         var withSuccess = result.WithSuccess(string.Empty);
-        var successes = withSuccess.GetSuccesses().ToList();
+        var successes = withSuccess.Successes.ToList();
 
         // Assert
         successes.Should().HaveCount(1);
@@ -63,14 +63,14 @@ public class SecurityEdgeCaseTests
     public void ResultMetadata_MultipleWithSuccess_ShouldAccumulate()
     {
         // Arrange
-        var result = Result<int>.Success(42);
+        RichResult<int> result = Result<int>.Success(42);
 
         // Act
         var enriched = result
             .WithSuccess("First")
             .WithSuccess("Second")
             .WithSuccess("Third");
-        var successes = enriched.GetSuccesses().ToList();
+        var successes = enriched.Successes.ToList();
 
         // Assert
         successes.Should().HaveCount(3);
@@ -83,14 +83,14 @@ public class SecurityEdgeCaseTests
     public void ResultMetadata_ManySuccessMessages_ShouldHandleEfficiently()
     {
         // Arrange
-        var result = Result<int>.Success(42);
+        RichResult<int> result = Result<int>.Success(42);
 
         // Act - Reduced from 1000 to 100 for faster test execution while still exposing the memory leak
         for (int i = 0; i < 100; i++)
         {
             result = result.WithSuccess($"Success {i}");
         }
-        var successes = result.GetSuccesses().ToList();
+        var successes = result.Successes.ToList();
 
         // Assert
         successes.Should().HaveCount(100);
@@ -100,10 +100,10 @@ public class SecurityEdgeCaseTests
     public void ResultMetadata_GetSuccesses_OnFailure_ShouldReturnEmpty()
     {
         // Arrange
-        var result = Result<int>.Failure("ERROR", "Test error");
+        RichResult<int> result = Result<int>.Failure("ERROR", "Test error");
 
         // Act
-        var successes = result.GetSuccesses().ToList();
+        var successes = result.Successes.ToList();
 
         // Assert
         successes.Should().BeEmpty();
@@ -117,7 +117,7 @@ public class SecurityEdgeCaseTests
     public void ResultMetadata_ConcurrentRead_ShouldBeThreadSafe()
     {
         // Arrange
-        var result = Result<int>.Success(42).WithSuccess("Test success");
+        RichResult<int> result = Result<int>.Success(42).WithSuccess("Test success");
         var exceptions = new List<Exception>();
 
         // Act
@@ -125,7 +125,7 @@ public class SecurityEdgeCaseTests
         {
             try
             {
-                var successes = result.GetSuccesses().ToList();
+                var successes = result.Successes.ToList();
                 if (successes.Count == 0)
                 {
                     throw new InvalidOperationException("Expected at least one success message");
@@ -152,11 +152,11 @@ public class SecurityEdgeCaseTests
     public void ResultMetadata_GetErrorMetadata_WithValues_ShouldRetrieve()
     {
         // Arrange
-        var result = Result<int>.Failure("ERROR", "Test error")
+        RichResult<int> result = Result<int>.Failure("ERROR", "Test error")
             .WithErrorMetadata("key1", "value1");
 
         // Act
-        var metadata = result.GetErrorMetadata();
+        var metadata = result.ErrorMetadata;
 
         // Assert
         metadata.Should().ContainKey("key1");
@@ -167,10 +167,10 @@ public class SecurityEdgeCaseTests
     public void ResultMetadata_GetErrorMetadata_OnResultWithoutMetadata_ShouldReturnEmpty()
     {
         // Arrange
-        var result = Result<int>.Failure("ERROR", "Test error");
+        RichResult<int> result = Result<int>.Failure("ERROR", "Test error");
 
         // Act
-        var metadata = result.GetErrorMetadata();
+        var metadata = result.ErrorMetadata;
 
         // Assert
         metadata.Should().BeEmpty();
@@ -180,7 +180,7 @@ public class SecurityEdgeCaseTests
     public void ResultMetadata_WithErrorMetadata_OnSuccess_ShouldStillSucceed()
     {
         // Arrange
-        var result = Result<int>.Success(42);
+        RichResult<int> result = Result<int>.Success(42);
 
         // Act
         var withMetadata = result.WithErrorMetadata("key", "value");
@@ -194,7 +194,7 @@ public class SecurityEdgeCaseTests
     public void ResultMetadata_ErrorMetadata_NullKey_ShouldThrow()
     {
         // Arrange
-        var result = Result<int>.Failure("ERROR", "Test error");
+        RichResult<int> result = Result<int>.Failure("ERROR", "Test error");
 
         // Act & Assert
         Action act = () => result.WithErrorMetadata(null!, "value");
@@ -205,7 +205,7 @@ public class SecurityEdgeCaseTests
     public void ResultMetadata_ErrorMetadata_NullValue_ShouldThrow()
     {
         // Arrange
-        var result = Result<int>.Failure("ERROR", "Test error");
+        RichResult<int> result = Result<int>.Failure("ERROR", "Test error");
 
         // Act & Assert
         Action act = () => result.WithErrorMetadata("key", null!);
@@ -268,12 +268,12 @@ public class SecurityEdgeCaseTests
     public void RichResult_ComplexChain_ShouldMaintainMetadata()
     {
         // Arrange & Act
-        var result = Result<int>.Success(1)
+        RichResult<int> result = Result<int>.Success(1)
             .WithSuccess("Step 1")
             .WithSuccess("Step 2")
             .WithSuccess("Step 3");
 
-        var successes = result.GetSuccesses().ToList();
+        var successes = result.Successes.ToList();
 
         // Assert
         successes.Should().HaveCount(3);
@@ -286,11 +286,11 @@ public class SecurityEdgeCaseTests
     public void RichResult_FailureWithMetadata_ShouldPreserveMetadata()
     {
         // Arrange & Act
-        var result = Result<int>.Failure("ERROR", "Test error")
+        RichResult<int> result = Result<int>.Failure("ERROR", "Test error")
             .WithErrorMetadata("severity", "high")
             .WithErrorMetadata("category", "validation");
 
-        var metadata = result.GetErrorMetadata();
+        var metadata = result.ErrorMetadata;
 
         // Assert
         metadata.Should().ContainKey("severity");

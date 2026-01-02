@@ -27,44 +27,48 @@ public static class CustomErrorExtensions
     /// <summary>
     /// Attaches custom error metadata to the result.
     /// </summary>
-    public static Result<T> WithCustomError<T>(
+    public static RichResult<T> WithCustomError<T>(
         this Result<T> result,
         IErrorMetadata errorMetadata)
     {
         if (result.IsSuccess) return result;
         if (errorMetadata == null) throw new System.ArgumentNullException(nameof(errorMetadata));
 
-        var metadata = ResultMetadata.GetOrCreate(result);
+        RichResult<T> richResult = result;
+        
+        // Add all metadata from the custom error
         foreach (var kvp in errorMetadata.GetMetadata())
         {
-            metadata.ErrorMetadata[kvp.Key] = kvp.Value;
+            richResult = richResult.WithErrorMetadata(kvp.Key, kvp.Value);
         }
 
         // Add error type
-        metadata.ErrorMetadata["ErrorType"] = errorMetadata.GetErrorType();
+        richResult = richResult.WithErrorMetadata("ErrorType", errorMetadata.GetErrorType());
 
-        return result;
+        return richResult;
     }
 
     /// <summary>
     /// Attaches custom error metadata to the result.
     /// </summary>
-    public static Result WithCustomError(
+    public static RichResult WithCustomError(
         this Result result,
         IErrorMetadata errorMetadata)
     {
         if (result.IsSuccess) return result;
         if (errorMetadata == null) throw new System.ArgumentNullException(nameof(errorMetadata));
 
-        var metadata = ResultMetadata.GetOrCreate(result);
+        RichResult richResult = result;
+        
+        // Add all metadata from the custom error
         foreach (var kvp in errorMetadata.GetMetadata())
         {
-            metadata.ErrorMetadata[kvp.Key] = kvp.Value;
+            richResult = richResult.WithErrorMetadata(kvp.Key, kvp.Value);
         }
 
         // Add error type
-        metadata.ErrorMetadata["ErrorType"] = errorMetadata.GetErrorType();
+        richResult = richResult.WithErrorMetadata("ErrorType", errorMetadata.GetErrorType());
 
-        return result;
+        return richResult;
     }
 }
