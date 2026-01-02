@@ -27,4 +27,8 @@
     <ProjectReference Include="..\Verdict\Verdict.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="System.Collections.Immutable" Version="10.0.1" />
+  </ItemGroup>
+
 </Project>

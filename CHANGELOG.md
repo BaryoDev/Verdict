@@ -5,6 +5,85 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.0] - 2026-01-02
+
+### BREAKING CHANGES
+
+#### Verdict.Rich Package Redesign
+
+The Rich package has been completely redesigned to fix a critical memory leak vulnerability (CVSS 7.5). Metadata is now embedded directly in the `RichResult<T>` struct instead of using external storage.
+
+**API Changes:**
+
+1. **Return Type Changes**
+   - `Result<T>.WithSuccess(string)` now returns `RichResult<T>` (was `Result<T>`)
+   - `Result<T>.WithErrorMetadata(string, object)` now returns `RichResult<T>` (was `Result<T>`)
+   - `Result.WithSuccess(string)` now returns `RichResult` (was `Result`)
+   - `Result.WithErrorMetadata(string, object)` now returns `RichResult` (was `Result`)
+
+2. **Method to Property Changes**
+   - `result.GetSuccesses()` → `result.Successes` (now a property)
+   - `result.GetErrorMetadata()` → `result.ErrorMetadata` (now a property)
+
+**Migration Guide:**
+
+```csharp
+// BEFORE (v1.0):
+Result<int> result = Result<int>.Success(42)
+    .WithSuccess("Step 1")
+    .WithSuccess("Step 2");
+var successes = result.GetSuccesses();
+var metadata = result.GetErrorMetadata();
+
+// AFTER (v2.0):
+RichResult<int> result = Result<int>.Success(42)
+    .WithSuccess("Step 1")
+    .WithSuccess("Step 2");
+var successes = result.Successes;      // Property instead of method
+var metadata = result.ErrorMetadata;   // Property instead of method
+```
+
+**Implicit Conversions:**
+
+The new design includes implicit conversions for easier migration:
+
+```csharp
+// Auto-converts Result<T> to RichResult<T>
+RichResult<int> rich = Result<int>.Success(42);
+
+// Auto-converts back (metadata is lost)
+Result<int> plain = rich;
+```
+
+### Fixed
+
+- **CRITICAL**: Fixed memory leak in Verdict.Rich metadata storage (CWE-401)
+  - Replaced `ConcurrentDictionary` with embedded `ImmutableList` and `ImmutableDictionary`
+  - Eliminated unbounded memory growth in long-running applications
+  - Fixed metadata cross-contamination between Result instances with equal values
+  - CVSS v3.1 Score: 7.5 (High) → 0.0 (None)
+
+### Added
+
+- New `RichResult<T>` struct with embedded metadata
+- New `RichResult` (non-generic) struct with embedded metadata
+- Implicit conversions between `Result<T>` and `RichResult<T>`
+- `System.Collections.Immutable` dependency for efficient metadata operations
+
+### Changed
+
+- Verdict.Rich now uses embedded metadata architecture
+- All 282 tests pass (previously 278/282 due to vulnerability)
+- Improved thread safety through immutable design
+
+### Removed
+
+- Deleted `ResultMetadata.cs` (external storage no longer needed)
+- Removed `GetSuccesses()` method (replaced with `Successes` property)
+- Removed `GetErrorMetadata()` method (replaced with `ErrorMetadata` property)
+
+---
+
 ## [1.0.0] - 2025-12-26
 
 ### Added
@@ -28,4 +107,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Minor bugs in Result deconstruction.
 
 ---
+[2.0.0]: https://github.com/BaryoDev/Verdict/releases/tag/v2.0.0
 [1.0.0]: https://github.com/BaryoDev/Verdict/releases/tag/v1.0.0
