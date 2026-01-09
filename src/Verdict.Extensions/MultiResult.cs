@@ -5,9 +5,11 @@ namespace Verdict.Extensions;
 /// <summary>
 /// Represents the result of an operation that can either succeed with a value or fail with multiple errors.
 /// Implemented as a readonly struct for performance with support for multiple errors.
+/// IMPORTANT: If the result contains pooled errors (from Create(IEnumerable)), call DisposeErrors() when done
+/// to return the array to the pool. Do not use 'using' statement as structs are copied by value.
 /// </summary>
 /// <typeparam name="T">The type of the success value.</typeparam>
-public readonly struct MultiResult<T> : IDisposable
+public readonly struct MultiResult<T>
 {
     private readonly T _value;
     private readonly ErrorCollection _errors;
@@ -41,7 +43,7 @@ public readonly struct MultiResult<T> : IDisposable
     }
 
     /// <summary>
-    /// Gets the errors.
+    /// Gets the errors as a read-only span.
     /// </summary>
     public ReadOnlySpan<Error> Errors => _errors.AsSpan();
 
@@ -49,6 +51,12 @@ public readonly struct MultiResult<T> : IDisposable
     /// Gets the number of errors.
     /// </summary>
     public int ErrorCount => _errors.Count;
+
+    /// <summary>
+    /// Gets the underlying error collection.
+    /// Use DisposeErrors() to return pooled arrays to the pool when done.
+    /// </summary>
+    internal ErrorCollection ErrorCollection => _errors;
 
     /// <summary>
     /// Gets the value if successful, or default(T) if failed.
@@ -147,9 +155,11 @@ public readonly struct MultiResult<T> : IDisposable
     }
 
     /// <summary>
-    /// Disposes the error collection if needed.
+    /// Disposes the underlying error collection to return pooled arrays to the pool.
+    /// Only call this if the result was created with ErrorCollection.Create(IEnumerable) which uses ArrayPool.
+    /// IMPORTANT: Do not call this if you have copies of this struct, as they share the same ErrorCollection.
     /// </summary>
-    public void Dispose()
+    public void DisposeErrors()
     {
         if (!_isSuccess)
         {
@@ -160,8 +170,10 @@ public readonly struct MultiResult<T> : IDisposable
 
 /// <summary>
 /// Represents the result of an operation with no return value that can either succeed or fail with multiple errors.
+/// IMPORTANT: If the result contains pooled errors (from Create(IEnumerable)), call DisposeErrors() when done
+/// to return the array to the pool. Do not use 'using' statement as structs are copied by value.
 /// </summary>
-public readonly struct MultiResult : IDisposable
+public readonly struct MultiResult
 {
     private readonly ErrorCollection _errors;
     private readonly bool _isSuccess;
@@ -177,7 +189,7 @@ public readonly struct MultiResult : IDisposable
     public bool IsFailure => !_isSuccess;
 
     /// <summary>
-    /// Gets the errors.
+    /// Gets the errors as a read-only span.
     /// </summary>
     public ReadOnlySpan<Error> Errors => _errors.AsSpan();
 
@@ -185,6 +197,12 @@ public readonly struct MultiResult : IDisposable
     /// Gets the number of errors.
     /// </summary>
     public int ErrorCount => _errors.Count;
+
+    /// <summary>
+    /// Gets the underlying error collection.
+    /// Use DisposeErrors() to return pooled arrays to the pool when done.
+    /// </summary>
+    internal ErrorCollection ErrorCollection => _errors;
 
     private MultiResult(bool isSuccess)
     {
@@ -270,9 +288,11 @@ public readonly struct MultiResult : IDisposable
     }
 
     /// <summary>
-    /// Disposes the error collection if needed.
+    /// Disposes the underlying error collection to return pooled arrays to the pool.
+    /// Only call this if the result was created with ErrorCollection.Create(IEnumerable) which uses ArrayPool.
+    /// IMPORTANT: Do not call this if you have copies of this struct, as they share the same ErrorCollection.
     /// </summary>
-    public void Dispose()
+    public void DisposeErrors()
     {
         if (!_isSuccess)
         {

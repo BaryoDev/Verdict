@@ -52,6 +52,15 @@ public readonly struct Result<T>
             {
                 throw new InvalidOperationException("Cannot access Error on a successful result.");
             }
+
+            // Validate we have a real error (not default struct initialization)
+            if (string.IsNullOrEmpty(_error.Code) && string.IsNullOrEmpty(_error.Message))
+            {
+                throw new InvalidOperationException(
+                    "Result is in invalid state (likely from default struct initialization). " +
+                    "Always use Result<T>.Success() or Result<T>.Failure() to create results.");
+            }
+
             return _error;
         }
     }

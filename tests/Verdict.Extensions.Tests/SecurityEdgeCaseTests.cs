@@ -236,42 +236,42 @@ public class SecurityEdgeCaseTests
     }
 
     [Fact]
-    public void MultiResult_Dispose_ShouldCleanUpResources()
+    public void MultiResult_DisposeErrors_ShouldCleanUpResources()
     {
         // Arrange
         var errors = Enumerable.Range(0, 100).Select(i => new Error($"CODE{i}", $"Message {i}"));
         var result = MultiResult<int>.Failure(ErrorCollection.Create(errors));
 
         // Act
-        result.Dispose();
+        result.DisposeErrors();
 
         // Assert - no exception means cleanup succeeded
         true.Should().BeTrue();
     }
 
     [Fact]
-    public void MultiResult_DisposeTwice_ShouldNotThrow()
+    public void MultiResult_DisposeErrorsTwice_ShouldNotThrow()
     {
         // Arrange
         var error = new Error("TEST", "Test");
         var result = MultiResult<int>.Failure(error);
 
         // Act
-        result.Dispose();
-        Action act = () => result.Dispose();
+        result.DisposeErrors();
+        Action act = () => result.DisposeErrors();
 
         // Assert
         act.Should().NotThrow();
     }
 
     [Fact]
-    public void MultiResult_Success_Dispose_ShouldNotThrow()
+    public void MultiResult_Success_DisposeErrors_ShouldNotThrow()
     {
         // Arrange
         var result = MultiResult<int>.Success(42);
 
         // Act & Assert
-        Action act = () => result.Dispose();
+        Action act = () => result.DisposeErrors();
         act.Should().NotThrow();
     }
 
@@ -410,7 +410,7 @@ public class SecurityEdgeCaseTests
 
         // Assert
         result.ErrorCount.Should().Be(100);
-        result.Dispose();
+        result.DisposeErrors();
     }
 
     [Fact]
@@ -458,7 +458,7 @@ public class SecurityEdgeCaseTests
         // Assert
         str.Should().Contain("50");
         str.Should().Contain("error");
-        result.Dispose();
+        result.DisposeErrors();
     }
 
     [Fact]

@@ -79,7 +79,7 @@ public class MultiResultTests
     }
 
     [Fact]
-    public void MultiResult_Dispose_ShouldCleanupResources()
+    public void MultiResult_DisposeErrors_ShouldCleanupResources()
     {
         // Arrange
         var errors = new[]
@@ -90,7 +90,7 @@ public class MultiResultTests
         var result = MultiResult<int>.Failure(errors);
 
         // Act
-        result.Dispose();
+        result.DisposeErrors();
 
         // Assert - should not throw
         result.IsFailure.Should().BeTrue();

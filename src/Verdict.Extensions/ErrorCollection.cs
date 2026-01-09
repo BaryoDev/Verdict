@@ -90,7 +90,8 @@ public readonly struct ErrorCollection : IDisposable
         get
         {
             if (index < 0 || index >= _count)
-                throw new IndexOutOfRangeException();
+                throw new IndexOutOfRangeException(
+                    $"Index {index} is out of range. Valid range: 0 to {_count - 1}");
             return _errors[index];
         }
     }
@@ -120,12 +121,14 @@ public readonly struct ErrorCollection : IDisposable
 
     /// <summary>
     /// Returns the rented array to the pool if applicable.
+    /// IMPORTANT: Arrays are returned with clearArray: false to prevent data corruption
+    /// when struct copies exist. Error structs are value types and safe to leave in pool.
     /// </summary>
     public void Dispose()
     {
         if (_isRented && _errors != null)
         {
-            ArrayPool<Error>.Shared.Return(_errors, clearArray: true);
+            ArrayPool<Error>.Shared.Return(_errors, clearArray: false);
         }
     }
 

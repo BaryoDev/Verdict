@@ -5,6 +5,87 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.0] - 2026-01-09
+
+### BREAKING CHANGES
+
+#### Critical Bug Fixes for Production Safety
+
+This release fixes **3 critical issues** that could cause memory corruption, resource leaks, and silent bugs. While these are breaking changes, they only affect a small portion of the API and significantly improve reliability.
+
+**1. Fixed ArrayPool Memory Corruption (Critical - CVE Pending)**
+
+`ErrorCollection.Dispose()` previously used `clearArray: true`, which could cause data corruption when structs were copied.
+
+**Changed:**
+- `ErrorCollection.Dispose()` now uses `clearArray: false` to prevent corruption
+- No code changes required (internal change)
+- Fixes potential data leaks in concurrent scenarios
+
+**2. Removed IDisposable Anti-Pattern from MultiResult (Critical)**
+
+`MultiResult<T>` and `MultiResult` implementing `IDisposable` was an anti-pattern that broke disposal semantics due to struct copy-by-value behavior.
+
+**API Changes:**
+- `MultiResult<T>` no longer implements `IDisposable`
+- `MultiResult` no longer implements `IDisposable`
+- `Dispose()` method renamed to `DisposeErrors()`
+
+**Migration:**
+```csharp
+// BEFORE (v2.0)
+using var result = MultiResult<int>.Failure(errors);
+result.Dispose();
+
+// AFTER (v2.1)
+var result = MultiResult<int>.Failure(errors);
+result.DisposeErrors();
+```
+
+**Impact:** Low - Most users don't dispose results. See [MIGRATION_v2.0_to_v2.1.md](docs/MIGRATION_v2.0_to_v2.1.md) for details.
+
+**3. Added Validation for Default Struct State (Critical)**
+
+`default(Result<T>)` created invalid states that led to silent bugs.
+
+**Changed:**
+- Accessing `Error` property on default-initialized `Result<T>` now throws `InvalidOperationException` with helpful message
+- Prevents silent bugs from uninitialized results
+
+**Exception Message:**
+```
+InvalidOperationException: Result is in invalid state (likely from default struct initialization).
+Always use Result<T>.Success() or Result<T>.Failure() to create results.
+```
+
+**Impact:** Very Low - Rare pattern. Helps catch bugs early.
+
+### Improved
+
+- Better error messages for `ErrorCollection` index out of range exceptions
+- Enhanced XML documentation for disposal semantics
+- Added warnings about struct copy behavior
+
+### Fixed
+
+- **Security:** Memory corruption vulnerability in `ErrorCollection` when structs are copied
+- **Reliability:** Resource leaks from broken IDisposable pattern on structs
+- **Correctness:** Silent bugs from default struct initialization
+
+### Documentation
+
+- Added comprehensive migration guide: [docs/MIGRATION_v2.0_to_v2.1.md](docs/MIGRATION_v2.0_to_v2.1.md)
+- Added code review and improvement plan: [docs/code_review_and_improvement_plan.md](docs/code_review_and_improvement_plan.md)
+- Updated benchmark results: [docs/benchmark_results_v2.0.md](docs/benchmark_results_v2.0.md)
+
+### Testing
+
+- All 282 tests passing
+- Added validation for disposal edge cases
+- Verified zero allocation promise maintained
+
+---
+
 ## [2.0.0] - 2026-01-02
 
 ### BREAKING CHANGES
