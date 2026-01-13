@@ -192,6 +192,21 @@ var restored = VerdictJsonExtensions.FromJson<int>(json);
 // Configure for ASP.NET Core
 services.AddControllers()
     .AddJsonOptions(opts => opts.JsonSerializerOptions.AddVerdictConverters());
+
+// ASP.NET Core ProblemDetails with environment-aware defaults
+builder.Services.AddVerdictProblemDetails(builder.Environment);
+```
+
+### Security Defaults
+
+- **Sanitize exceptions by default** in production: use `Error.FromException(ex, sanitize: true)` to avoid leaking sensitive details.
+- **ProblemDetails options**: `IncludeExceptionDetails`/`IncludeStackTrace` off by default; enable only in development via `AddVerdictProblemDetails(environment)`.
+- **Validate error codes**: `Error.CreateValidated` / `Error.ValidateErrorCode` enforce alphanumeric + underscore codes (safe for logs/headers).
+
+### Running JSON Benchmarks
+
+```bash
+dotnet run -c Release --project benchmarks/Verdict.Benchmarks -- --json
 ```
 
 ### Security Features
