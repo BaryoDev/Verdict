@@ -17,6 +17,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Verdict\Verdict.csproj" />
     <ProjectReference Include="..\..\src\Verdict.Fluent\Verdict.Fluent.csproj" />
+    <ProjectReference Include="..\..\src\Verdict.Json\Verdict.Json.csproj" />
   </ItemGroup>
 
 </Project>

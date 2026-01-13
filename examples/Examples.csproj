@@ -13,6 +13,7 @@
     <ProjectReference Include="../src/Verdict.Extensions/Verdict.Extensions.csproj" />
     <ProjectReference Include="../src/Verdict.Async/Verdict.Async.csproj" />
     <ProjectReference Include="../src/Verdict.Rich/Verdict.Rich.csproj" />
+    <ProjectReference Include="../src/Verdict.Json/Verdict.Json.csproj" />
   </ItemGroup>
 
 </Project>

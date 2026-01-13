@@ -42,6 +42,26 @@ public static class ValidationExtensions
     }
 
     /// <summary>
+    /// Ensures a condition is met, otherwise returns a failure with a dynamically generated error.
+    /// Useful when the error message needs to include information from the value being validated.
+    /// </summary>
+    public static Result<T> Ensure<T>(
+        this Result<T> result,
+        Func<T, bool> predicate,
+        Func<T, Error> errorFactory)
+    {
+        if (predicate == null) throw new ArgumentNullException(nameof(predicate));
+        if (errorFactory == null) throw new ArgumentNullException(nameof(errorFactory));
+
+        if (result.IsFailure)
+            return result;
+
+        return predicate(result.Value)
+            ? result
+            : Result<T>.Failure(errorFactory(result.Value));
+    }
+
+    /// <summary>
     /// Ensures multiple conditions are met, collecting all failures.
     /// Returns a MultiResult with all validation errors if any fail.
     /// </summary>
@@ -123,5 +143,25 @@ public static class ValidationExtensions
         string message)
     {
         return result.Ensure(predicate, new Error(code, message));
+    }
+
+    /// <summary>
+    /// Ensures a condition is met on a MultiResult with a dynamically generated error.
+    /// Useful when the error message needs to include information from the value being validated.
+    /// </summary>
+    public static MultiResult<T> Ensure<T>(
+        this MultiResult<T> result,
+        Func<T, bool> predicate,
+        Func<T, Error> errorFactory)
+    {
+        if (predicate == null) throw new ArgumentNullException(nameof(predicate));
+        if (errorFactory == null) throw new ArgumentNullException(nameof(errorFactory));
+
+        if (result.IsFailure)
+            return result;
+
+        return predicate(result.Value)
+            ? result
+            : MultiResult<T>.Failure(errorFactory(result.Value));
     }
 }

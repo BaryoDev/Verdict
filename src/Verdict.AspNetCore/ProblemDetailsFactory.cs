@@ -9,6 +9,17 @@ namespace Verdict.AspNetCore;
 /// </summary>
 public static class ProblemDetailsFactory
 {
+    private static VerdictProblemDetailsOptions _defaultOptions = new();
+
+    /// <summary>
+    /// Sets the default options for ProblemDetails generation.
+    /// </summary>
+    /// <param name="options">The options to use as default.</param>
+    public static void SetDefaultOptions(VerdictProblemDetailsOptions options)
+    {
+        _defaultOptions = options ?? throw new ArgumentNullException(nameof(options));
+    }
+
     /// <summary>
     /// Creates ProblemDetails from an Error.
     /// Maps Error.Code to ProblemDetails.Type
@@ -19,21 +30,50 @@ public static class ProblemDetailsFactory
     /// <returns>RFC 7807 compliant ProblemDetails.</returns>
     public static ProblemDetails CreateFromError(Error error, int statusCode = 400)
     {
+        return CreateFromError(error, statusCode, _defaultOptions);
+    }
+
+    /// <summary>
+    /// Creates ProblemDetails from an Error with custom options.
+    /// Maps Error.Code to ProblemDetails.Type
+    /// Maps Error.Message to ProblemDetails.Detail
+    /// </summary>
+    /// <param name="error">The error to convert.</param>
+    /// <param name="statusCode">HTTP status code (default: 400).</param>
+    /// <param name="options">Options for controlling what information is included.</param>
+    /// <returns>RFC 7807 compliant ProblemDetails.</returns>
+    public static ProblemDetails CreateFromError(Error error, int statusCode, VerdictProblemDetailsOptions options)
+    {
+        options ??= _defaultOptions;
+
+        var isServerError = statusCode >= 500;
+        var detail = options.IncludeErrorMessage || !isServerError
+            ? error.Message
+            : options.GenericServerErrorMessage;
+
         var problemDetails = new ProblemDetails
         {
             Type = GetProblemType(statusCode),
             Title = GetTitle(statusCode),
             Status = statusCode,
-            Detail = error.Message
+            Detail = detail
         };
 
         // Add error code as extension
-        problemDetails.Extensions["errorCode"] = error.Code;
+        if (options.IncludeErrorCode)
+        {
+            problemDetails.Extensions["errorCode"] = error.Code;
+        }
 
-        // Add exception details if present (only in development)
-        if (error.Exception != null)
+        // Add exception details if present and allowed
+        if (error.Exception != null && options.IncludeExceptionDetails)
         {
             problemDetails.Extensions["exceptionType"] = error.Exception.GetType().Name;
+            
+            if (options.IncludeStackTrace)
+            {
+                problemDetails.Extensions["stackTrace"] = error.Exception.StackTrace;
+            }
         }
 
         return problemDetails;
