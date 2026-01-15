@@ -9,7 +9,7 @@ namespace Verdict.AspNetCore;
 /// </summary>
 public static class ProblemDetailsFactory
 {
-    private static VerdictProblemDetailsOptions _defaultOptions = new();
+    private static volatile VerdictProblemDetailsOptions _defaultOptions = new();
 
     /// <summary>
     /// Sets the default options for ProblemDetails generation.
