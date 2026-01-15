@@ -5,6 +5,90 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.2.0] - 2026-01-15
+
+### Added
+
+#### New Package: Verdict.Json
+A new package for System.Text.Json serialization of Result types:
+- `ResultJsonConverter<T>` - Serializes `Result<T>` with `isSuccess`, `value`, and `error` properties
+- `ResultNonGenericJsonConverter` - Serializes non-generic `Result`
+- `ErrorJsonConverter` - Serializes `Error` with `code`, `message` properties
+- `ResultJsonConverterFactory` - Auto-detects and applies correct converter
+- `VerdictJsonExtensions.AddVerdictConverters()` - Easy `JsonSerializerOptions` configuration
+
+```csharp
+var options = new JsonSerializerOptions().AddVerdictConverters();
+var json = JsonSerializer.Serialize(Result<int>.Success(42), options);
+// {"isSuccess":true,"value":42}
+```
+
+#### Security Features (Verdict Core)
+- **Error Sanitization**: `Error.FromException(exception, sanitize: true)` - Prevents leaking sensitive exception details
+- **Error Code Validation**: `Error.CreateValidated(code, message)` - Validates codes contain only alphanumeric characters and underscores
+- **Validation Helper**: `Error.ValidateErrorCode(code)` - Static validation method
+- **Code Checking**: `Error.IsValidErrorCode(code)` - Returns bool without throwing
+
+#### ASP.NET Core Enhancements
+- **VerdictProblemDetailsOptions** - Configure ProblemDetails generation:
+  - `IncludeExceptionDetails` (default: false) - Hide exception types in production
+  - `IncludeStackTrace` (default: false) - Hide stack traces in production
+  - `IncludeErrorCode` (default: true) - Include error codes in extensions
+  - `IncludeErrorMessage` (default: true) - Show/hide error messages
+  - `GenericServerErrorMessage` - Customizable fallback message
+- **ServiceCollectionExtensions** - DI registration helpers
+- **Thread-safe ErrorStatusCodeMapper** - Safe for concurrent use
+
+#### Async Extensions (Verdict.Async)
+CancellationToken and timeout support for async chains:
+- `MapAsync<T, K>(Func<T, CancellationToken, Task<K>>, CancellationToken)`
+- `BindAsync<T, K>(Func<T, CancellationToken, Task<Result<K>>>, CancellationToken)`
+- `TapAsync(Func<T, CancellationToken, Task>, CancellationToken)`
+- `EnsureAsync(Func<T, CancellationToken, Task<bool>>, Error, CancellationToken)`
+- `WithTimeout(TimeSpan)` - Timeout wrapper for async operations
+
+```csharp
+await GetUserAsync(id)
+    .BindAsync((user, ct) => ValidateAsync(user, ct), cancellationToken)
+    .MapAsync((user, ct) => TransformAsync(user, ct), cancellationToken);
+```
+
+#### Validation Extensions (Verdict.Extensions)
+- `Ensure<T>(Func<T, bool>, Func<T, Error>)` - Dynamic error factory for context-aware error messages
+- `Ensure<T>` overload for `MultiResult<T>` with error factory
+
+```csharp
+result.Ensure(
+    user => user.Age >= 18,
+    user => new Error("UNDERAGE", $"User {user.Name} must be 18+, but is {user.Age}"));
+```
+
+### Improved
+
+- JSON deserialization validation - Throws `JsonException` when `isSuccess=false` but error is missing
+- Better LINQ readability with `.All()` positive logic pattern
+- Enhanced XML documentation throughout
+
+### Fixed
+
+- JSON deserialization now validates required fields to prevent invalid Result states
+- Removed unused `hasValueProperty` variable in `ResultJsonConverter`
+
+### Testing
+
+- All 347 tests passing (65 new tests added)
+- Comprehensive JSON serialization/deserialization tests
+- Error sanitization and validation tests
+- CancellationToken and timeout tests
+- Dynamic error factory tests
+
+### Benchmarks
+
+- Added competitive JSON serialization benchmarks
+- Verdict.Json performance compared against manual serialization
+
+---
+
 ## [2.1.0] - 2026-01-09
 
 ### BREAKING CHANGES
@@ -188,5 +272,7 @@ Result<int> plain = rich;
 - Minor bugs in Result deconstruction.
 
 ---
+[2.2.0]: https://github.com/BaryoDev/Verdict/releases/tag/v2.2.0
+[2.1.0]: https://github.com/BaryoDev/Verdict/releases/tag/v2.1.0
 [2.0.0]: https://github.com/BaryoDev/Verdict/releases/tag/v2.0.0
 [1.0.0]: https://github.com/BaryoDev/Verdict/releases/tag/v1.0.0
