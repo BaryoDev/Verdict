@@ -39,6 +39,7 @@ public class ResultJsonConverter<T> : JsonConverter<Result<T>>
 
         bool? isSuccess = null;
         T? value = default;
+        bool hasValueProperty = false;
         Error error = default;
 
         while (reader.Read())
@@ -78,6 +79,7 @@ public class ResultJsonConverter<T> : JsonConverter<Result<T>>
                     isSuccess = reader.GetBoolean();
                     break;
                 case "value":
+                    hasValueProperty = true;
                     value = JsonSerializer.Deserialize<T>(ref reader, options);
                     break;
                 case "error":
