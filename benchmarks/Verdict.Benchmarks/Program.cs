@@ -282,14 +282,14 @@ public class JsonSerializationBenchmarks
     public Verdict.Result<int> VerdictJson_RoundTrip_Success()
     {
         var json = System.Text.Json.JsonSerializer.Serialize(_verdictSuccess, _verdictOptions);
-        return System.Text.Json.JsonSerializer.Deserialize<Verdict.Result<int>>(json, _verdictOptions);
+        return System.Text.Json.JsonSerializer.Deserialize<Verdict.Result<int>>(json, _verdictOptions)!;
     }
 
     [Benchmark(Description = "Verdict.Json Round-Trip (Failure)")]
     public Verdict.Result<int> VerdictJson_RoundTrip_Failure()
     {
         var json = System.Text.Json.JsonSerializer.Serialize(_verdictFailure, _verdictOptions);
-        return System.Text.Json.JsonSerializer.Deserialize<Verdict.Result<int>>(json, _verdictOptions);
+        return System.Text.Json.JsonSerializer.Deserialize<Verdict.Result<int>>(json, _verdictOptions)!;
     }
 }
 
