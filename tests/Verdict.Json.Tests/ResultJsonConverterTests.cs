@@ -150,59 +150,29 @@ public class ResultJsonConverterTests
     }
 
     [Fact]
-    public void Deserialize_SuccessWithoutValueProperty_ShouldThrowJsonException()
+    public void Deserialize_FailureJsonWithoutError_ShouldThrowJsonException()
     {
         // Arrange
-        var json = """{"isSuccess":true}""";
+        var json = """{"isSuccess":false}""";
 
-        // Act
-        var act = () => JsonSerializer.Deserialize<Result<int>>(json, _options);
-
-        // Assert
-        act.Should().Throw<JsonException>()
-            .WithMessage("Success result must contain 'value' property");
+        // Act & Assert
+        var exception = Assert.Throws<JsonException>(() =>
+            JsonSerializer.Deserialize<Result<int>>(json, _options));
+        
+        exception.Message.Should().Contain("Missing 'error' property for failure result");
     }
 
     [Fact]
-    public void Deserialize_SuccessWithNullReferenceTypeValue_ShouldThrowJsonException()
+    public void Deserialize_FailureJsonWithEmptyError_ShouldThrowJsonException()
     {
         // Arrange
-        var json = """{"isSuccess":true,"value":null}""";
+        var json = """{"isSuccess":false,"error":{"code":"","message":""}}""";
 
-        // Act
-        var act = () => JsonSerializer.Deserialize<Result<string>>(json, _options);
-
-        // Assert
-        act.Should().Throw<JsonException>()
-            .WithMessage("Success result cannot have null value for reference types");
-    }
-
-    [Fact]
-    public void Deserialize_SuccessWithNullableValueType_ShouldWork()
-    {
-        // Arrange - For nullable value types, null is a valid value
-        var json = """{"isSuccess":true,"value":null}""";
-
-        // Act
-        var result = JsonSerializer.Deserialize<Result<int?>>(json, _options);
-
-        // Assert
-        result.IsSuccess.Should().BeTrue();
-        result.Value.Should().BeNull();
-    }
-
-    [Fact]
-    public void Deserialize_SuccessWithDefaultValueType_ShouldWork()
-    {
-        // Arrange - Value types can have their default value (0 for int)
-        var json = """{"isSuccess":true,"value":0}""";
-
-        // Act
-        var result = JsonSerializer.Deserialize<Result<int>>(json, _options);
-
-        // Assert
-        result.IsSuccess.Should().BeTrue();
-        result.Value.Should().Be(0);
+        // Act & Assert
+        var exception = Assert.Throws<JsonException>(() =>
+            JsonSerializer.Deserialize<Result<int>>(json, _options));
+        
+        exception.Message.Should().Contain("Missing 'error' property for failure result");
     }
 
     private class TestUser

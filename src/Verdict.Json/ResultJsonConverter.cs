@@ -53,24 +53,16 @@ public class ResultJsonConverter<T> : JsonConverter<Result<T>>
 
                 if (isSuccess.Value)
                 {
-                    // For success results, validate that the 'value' property was present
-                    if (!hasValueProperty)
-                    {
-                        throw new JsonException("Success result must contain 'value' property");
-                    }
-
-                    // For reference types, validate that the value is not null
-                    if (!typeof(T).IsValueType && value is null)
-                    {
-                        throw new JsonException("Success result cannot have null value for reference types");
-                    }
-
                     return Result<T>.Success(value!);
                 }
-                else
+                
+                // Validate error is not in default state for failure results
+                if (string.IsNullOrEmpty(error.Code) && string.IsNullOrEmpty(error.Message))
                 {
-                    return Result<T>.Failure(error);
+                    throw new JsonException("Missing 'error' property for failure result (isSuccess=false)");
                 }
+
+                return Result<T>.Failure(error);
             }
 
             if (reader.TokenType != JsonTokenType.PropertyName)
