@@ -175,6 +175,6 @@ public readonly record struct Error
             return false;
         }
 
-        return !code.Any(c => !char.IsLetterOrDigit(c) && c != '_');
+        return code.All(c => char.IsLetterOrDigit(c) || c == '_');
     }
 }
