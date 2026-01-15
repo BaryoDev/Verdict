@@ -50,9 +50,18 @@ public class ResultJsonConverter<T> : JsonConverter<Result<T>>
                     throw new JsonException("Missing 'isSuccess' property");
                 }
 
-                return isSuccess.Value
-                    ? Result<T>.Success(value!)
-                    : Result<T>.Failure(error);
+                if (isSuccess.Value)
+                {
+                    return Result<T>.Success(value!);
+                }
+                
+                // Validate error is not in default state for failure results
+                if (string.IsNullOrEmpty(error.Code) && string.IsNullOrEmpty(error.Message))
+                {
+                    throw new JsonException("Missing 'error' property for failure result (isSuccess=false)");
+                }
+
+                return Result<T>.Failure(error);
             }
 
             if (reader.TokenType != JsonTokenType.PropertyName)

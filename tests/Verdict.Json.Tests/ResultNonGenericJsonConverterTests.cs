@@ -124,4 +124,30 @@ public class ResultNonGenericJsonConverterTests
         // Assert
         result.IsSuccess.Should().BeTrue();
     }
+
+    [Fact]
+    public void Deserialize_FailureJsonWithoutError_ShouldThrowJsonException()
+    {
+        // Arrange
+        var json = """{"isSuccess":false}""";
+
+        // Act & Assert
+        var exception = Assert.Throws<JsonException>(() =>
+            JsonSerializer.Deserialize<Result>(json, _options));
+        
+        exception.Message.Should().Contain("Missing 'error' property for failure result");
+    }
+
+    [Fact]
+    public void Deserialize_FailureJsonWithEmptyError_ShouldThrowJsonException()
+    {
+        // Arrange
+        var json = """{"isSuccess":false,"error":{"code":"","message":""}}""";
+
+        // Act & Assert
+        var exception = Assert.Throws<JsonException>(() =>
+            JsonSerializer.Deserialize<Result>(json, _options));
+        
+        exception.Message.Should().Contain("Missing 'error' property for failure result");
+    }
 }
