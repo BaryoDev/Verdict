@@ -61,7 +61,7 @@ dotnet add package Verdict
 # Multi-error support, validation, combine operations
 dotnet add package Verdict.Extensions
 
-# Async/await fluent API
+# Async/await fluent API with CancellationToken & timeout support
 dotnet add package Verdict.Async
 
 # Success/error metadata, global factories
@@ -70,8 +70,11 @@ dotnet add package Verdict.Rich
 # Auto-logging integration
 dotnet add package Verdict.Logging
 
-# ASP.NET Core integration
+# ASP.NET Core integration with ProblemDetails
 dotnet add package Verdict.AspNetCore
+
+# JSON serialization (System.Text.Json)
+dotnet add package Verdict.Json
 
 # Original fluent extensions
 dotnet add package Verdict.Fluent
@@ -79,15 +82,16 @@ dotnet add package Verdict.Fluent
 
 ## Package Ecosystem
 
-| Package               | Purpose                 | Dependencies          | Allocation       |
-| --------------------- | ----------------------- | --------------------- | ---------------- |
-| **Verdict**            | Core Result types       | Zero                  | 0 bytes          |
-| **Verdict.Extensions** | Multi-error, validation | System.Memory         | ~200 bytes       |
-| **Verdict.Async**      | Async fluent API        | Zero                  | Task only        |
-| **Verdict.Rich**       | Success/error metadata  | Zero                  | ~160-350 bytes   |
-| **Verdict.Logging**    | Auto-logging            | MS.Extensions.Logging | Logging overhead |
-| **Verdict.AspNetCore** | Web integration         | ASP.NET Core          | HTTP overhead    |
-| **Verdict.Fluent**     | Original fluent API     | Zero                  | 0 bytes          |
+| Package               | Purpose                    | Dependencies          | Allocation       |
+| --------------------- | -------------------------- | --------------------- | ---------------- |
+| **Verdict**            | Core Result types          | Zero                  | 0 bytes          |
+| **Verdict.Extensions** | Multi-error, validation    | System.Memory         | ~200 bytes       |
+| **Verdict.Async**      | Async API, cancellation    | Zero                  | Task only        |
+| **Verdict.Rich**       | Success/error metadata     | Zero                  | ~160-350 bytes   |
+| **Verdict.Logging**    | Auto-logging               | MS.Extensions.Logging | Logging overhead |
+| **Verdict.AspNetCore** | Web integration            | ASP.NET Core          | HTTP overhead    |
+| **Verdict.Json**       | JSON serialization         | System.Text.Json      | JSON overhead    |
+| **Verdict.Fluent**     | Original fluent API        | Zero                  | 0 bytes          |
 
 **Design Philosophy:** Start with zero-allocation core. Scale to enterprise features through opt-in packages. Never compromise on speed.
 
@@ -154,6 +158,85 @@ var message = result.Match(
     onSuccess: value => $"Result is {value}",
     onFailure: error => $"Error: {error.Message}"
 );
+```
+
+### Async with CancellationToken & Timeout
+
+```csharp
+using Verdict;
+using Verdict.Async;
+
+// CancellationToken support throughout async chains
+var result = await GetUserAsync()
+    .MapAsync(async (user, ct) => await FetchOrdersAsync(user.Id, ct), cancellationToken)
+    .BindAsync(async (orders, ct) => await ProcessOrdersAsync(orders, ct), cancellationToken);
+
+// Timeout support
+var timedResult = await LongRunningOperationAsync()
+    .WithTimeout(TimeSpan.FromSeconds(30), "TIMEOUT", "Operation timed out");
+```
+
+### JSON Serialization
+
+```csharp
+using Verdict;
+using Verdict.Json;
+
+// Serialize Result to JSON
+var result = Result<int>.Success(42);
+var json = result.ToJson();  // {"isSuccess":true,"value":42}
+
+// Deserialize JSON to Result
+var restored = VerdictJsonExtensions.FromJson<int>(json);
+
+// Configure for ASP.NET Core
+services.AddControllers()
+    .AddJsonOptions(opts => opts.JsonSerializerOptions.AddVerdictConverters());
+
+// ASP.NET Core ProblemDetails with environment-aware defaults
+builder.Services.AddVerdictProblemDetails(builder.Environment);
+```
+
+### Security Defaults
+
+- **Sanitize exceptions by default** in production: use `Error.FromException(ex, sanitize: true)` to avoid leaking sensitive details.
+- **ProblemDetails options**: `IncludeExceptionDetails`/`IncludeStackTrace` off by default; enable only in development via `AddVerdictProblemDetails(environment)`.
+- **Validate error codes**: `Error.CreateValidated` / `Error.ValidateErrorCode` enforce alphanumeric + underscore codes (safe for logs/headers).
+
+### Running JSON Benchmarks
+
+```bash
+dotnet run -c Release --project benchmarks/Verdict.Benchmarks -- --json
+```
+
+### Security Features
+
+```csharp
+using Verdict;
+
+// Sanitize exception messages for production (prevent info leakage)
+var prodError = Error.FromException(ex, sanitize: true);
+var customError = Error.FromException(ex, sanitize: true, 
+    sanitizedMessage: "A database error occurred");
+
+// Validate error codes (alphanumeric + underscore only)
+var error = Error.CreateValidated("VALID_CODE", "Message");
+bool isValid = Error.IsValidErrorCode("NOT_FOUND"); // true
+bool isInvalid = Error.IsValidErrorCode("invalid-code"); // false
+```
+
+### Dynamic Error Messages
+
+```csharp
+using Verdict;
+using Verdict.Extensions;
+
+// Include value information in error messages
+var result = Result<int>.Success(15)
+    .Ensure(
+        age => age >= 18,
+        age => new Error("AGE_RESTRICTION", $"User is {age} years old, must be at least 18"));
+// Error: "User is 15 years old, must be at least 18"
 ```
 
 ## The Elevator Pitch

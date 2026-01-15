@@ -47,7 +47,22 @@ public class ProblemDetailsFactoryTests
     }
 
     [Fact]
-    public void CreateFromError_WithException_ShouldIncludeDetails()
+    public void CreateFromError_WithException_ShouldIncludeDetailsWhenEnabled()
+    {
+        // Arrange
+        var ex = new InvalidOperationException("Inner error");
+        var error = Error.FromException(ex);
+        var options = new VerdictProblemDetailsOptions { IncludeExceptionDetails = true };
+
+        // Act
+        var problem = ProblemDetailsFactory.CreateFromError(error, 500, options);
+
+        // Assert
+        problem.Extensions["exceptionType"].Should().Be("InvalidOperationException");
+    }
+
+    [Fact]
+    public void CreateFromError_WithException_ShouldNotIncludeDetailsByDefault()
     {
         // Arrange
         var ex = new InvalidOperationException("Inner error");
@@ -57,6 +72,6 @@ public class ProblemDetailsFactoryTests
         var problem = ProblemDetailsFactory.CreateFromError(error, 500);
 
         // Assert
-        problem.Extensions["exceptionType"].Should().Be("InvalidOperationException");
+        problem.Extensions.Should().NotContainKey("exceptionType");
     }
 }

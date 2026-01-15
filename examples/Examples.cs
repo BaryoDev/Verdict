@@ -1,12 +1,14 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Verdict;
 using Verdict.Fluent;
 using Verdict.Extensions;
 using Verdict.Async;
 using Verdict.Rich;
+using Verdict.Json;
 
 namespace Verdict.Examples;
 
@@ -28,6 +30,8 @@ public class Examples
         NonGenericResultExample();
         ErrorHandlingExample();
         ValueOrExample();
+        ErrorSanitizationExample();      // NEW
+        ErrorCodeValidationExample();    // NEW
 
         // Fluent Package Examples
         FluentApiExample();
@@ -39,10 +43,16 @@ public class Examples
         CombineResultsExample();
         TryPatternExample();
         ErrorCollectionDisposalExample();
+        DynamicErrorFactoryExample();    // NEW
 
         // Async Package Examples
         await AsyncPipelineExample();
         await AsyncErrorHandlingExample();
+        await CancellationTokenExample();  // NEW
+        await TimeoutExample();            // NEW
+
+        // Json Package Examples
+        JsonSerializationExample();        // NEW
 
         // Rich Package Examples
         RichMetadataExample();
@@ -58,6 +68,7 @@ public class Examples
         Console.WriteLine("║             Examples completed successfully!               ║");
         Console.WriteLine("╚════════════════════════════════════════════════════════════╝");
     }
+
 
     #region Core Package Examples
 
@@ -386,7 +397,158 @@ public class Examples
 
     #endregion
 
+    #region New Security & Robustness Examples
+
+    static void ErrorSanitizationExample()
+    {
+        Console.WriteLine("═══ NEW: ERROR SANITIZATION (Security) ═══");
+        Console.WriteLine("Prevent sensitive information leakage in production");
+
+        try
+        {
+            throw new InvalidOperationException("Connection to server=prod.db;password=secret123 failed");
+        }
+        catch (Exception ex)
+        {
+            // Unsanitized - exposes sensitive info (use in development only)
+            var devError = Error.FromException(ex);
+            Console.WriteLine($"Development: {devError.Message}");
+
+            // Sanitized - safe for production
+            var prodError = Error.FromException(ex, sanitize: true);
+            Console.WriteLine($"Production: {prodError.Message}");
+
+            // Custom sanitized message
+            var customError = Error.FromException(ex, sanitize: true, sanitizedMessage: "Database connection failed");
+            Console.WriteLine($"Custom: {customError.Message}");
+        }
+
+        Console.WriteLine();
+    }
+
+    static void ErrorCodeValidationExample()
+    {
+        Console.WriteLine("═══ NEW: ERROR CODE VALIDATION (Security) ═══");
+        Console.WriteLine("Ensure error codes contain only safe characters");
+
+        // Valid codes
+        Console.WriteLine($"'NOT_FOUND' valid: {Error.IsValidErrorCode("NOT_FOUND")}");
+        Console.WriteLine($"'Error123' valid: {Error.IsValidErrorCode("Error123")}");
+
+        // Invalid codes (could cause issues in logs or HTTP headers)
+        Console.WriteLine($"'error-code' valid: {Error.IsValidErrorCode("error-code")}");
+        Console.WriteLine($"'error.code' valid: {Error.IsValidErrorCode("error.code")}");
+
+        // Create validated error (throws if invalid)
+        var error = Error.CreateValidated("VALID_CODE", "This is validated");
+        Console.WriteLine($"✓ Created validated error: {error.Code}");
+
+        Console.WriteLine();
+    }
+
+    static void DynamicErrorFactoryExample()
+    {
+        Console.WriteLine("═══ NEW: DYNAMIC ERROR FACTORY (Validation) ═══");
+        Console.WriteLine("Include value information in error messages");
+
+        var userAge = 15;
+        var result = Result<int>.Success(userAge)
+            .Ensure(
+                age => age >= 18,
+                age => new Error("AGE_RESTRICTION", $"User is {age} years old, must be at least 18"));
+
+        if (result.IsFailure)
+        {
+            Console.WriteLine($"✗ {result.Error.Message}");
+        }
+
+        // Real-world: Password validation with length info
+        var password = "abc123";
+        var passwordResult = Result<string>.Success(password)
+            .Ensure(
+                p => p.Length >= 12,
+                p => new Error("WEAK_PASSWORD", $"Password has {p.Length} chars, minimum is 12"));
+
+        if (passwordResult.IsFailure)
+        {
+            Console.WriteLine($"✗ {passwordResult.Error.Message}");
+        }
+
+        Console.WriteLine();
+    }
+
+    static async Task CancellationTokenExample()
+    {
+        Console.WriteLine("═══ NEW: CANCELLATION TOKEN SUPPORT (Async) ═══");
+        Console.WriteLine("Properly cancel async operations");
+
+        using var cts = new CancellationTokenSource();
+
+        // Normal operation completes
+        var result1 = await Task.FromResult(Result<int>.Success(42))
+            .MapAsync(async (x, ct) =>
+            {
+                await Task.Delay(10, ct);
+                return x * 2;
+            }, cts.Token);
+        Console.WriteLine($"✓ Completed: {result1.Value}");
+
+        // Demonstrate cancellation awareness
+        Console.WriteLine("  (Cancellation tokens are passed through the entire chain)");
+
+        Console.WriteLine();
+    }
+
+    static async Task TimeoutExample()
+    {
+        Console.WriteLine("═══ NEW: TIMEOUT SUPPORT (Async) ═══");
+        Console.WriteLine("Apply timeouts to async Result operations");
+
+        // Fast operation - completes before timeout
+        var fastResult = await Task.Run(async () =>
+        {
+            await Task.Delay(10);
+            return Result<string>.Success("Fast response");
+        }).WithTimeout(TimeSpan.FromSeconds(5), "TIMEOUT", "Operation timed out");
+
+        Console.WriteLine($"Fast operation: {(fastResult.IsSuccess ? $"✓ {fastResult.Value}" : $"✗ {fastResult.Error.Code}")}");
+
+        // Simulated slow operation - would timeout
+        Console.WriteLine("  (WithTimeout returns failure if operation exceeds duration)");
+
+        Console.WriteLine();
+    }
+
+    static void JsonSerializationExample()
+    {
+        Console.WriteLine("═══ NEW: JSON SERIALIZATION (Verdict.Json) ═══");
+        Console.WriteLine("Serialize/deserialize Results for APIs and storage");
+
+        // Serialize success
+        var successResult = Result<int>.Success(42);
+        var successJson = successResult.ToJson();
+        Console.WriteLine($"Success JSON: {successJson}");
+
+        // Serialize failure
+        var failureResult = Result<int>.Failure("NOT_FOUND", "Resource not found");
+        var failureJson = failureResult.ToJson();
+        Console.WriteLine($"Failure JSON: {failureJson}");
+
+        // Deserialize
+        var restored = VerdictJsonExtensions.FromJson<int>(successJson);
+        Console.WriteLine($"Restored: IsSuccess={restored.IsSuccess}, Value={restored.Value}");
+
+        // Non-generic Result
+        var nonGenericJson = Result.Success().ToJson();
+        Console.WriteLine($"Non-generic: {nonGenericJson}");
+
+        Console.WriteLine();
+    }
+
+    #endregion
+
     #region Real-World Scenarios
+
 
     static void FormValidationScenario()
     {

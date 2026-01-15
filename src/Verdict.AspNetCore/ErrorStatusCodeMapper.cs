@@ -1,14 +1,16 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 
 namespace Verdict.AspNetCore;
 
 /// <summary>
 /// Maps common error codes to HTTP status codes.
+/// This class is thread-safe and can be used concurrently from multiple threads.
 /// </summary>
 public static class ErrorStatusCodeMapper
 {
-    private static readonly Dictionary<string, int> _customMappings = new();
+    private static readonly ConcurrentDictionary<string, int> _customMappings = new();
 
     private static readonly Dictionary<string, int> _defaultMappings = new()
     {
@@ -79,6 +81,7 @@ public static class ErrorStatusCodeMapper
 
     /// <summary>
     /// Register custom error code mappings.
+    /// This method is thread-safe.
     /// </summary>
     /// <param name="errorCode">The error code to map.</param>
     /// <param name="statusCode">The HTTP status code.</param>
@@ -99,6 +102,7 @@ public static class ErrorStatusCodeMapper
 
     /// <summary>
     /// Clear all custom mappings.
+    /// This method is thread-safe.
     /// </summary>
     public static void ClearCustomMappings()
     {
@@ -107,10 +111,27 @@ public static class ErrorStatusCodeMapper
 
     /// <summary>
     /// Get all registered custom mappings.
+    /// Returns a snapshot of current mappings.
     /// </summary>
     /// <returns>Dictionary of custom error code to status code mappings.</returns>
     public static IReadOnlyDictionary<string, int> GetCustomMappings()
     {
-        return _customMappings;
+        return new Dictionary<string, int>(_customMappings);
+    }
+
+    /// <summary>
+    /// Removes a custom mapping for the specified error code.
+    /// This method is thread-safe.
+    /// </summary>
+    /// <param name="errorCode">The error code to remove.</param>
+    /// <returns>True if the mapping was removed; false if it didn't exist.</returns>
+    public static bool RemoveMapping(string errorCode)
+    {
+        if (string.IsNullOrEmpty(errorCode))
+        {
+            throw new ArgumentNullException(nameof(errorCode));
+        }
+
+        return _customMappings.TryRemove(errorCode, out _);
     }
 }

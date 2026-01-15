@@ -230,10 +230,83 @@ public class CompetitiveBenchmarks
     }
 }
 
+/// <summary>
+/// Benchmarks for JSON serialization of Result types.
+/// </summary>
+[MemoryDiagnoser]
+[SimpleJob(warmupCount: 3, iterationCount: 10)]
+public class JsonSerializationBenchmarks
+{
+    private const int Iterations = 1000;
+    private static readonly System.Text.Json.JsonSerializerOptions _verdictOptions = 
+        Verdict.Json.VerdictJsonExtensions.CreateVerdictJsonOptions();
+    private static readonly System.Text.Json.JsonSerializerOptions _defaultOptions = 
+        new System.Text.Json.JsonSerializerOptions { PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase };
+
+    private readonly Verdict.Result<int> _verdictSuccess = Verdict.Result<int>.Success(42);
+    private readonly Verdict.Result<int> _verdictFailure = Verdict.Result<int>.Failure("ERROR", "An error occurred");
+    private readonly FluentResults.Result<int> _fluentSuccess = FluentResults.Result.Ok(42);
+    private readonly FluentResults.Result<int> _fluentFailure = FluentResults.Result.Fail<int>("An error occurred");
+
+    // ==================== SERIALIZATION ====================
+
+    [Benchmark(Baseline = true, Description = "Verdict.Json Serialize (Success)")]
+    public string VerdictJson_Serialize_Success()
+    {
+        return System.Text.Json.JsonSerializer.Serialize(_verdictSuccess, _verdictOptions);
+    }
+
+    [Benchmark(Description = "Verdict.Json Serialize (Failure)")]
+    public string VerdictJson_Serialize_Failure()
+    {
+        return System.Text.Json.JsonSerializer.Serialize(_verdictFailure, _verdictOptions);
+    }
+
+    [Benchmark(Description = "Manual DTO Serialize (Success)")]
+    public string ManualDto_Serialize_Success()
+    {
+        var dto = new { isSuccess = true, value = 42 };
+        return System.Text.Json.JsonSerializer.Serialize(dto, _defaultOptions);
+    }
+
+    [Benchmark(Description = "Manual DTO Serialize (Failure)")]
+    public string ManualDto_Serialize_Failure()
+    {
+        var dto = new { isSuccess = false, error = new { code = "ERROR", message = "An error occurred" } };
+        return System.Text.Json.JsonSerializer.Serialize(dto, _defaultOptions);
+    }
+
+    // ==================== ROUND-TRIP ====================
+
+    [Benchmark(Description = "Verdict.Json Round-Trip (Success)")]
+    public Verdict.Result<int> VerdictJson_RoundTrip_Success()
+    {
+        var json = System.Text.Json.JsonSerializer.Serialize(_verdictSuccess, _verdictOptions);
+        return System.Text.Json.JsonSerializer.Deserialize<Verdict.Result<int>>(json, _verdictOptions)!;
+    }
+
+    [Benchmark(Description = "Verdict.Json Round-Trip (Failure)")]
+    public Verdict.Result<int> VerdictJson_RoundTrip_Failure()
+    {
+        var json = System.Text.Json.JsonSerializer.Serialize(_verdictFailure, _verdictOptions);
+        return System.Text.Json.JsonSerializer.Deserialize<Verdict.Result<int>>(json, _verdictOptions)!;
+    }
+}
+
 public class Program
 {
     public static void Main(string[] args)
     {
+        Console.WriteLine("Running Verdict Benchmarks...\n");
+        
+        // Run competitive benchmarks by default
         var summary = BenchmarkRunner.Run<CompetitiveBenchmarks>();
+        
+        // Optionally run JSON benchmarks
+        if (args.Contains("--json"))
+        {
+            Console.WriteLine("\nRunning JSON Serialization Benchmarks...\n");
+            BenchmarkRunner.Run<JsonSerializationBenchmarks>();
+        }
     }
 }
