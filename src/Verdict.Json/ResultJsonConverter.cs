@@ -39,6 +39,7 @@ public class ResultJsonConverter<T> : JsonConverter<Result<T>>
 
         bool? isSuccess = null;
         T? value = default;
+        bool hasValueProperty = false;
         Error error = default;
 
         while (reader.Read())
@@ -50,9 +51,26 @@ public class ResultJsonConverter<T> : JsonConverter<Result<T>>
                     throw new JsonException("Missing 'isSuccess' property");
                 }
 
-                return isSuccess.Value
-                    ? Result<T>.Success(value!)
-                    : Result<T>.Failure(error);
+                if (isSuccess.Value)
+                {
+                    // For success results, validate that the 'value' property was present
+                    if (!hasValueProperty)
+                    {
+                        throw new JsonException("Success result must contain 'value' property");
+                    }
+
+                    // For reference types, validate that the value is not null
+                    if (!typeof(T).IsValueType && value is null)
+                    {
+                        throw new JsonException("Success result cannot have null value for reference types");
+                    }
+
+                    return Result<T>.Success(value!);
+                }
+                else
+                {
+                    return Result<T>.Failure(error);
+                }
             }
 
             if (reader.TokenType != JsonTokenType.PropertyName)
@@ -69,6 +87,7 @@ public class ResultJsonConverter<T> : JsonConverter<Result<T>>
                     isSuccess = reader.GetBoolean();
                     break;
                 case "value":
+                    hasValueProperty = true;
                     value = JsonSerializer.Deserialize<T>(ref reader, options);
                     break;
                 case "error":
