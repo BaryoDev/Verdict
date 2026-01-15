@@ -10,8 +10,9 @@ namespace Verdict.Json;
 public class ErrorJsonConverter : JsonConverter<Error>
 {
     /// <summary>
-    /// Gets or sets whether to include exception details in serialization.
-    /// Default is false for security reasons.
+    /// Gets or sets a value indicating whether to include exception details in the serialized error.
+    /// Set this to <c>true</c> only in trusted or development environments where exposing internal
+    /// exception information is acceptable; it should remain <c>false</c> in production for security reasons.
     /// </summary>
     public bool IncludeExceptionDetails { get; set; } = false;
 
