@@ -30,7 +30,8 @@ public class TryTests
         // Assert
         result.IsFailure.Should().BeTrue();
         result.Error.Code.Should().Be("InvalidOperationException");
-        result.Error.Message.Should().Be("Test exception");
+        // Default behavior is now sanitized for security - use custom errorFactory for raw message
+        result.Error.Message.Should().Be("An error occurred.");
         result.Error.Exception.Should().NotBeNull();
     }
 
@@ -93,6 +94,25 @@ public class TryTests
 
         // Act
         var result = TryExtensions.Try<int>(() => throw exception);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        // Exception is always preserved for debugging
+        result.Error.Exception.Should().BeSameAs(exception);
+        // Message is sanitized by default for security - use custom errorFactory for raw message
+        result.Error.Message.Should().Be("An error occurred.");
+    }
+
+    [Fact]
+    public void Try_WithCustomErrorFactory_ShouldExposeRawMessage()
+    {
+        // Arrange
+        var exception = new ArgumentException("Invalid argument", "paramName");
+
+        // Act - use custom error factory to get unsanitized message
+        var result = TryExtensions.Try<int>(
+            () => throw exception,
+            ex => Error.FromException(ex, sanitize: false));
 
         // Assert
         result.IsFailure.Should().BeTrue();

@@ -7,7 +7,7 @@
     
     <!-- Package Metadata -->
     <PackageId>Verdict</PackageId>
-    <Version>1.0.0</Version>
+    <Version>2.0.0</Version>
     <Authors>Baryo.Dev</Authors>
     <Company>Baryo.Dev</Company>
     <Description>Baryo.Dev: High-performance result pattern. Zero-dependency, zero-allocation (on success), thread-safe Result&lt;T&gt; for fast control flow without exceptions.</Description>

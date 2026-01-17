@@ -59,6 +59,12 @@ public class Examples
         SuccessMessagesExample();
         ErrorMetadataExample();
 
+        // Production-Ready Examples
+        ZeroAllocationExample();           // NEW
+        ThreadSafeUsageExample();          // NEW
+        ProperDisposalExample();           // NEW
+        ProductionTryPatternExample();     // NEW
+
         // Real-World Scenarios
         FormValidationScenario();
         await ApiCallScenario();
@@ -411,10 +417,13 @@ public class Examples
         catch (Exception ex)
         {
             // Unsanitized - exposes sensitive info (use in development only)
+            // NOTE: This is intentionally using the deprecated method for demonstration
+#pragma warning disable CS0618 // Intentional: demonstrating deprecated vs new API
             var devError = Error.FromException(ex);
+#pragma warning restore CS0618
             Console.WriteLine($"Development: {devError.Message}");
 
-            // Sanitized - safe for production
+            // Sanitized - safe for production (RECOMMENDED)
             var prodError = Error.FromException(ex, sanitize: true);
             Console.WriteLine($"Production: {prodError.Message}");
 
@@ -547,6 +556,116 @@ public class Examples
 
     #endregion
 
+    #region Production-Ready Examples
+
+    static void ZeroAllocationExample()
+    {
+        Console.WriteLine("═══ NEW: ZERO-ALLOCATION PATTERNS (Performance) ═══");
+        Console.WriteLine("Demonstrates zero-allocation success path");
+
+        // All these operations allocate ZERO bytes on the heap for success path
+        var result1 = Result<int>.Success(42);
+        var result2 = Result<int>.Failure("ERROR", "message");
+
+        // Struct-based - lives on stack (readonly struct)
+        Console.WriteLine("Result<T> is a readonly struct - zero heap allocation on success path");
+
+        // Chain operations without allocation
+        var sum = 0;
+        for (int i = 0; i < 1000; i++)
+        {
+            var r = Result<int>.Success(i);
+            if (r.IsSuccess) sum += r.Value;
+        }
+        Console.WriteLine($"✓ Processed 1000 results with zero heap allocation: sum={sum}");
+
+        // Error struct is also zero-allocation
+        var error = new Error("CODE", "Message");
+        Console.WriteLine($"✓ Error struct created: [{error.Code}] (no heap allocation)");
+
+        Console.WriteLine();
+    }
+
+    static void ThreadSafeUsageExample()
+    {
+        Console.WriteLine("═══ NEW: THREAD-SAFE USAGE (Concurrency) ═══");
+        Console.WriteLine("Demonstrates safe concurrent result handling");
+
+        // Results are immutable - safe to share across threads
+        var sharedResult = Result<string>.Success("shared data");
+
+        var tasks = Enumerable.Range(0, 10).Select(i => Task.Run(() =>
+        {
+            // Safe: reading immutable struct
+            if (sharedResult.IsSuccess)
+            {
+                return $"Thread {i}: {sharedResult.Value}";
+            }
+            return $"Thread {i}: failed";
+        })).ToArray();
+
+        Task.WaitAll(tasks);
+        Console.WriteLine($"✓ {tasks.Length} threads safely accessed shared Result");
+
+        Console.WriteLine();
+    }
+
+    static void ProperDisposalExample()
+    {
+        Console.WriteLine("═══ NEW: PROPER DISPOSAL (Resource Management) ═══");
+        Console.WriteLine("MultiResult uses ArrayPool - always dispose!");
+
+        // CORRECT: Use using statement or try-finally
+        var errors = new[] {
+            new Error("E1", "Error 1"),
+            new Error("E2", "Error 2")
+        };
+
+        var multiResult = MultiResult<int>.Failure(errors);
+        try
+        {
+            Console.WriteLine($"MultiResult has {multiResult.ErrorCount} errors");
+            foreach (var error in multiResult.Errors)
+            {
+                Console.WriteLine($"  • {error.Code}");
+            }
+        }
+        finally
+        {
+            multiResult.DisposeErrors(); // Return array to pool
+            Console.WriteLine("✓ Errors disposed - array returned to pool");
+        }
+
+        Console.WriteLine();
+    }
+
+    static void ProductionTryPatternExample()
+    {
+        Console.WriteLine("═══ NEW: PRODUCTION TRY PATTERN (Error Handling) ═══");
+        Console.WriteLine("Safe exception handling with sanitization");
+
+        // Default: sanitized messages (safe for production)
+        var result1 = TryExtensions.Try<int>(() =>
+            throw new Exception("Internal: connection string=secret;password=123"));
+        Console.WriteLine($"Default (sanitized): {result1.Error.Message}");
+
+        // Custom error factory for controlled error creation
+        var result2 = TryExtensions.Try<int>(
+            () => throw new ArgumentException("Invalid user input"),
+            ex => new Error("VALIDATION_ERROR", "Please check your input"));
+        Console.WriteLine($"Custom factory: {result2.Error.Message}");
+
+        // Development mode with full details (via custom factory)
+        var result3 = TryExtensions.Try<int>(
+            () => throw new InvalidOperationException("Debug info here"),
+            ex => Error.FromException(ex, sanitize: false));
+        Console.WriteLine($"Development mode: {result3.Error.Message}");
+
+        Console.WriteLine();
+    }
+
+    #endregion
+
     #region Real-World Scenarios
 
 
@@ -662,7 +781,10 @@ public class Examples
         }
         catch (Exception ex)
         {
+            // NOTE: Intentionally using deprecated method for demonstration
+#pragma warning disable CS0618 // Intentional: showing exception handling pattern
             return Result<int>.Failure(Error.FromException(ex));
+#pragma warning restore CS0618
         }
     }
 

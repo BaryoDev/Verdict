@@ -41,7 +41,7 @@ public static class ResultLoggingExtensions
         ILogger logger,
         string message)
     {
-        if (logger == null) return result;
+        if (logger == null) throw new ArgumentNullException(nameof(logger));
 
         if (result.IsSuccess)
         {
@@ -72,7 +72,7 @@ public static class ResultLoggingExtensions
         LogLevel successLevel,
         LogLevel failureLevel)
     {
-        if (logger == null) return result;
+        if (logger == null) throw new ArgumentNullException(nameof(logger));
 
         if (result.IsSuccess)
         {
@@ -102,7 +102,8 @@ public static class ResultLoggingExtensions
         string message,
         LogLevel level = LogLevel.Information)
     {
-        if (logger == null || result.IsFailure) return result;
+        if (logger == null) throw new ArgumentNullException(nameof(logger));
+        if (result.IsFailure) return result;
 
         logger.Log(level, "{Message}", message);
         return result;
@@ -123,7 +124,8 @@ public static class ResultLoggingExtensions
         string message,
         LogLevel level = LogLevel.Error)
     {
-        if (logger == null || result.IsSuccess) return result;
+        if (logger == null) throw new ArgumentNullException(nameof(logger));
+        if (result.IsSuccess) return result;
 
         logger.Log(level, "{Message} - [{ErrorCode}] {ErrorMessage}",
             message, result.Error.Code, result.Error.Message);
@@ -143,7 +145,7 @@ public static class ResultLoggingExtensions
         ILogger logger,
         string messageTemplate)
     {
-        if (logger == null) return result;
+        if (logger == null) throw new ArgumentNullException(nameof(logger));
 
         _logStructured(
             logger,
@@ -168,7 +170,7 @@ public static class ResultLoggingExtensions
         ILogger logger,
         string message)
     {
-        if (logger == null) return result;
+        if (logger == null) throw new ArgumentNullException(nameof(logger));
 
         if (result.IsSuccess)
         {
@@ -196,7 +198,8 @@ public static class ResultLoggingExtensions
         string message,
         LogLevel level = LogLevel.Information)
     {
-        if (logger == null || result.IsFailure) return result;
+        if (logger == null) throw new ArgumentNullException(nameof(logger));
+        if (result.IsFailure) return result;
 
         logger.Log(level, "{Message}", message);
         return result;
@@ -216,7 +219,8 @@ public static class ResultLoggingExtensions
         string message,
         LogLevel level = LogLevel.Error)
     {
-        if (logger == null || result.IsSuccess) return result;
+        if (logger == null) throw new ArgumentNullException(nameof(logger));
+        if (result.IsSuccess) return result;
 
         logger.Log(level, "{Message} - [{ErrorCode}] {ErrorMessage}",
             message, result.Error.Code, result.Error.Message);

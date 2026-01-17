@@ -37,14 +37,13 @@ public class SecurityEdgeCaseTests
     }
 
     [Fact]
-    public void ErrorCollection_Create_WithNullEnumerable_ShouldReturnDefault()
+    public void ErrorCollection_Create_WithNullEnumerable_ShouldThrowArgumentNullException()
     {
         // Arrange & Act
-        var collection = ErrorCollection.Create((System.Collections.Generic.IEnumerable<Error>)null!);
+        Action act = () => ErrorCollection.Create((System.Collections.Generic.IEnumerable<Error>)null!);
 
-        // Assert
-        collection.Count.Should().Be(0);
-        collection.HasErrors.Should().BeFalse();
+        // Assert - now throws to prevent null reference issues
+        act.Should().Throw<ArgumentNullException>();
     }
 
     [Fact]
