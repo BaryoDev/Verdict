@@ -22,8 +22,8 @@ public static class ResultLogger
         Func<Result<T>> operation,
         string operationName)
     {
+        if (logger == null) throw new ArgumentNullException(nameof(logger));
         if (operation == null) throw new ArgumentNullException(nameof(operation));
-        if (logger == null) return operation();
 
         logger.LogDebug("Starting operation: {OperationName}", operationName);
 
@@ -63,8 +63,8 @@ public static class ResultLogger
         Func<Task<Result<T>>> operation,
         string operationName)
     {
+        if (logger == null) throw new ArgumentNullException(nameof(logger));
         if (operation == null) throw new ArgumentNullException(nameof(operation));
-        if (logger == null) return await operation();
 
         logger.LogDebug("Starting async operation: {OperationName}", operationName);
 
@@ -103,8 +103,8 @@ public static class ResultLogger
         Func<Result> operation,
         string operationName)
     {
+        if (logger == null) throw new ArgumentNullException(nameof(logger));
         if (operation == null) throw new ArgumentNullException(nameof(operation));
-        if (logger == null) return operation();
 
         logger.LogDebug("Starting operation: {OperationName}", operationName);
 
@@ -143,8 +143,8 @@ public static class ResultLogger
         Func<Task<Result>> operation,
         string operationName)
     {
+        if (logger == null) throw new ArgumentNullException(nameof(logger));
         if (operation == null) throw new ArgumentNullException(nameof(operation));
-        if (logger == null) return await operation();
 
         logger.LogDebug("Starting async operation: {OperationName}", operationName);
 

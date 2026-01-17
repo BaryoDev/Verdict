@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Verdict.AspNetCore;
@@ -9,15 +10,17 @@ namespace Verdict.AspNetCore;
 /// </summary>
 public static class ProblemDetailsFactory
 {
-    private static volatile VerdictProblemDetailsOptions _defaultOptions = new();
+    private static VerdictProblemDetailsOptions _defaultOptions = new();
 
     /// <summary>
     /// Sets the default options for ProblemDetails generation.
+    /// Thread-safe via Interlocked.Exchange.
     /// </summary>
     /// <param name="options">The options to use as default.</param>
     public static void SetDefaultOptions(VerdictProblemDetailsOptions options)
     {
-        _defaultOptions = options ?? throw new ArgumentNullException(nameof(options));
+        if (options == null) throw new ArgumentNullException(nameof(options));
+        Interlocked.Exchange(ref _defaultOptions, options);
     }
 
     /// <summary>
@@ -30,7 +33,9 @@ public static class ProblemDetailsFactory
     /// <returns>RFC 7807 compliant ProblemDetails.</returns>
     public static ProblemDetails CreateFromError(Error error, int statusCode = 400)
     {
-        return CreateFromError(error, statusCode, _defaultOptions);
+        // Read once to ensure consistent options during the call
+        var options = Volatile.Read(ref _defaultOptions);
+        return CreateFromError(error, statusCode, options);
     }
 
     /// <summary>
@@ -87,25 +92,28 @@ public static class ProblemDetailsFactory
     /// <returns>RFC 7807 compliant ValidationProblemDetails.</returns>
     public static ValidationProblemDetails CreateFromMultiResult<T>(Verdict.Extensions.MultiResult<T> result)
     {
-        var errors = new Dictionary<string, string[]>();
-        
-        var errorList = new List<string>();
+        // Pre-allocate array with exact size to avoid List resizing
+        var errorCount = result.ErrorCount;
+        var errorMessages = new string[errorCount];
+
+        int index = 0;
         foreach (var error in result.Errors)
         {
-            errorList.Add($"[{error.Code}] {error.Message}");
+            errorMessages[index++] = $"[{error.Code}] {error.Message}";
         }
 
-        errors["errors"] = errorList.ToArray();
+        var errors = new Dictionary<string, string[]>(1)
+        {
+            ["errors"] = errorMessages
+        };
 
-        var problemDetails = new ValidationProblemDetails(errors)
+        return new ValidationProblemDetails(errors)
         {
             Type = "https://tools.ietf.org/html/rfc7231#section-6.5.1",
             Title = "One or more validation errors occurred.",
             Status = 400,
-            Detail = $"{result.ErrorCount} validation error(s) occurred."
+            Detail = $"{errorCount} validation error(s) occurred."
         };
-
-        return problemDetails;
     }
 
     private static string GetProblemType(int statusCode)

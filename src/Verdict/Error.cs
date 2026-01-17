@@ -50,7 +50,10 @@ public readonly record struct Error
 
     /// <summary>
     /// Creates a new error from an exception.
+    /// WARNING: This method exposes the raw exception message which may contain sensitive information.
+    /// Consider using FromException(exception, sanitize: true) in production environments.
     /// </summary>
+    [Obsolete("This method exposes raw exception messages. Use FromException(exception, sanitize: true) in production to prevent information leakage.")]
     public static Error FromException(Exception exception) =>
         new(exception.GetType().Name, exception.Message, exception);
 
@@ -76,10 +79,13 @@ public readonly record struct Error
 
     /// <summary>
     /// Creates a new error from an exception with a custom error code.
+    /// WARNING: This method exposes the raw exception message which may contain sensitive information.
+    /// Consider using FromException(exception, code, sanitize: true) in production environments.
     /// </summary>
     /// <param name="exception">The exception to create an error from.</param>
     /// <param name="code">The error code to use instead of the exception type name.</param>
     /// <returns>A new Error instance.</returns>
+    [Obsolete("This method exposes raw exception messages. Use FromException(exception, code, sanitize: true) in production to prevent information leakage.")]
     public static Error FromException(Exception exception, string code) =>
         new(code, exception.Message, exception);
 
