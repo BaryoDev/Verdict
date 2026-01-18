@@ -129,7 +129,7 @@ var metadata = result.ErrorMetadata;    // Property (was GetErrorMetadata() meth
 ```
 
 #### 4. Pool-Based Collections
-`ErrorCollection` uses `ArrayPool<T>` for multi-error scenarios to minimize allocations. **Important:** `MultiResult<T>` implements `IDisposable` - always dispose when done to return arrays to pool.
+`ErrorCollection` uses `ArrayPool<T>` for multi-error scenarios to minimize allocations. **Important:** Call `DisposeErrors()` on `MultiResult<T>` when done to return arrays to pool (note: `IDisposable` was removed in v2.1 due to struct copy semantics issues).
 
 ## Critical Implementation Details
 
@@ -156,7 +156,7 @@ All types are immutable after construction:
 - Success path: **0 bytes allocated**
 - Failure path: **0 bytes allocated** (core), ~96 bytes (with metadata)
 - Multi-error: ~200 bytes (pooled)
-- **Always dispose `MultiResult<T>`** to return buffers to pool
+- **Always call `DisposeErrors()`** on `MultiResult<T>` to return buffers to pool
 
 ## Development Guidelines
 
@@ -225,8 +225,17 @@ return await ValidateUserAsync(request)
 
 ## Version Notes
 
-**Current Version:** 2.0.0 (Breaking changes in Verdict.Rich)
+**Current Version:** 2.3.0
 
-- See CHANGELOG.md for migration guide from v1.0 to v2.0
-- Breaking change: `WithSuccess()` and `WithErrorMetadata()` now return `RichResult<T>`
+### Recent Changes (v2.3.0)
+- Security hardening: `TryExtensions` now sanitizes exception messages by default
+- Performance: Replaced LINQ allocations with manual loops in `CombineExtensions`
+- Fixed race conditions in `ProblemDetailsFactory`
+- 523 tests including production readiness and security edge case tests
+
+### Breaking Changes (v2.0.0 - v2.1.0)
+- `WithSuccess()` and `WithErrorMetadata()` now return `RichResult<T>` instead of `Result<T>`
+- `MultiResult<T>` no longer implements `IDisposable` - use `DisposeErrors()` instead
 - Memory leak fixed in v2.0 by embedding metadata in struct
+
+See CHANGELOG.md for full migration guides.

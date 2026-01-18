@@ -7,7 +7,7 @@
     
     <!-- Package Metadata -->
     <PackageId>Verdict.Extensions</PackageId>
-    <Version>2.0.0</Version>
+    <Version>2.3.0</Version>
     <Authors>Baryo.Dev</Authors>
     <Company>Baryo.Dev</Company>
     <Description>Baryo.Dev: Enterprise extensions for Verdict. Multi-error support, validation helpers, and advanced operations with minimal allocation overhead.</Description>

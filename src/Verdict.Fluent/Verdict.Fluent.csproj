@@ -7,7 +7,7 @@
     
     <!-- Package Metadata -->
     <PackageId>Verdict.Fluent</PackageId>
-    <Version>2.0.0</Version>
+    <Version>2.3.0</Version>
     <Authors>Baryo.Dev</Authors>
     <Company>Baryo.Dev</Company>
     <Description>Baryo.Dev: Fluent extensions for Verdict. Functional composition methods (Match, Map, OnSuccess, OnFailure) for the Result pattern.</Description>
