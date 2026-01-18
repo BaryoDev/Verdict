@@ -1,7 +1,6 @@
 using System;
 using System.Buffers;
 using System.Collections.Generic;
-using System.Linq;
 
 namespace Verdict.Extensions;
 
@@ -67,19 +66,61 @@ public readonly struct ErrorCollection : IDisposable
     public static ErrorCollection Create(IEnumerable<Error> errors)
     {
         if (errors == null)
-            return default;
+            throw new ArgumentNullException(nameof(errors));
 
-        var errorList = errors.ToList();
-        if (errorList.Count == 0)
-            return default;
+        // Fast path: if it's already an array, use the array overload
+        if (errors is Error[] errorArray)
+            return Create(errorArray);
 
-        var array = ArrayPool<Error>.Shared.Rent(errorList.Count);
-        for (int i = 0; i < errorList.Count; i++)
+        // Fast path: if it's a collection, we can get the count without enumerating
+        if (errors is ICollection<Error> collection)
         {
-            array[i] = errorList[i];
+            if (collection.Count == 0)
+                return default;
+
+            var array = ArrayPool<Error>.Shared.Rent(collection.Count);
+            int i = 0;
+            foreach (var error in collection)
+            {
+                array[i++] = error;
+            }
+            return new ErrorCollection(array, collection.Count, true);
         }
 
-        return new ErrorCollection(array, errorList.Count, true);
+        // Slow path: unknown size, must enumerate
+        // Use a small initial buffer and grow if needed
+        const int initialCapacity = 4;
+        var buffer = ArrayPool<Error>.Shared.Rent(initialCapacity);
+        int count = 0;
+
+        try
+        {
+            foreach (var error in errors)
+            {
+                if (count == buffer.Length)
+                {
+                    // Grow the buffer
+                    var newBuffer = ArrayPool<Error>.Shared.Rent(buffer.Length * 2);
+                    Array.Copy(buffer, newBuffer, count);
+                    ArrayPool<Error>.Shared.Return(buffer);
+                    buffer = newBuffer;
+                }
+                buffer[count++] = error;
+            }
+
+            if (count == 0)
+            {
+                ArrayPool<Error>.Shared.Return(buffer);
+                return default;
+            }
+
+            return new ErrorCollection(buffer, count, true);
+        }
+        catch
+        {
+            ArrayPool<Error>.Shared.Return(buffer);
+            throw;
+        }
     }
 
     /// <summary>

@@ -53,14 +53,13 @@ public class ResultLoggerTests
     }
 
     [Fact]
-    public void Create_WithNullLogger_ShouldExecuteSuccessfully()
+    public void Create_WithNullLogger_ShouldThrowArgumentNullException()
     {
         // Arrange & Act
-        var result = ResultLogger.Create(null!, () => Result<int>.Success(42), "TestOperation");
+        Action act = () => ResultLogger.Create(null!, () => Result<int>.Success(42), "TestOperation");
 
-        // Assert
-        result.IsSuccess.Should().BeTrue();
-        result.Value.Should().Be(42);
+        // Assert - now throws to fail fast on misconfiguration
+        act.Should().Throw<ArgumentNullException>();
     }
 
     [Fact]

@@ -1,6 +1,4 @@
 using System;
-using System.Collections.Generic;
-using System.Linq;
 
 namespace Verdict.Extensions;
 
@@ -12,7 +10,7 @@ public static class CombineExtensions
     // ==================== Merge Operations ====================
 
     /// <summary>
-    /// Merges multiple Result<T> into a single MultiResult<T>.
+    /// Merges multiple Result&lt;T&gt; into a single MultiResult&lt;T&gt;.
     /// If all succeed, returns success with the first value.
     /// If any fail, returns failure with all errors.
     /// </summary>
@@ -21,7 +19,8 @@ public static class CombineExtensions
         if (results == null || results.Length == 0)
             throw new ArgumentException("At least one result is required", nameof(results));
 
-        var errors = new List<Error>();
+        // First pass: count failures and find first success value
+        int failureCount = 0;
         T? firstValue = default;
         bool hasSuccess = false;
 
@@ -34,13 +33,23 @@ public static class CombineExtensions
             }
             else if (result.IsFailure)
             {
-                errors.Add(result.Error);
+                failureCount++;
             }
         }
 
-        return errors.Count == 0
-            ? MultiResult<T>.Success(firstValue!)
-            : MultiResult<T>.Failure(ErrorCollection.Create(errors));
+        if (failureCount == 0)
+            return MultiResult<T>.Success(firstValue!);
+
+        // Second pass: collect errors (only allocate when we have failures)
+        var errors = new Error[failureCount];
+        int index = 0;
+        foreach (var result in results)
+        {
+            if (result.IsFailure)
+                errors[index++] = result.Error;
+        }
+
+        return MultiResult<T>.Failure(ErrorCollection.Create(errors));
     }
 
     /// <summary>
@@ -51,14 +60,27 @@ public static class CombineExtensions
         if (results == null || results.Length == 0)
             throw new ArgumentException("At least one result is required", nameof(results));
 
-        var errors = results
-            .Where(r => r.IsFailure)
-            .Select(r => r.Error)
-            .ToList();
+        // Count failures first to avoid allocation if all succeed
+        int failureCount = 0;
+        foreach (var result in results)
+        {
+            if (result.IsFailure)
+                failureCount++;
+        }
 
-        return errors.Count == 0
-            ? MultiResult.Success()
-            : MultiResult.Failure(ErrorCollection.Create(errors));
+        if (failureCount == 0)
+            return MultiResult.Success();
+
+        // Only allocate when we have failures
+        var errors = new Error[failureCount];
+        int index = 0;
+        foreach (var result in results)
+        {
+            if (result.IsFailure)
+                errors[index++] = result.Error;
+        }
+
+        return MultiResult.Failure(ErrorCollection.Create(errors));
     }
 
     // ==================== Combine Operations ====================
@@ -129,14 +151,22 @@ public static class CombineExtensions
         Result<T1> result1,
         Result<T2> result2)
     {
-        var errors = new List<Error>();
+        // Check for failures without allocation
+        bool hasFailure1 = result1.IsFailure;
+        bool hasFailure2 = result2.IsFailure;
 
-        if (result1.IsFailure) errors.Add(result1.Error);
-        if (result2.IsFailure) errors.Add(result2.Error);
+        if (!hasFailure1 && !hasFailure2)
+            return MultiResult<(T1, T2)>.Success((result1.Value, result2.Value));
 
-        return errors.Count == 0
-            ? MultiResult<(T1, T2)>.Success((result1.Value, result2.Value))
-            : MultiResult<(T1, T2)>.Failure(ErrorCollection.Create(errors));
+        // Only allocate array when we have failures
+        int errorCount = (hasFailure1 ? 1 : 0) + (hasFailure2 ? 1 : 0);
+        var errors = new Error[errorCount];
+        int index = 0;
+
+        if (hasFailure1) errors[index++] = result1.Error;
+        if (hasFailure2) errors[index++] = result2.Error;
+
+        return MultiResult<(T1, T2)>.Failure(ErrorCollection.Create(errors));
     }
 
     /// <summary>
@@ -147,14 +177,23 @@ public static class CombineExtensions
         Result<T2> result2,
         Result<T3> result3)
     {
-        var errors = new List<Error>();
+        // Check for failures without allocation
+        bool hasFailure1 = result1.IsFailure;
+        bool hasFailure2 = result2.IsFailure;
+        bool hasFailure3 = result3.IsFailure;
 
-        if (result1.IsFailure) errors.Add(result1.Error);
-        if (result2.IsFailure) errors.Add(result2.Error);
-        if (result3.IsFailure) errors.Add(result3.Error);
+        if (!hasFailure1 && !hasFailure2 && !hasFailure3)
+            return MultiResult<(T1, T2, T3)>.Success((result1.Value, result2.Value, result3.Value));
 
-        return errors.Count == 0
-            ? MultiResult<(T1, T2, T3)>.Success((result1.Value, result2.Value, result3.Value))
-            : MultiResult<(T1, T2, T3)>.Failure(ErrorCollection.Create(errors));
+        // Only allocate array when we have failures
+        int errorCount = (hasFailure1 ? 1 : 0) + (hasFailure2 ? 1 : 0) + (hasFailure3 ? 1 : 0);
+        var errors = new Error[errorCount];
+        int index = 0;
+
+        if (hasFailure1) errors[index++] = result1.Error;
+        if (hasFailure2) errors[index++] = result2.Error;
+        if (hasFailure3) errors[index++] = result3.Error;
+
+        return MultiResult<(T1, T2, T3)>.Failure(ErrorCollection.Create(errors));
     }
 }

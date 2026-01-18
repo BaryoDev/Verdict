@@ -5,12 +5,58 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.3.0] - 2026-01-18
+
+### Security Hardening
+
+- **[Obsolete] Warnings**: Added deprecation warnings to `FromException` methods that expose raw exception messages
+- **Secure-by-Default**: `TryExtensions` now sanitizes exception messages by default
+- **Null Logger Handling**: `ResultLogger` now throws `ArgumentNullException` instead of silently handling null loggers
+
+### Performance (Zero-Allocation Improvements)
+
+- Replaced LINQ allocations in `CombineExtensions.Merge` with manual loops
+- Fixed double allocation in `ErrorCollection.Create(IEnumerable)`
+- Added fast paths for arrays and `ICollection<Error>` in `ErrorCollection`
+- Changed `SuccessInfo` to use `ImmutableDictionary` instead of `Dictionary` copy
+- Pre-allocate array in `ProblemDetailsFactory.CreateFromMultiResult`
+
+### Fixed
+
+- Fixed race condition in `ProblemDetailsFactory` using `Interlocked.Exchange`
+- Fixed null handling in `ErrorCollection.Create` to throw `ArgumentNullException`
+- Removed dead code `ResultConfiguration.cs` from Verdict.Rich
+
+### Testing
+
+- All 523 tests passing (176 new tests added since 2.1.0)
+- **Production Readiness Tests** for Extensions, Json, AspNetCore packages
+  - Disposal patterns and thread-safety validation
+  - Copy semantics and concurrent access patterns
+  - Large payload handling and edge cases
+- **Security Edge Case Tests** for Async, Fluent, and Json extensions
+  - Cancellation token edge cases
+  - Timeout boundary tests
+  - Malformed JSON handling
+  - Deep chaining and pattern matching tests
+
+### Examples
+
+- Added `ZeroAllocationExample` demonstrating stack-based struct usage
+- Added `ThreadSafeUsageExample` for concurrent access patterns
+- Added `ProperDisposalExample` for ArrayPool management
+- Added `ProductionTryPatternExample` for sanitized exception handling
+
+---
+
 ## [2.2.0] - 2026-01-15
 
 ### Added
 
 #### New Package: Verdict.Json
+
 A new package for System.Text.Json serialization of Result types:
+
 - `ResultJsonConverter<T>` - Serializes `Result<T>` with `isSuccess`, `value`, and `error` properties
 - `ResultNonGenericJsonConverter` - Serializes non-generic `Result`
 - `ErrorJsonConverter` - Serializes `Error` with `code`, `message` properties
@@ -24,12 +70,14 @@ var json = JsonSerializer.Serialize(Result<int>.Success(42), options);
 ```
 
 #### Security Features (Verdict Core)
+
 - **Error Sanitization**: `Error.FromException(exception, sanitize: true)` - Prevents leaking sensitive exception details
 - **Error Code Validation**: `Error.CreateValidated(code, message)` - Validates codes contain only alphanumeric characters and underscores
 - **Validation Helper**: `Error.ValidateErrorCode(code)` - Static validation method
 - **Code Checking**: `Error.IsValidErrorCode(code)` - Returns bool without throwing
 
 #### ASP.NET Core Enhancements
+
 - **VerdictProblemDetailsOptions** - Configure ProblemDetails generation:
   - `IncludeExceptionDetails` (default: false) - Hide exception types in production
   - `IncludeStackTrace` (default: false) - Hide stack traces in production
@@ -40,7 +88,9 @@ var json = JsonSerializer.Serialize(Result<int>.Success(42), options);
 - **Thread-safe ErrorStatusCodeMapper** - Safe for concurrent use
 
 #### Async Extensions (Verdict.Async)
+
 CancellationToken and timeout support for async chains:
+
 - `MapAsync<T, K>(Func<T, CancellationToken, Task<K>>, CancellationToken)`
 - `BindAsync<T, K>(Func<T, CancellationToken, Task<Result<K>>>, CancellationToken)`
 - `TapAsync(Func<T, CancellationToken, Task>, CancellationToken)`
@@ -54,6 +104,7 @@ await GetUserAsync(id)
 ```
 
 #### Validation Extensions (Verdict.Extensions)
+
 - `Ensure<T>(Func<T, bool>, Func<T, Error>)` - Dynamic error factory for context-aware error messages
 - `Ensure<T>` overload for `MultiResult<T>` with error factory
 
@@ -272,6 +323,7 @@ Result<int> plain = rich;
 - Minor bugs in Result deconstruction.
 
 ---
+[2.3.0]: https://github.com/BaryoDev/Verdict/releases/tag/v2.3.0
 [2.2.0]: https://github.com/BaryoDev/Verdict/releases/tag/v2.2.0
 [2.1.0]: https://github.com/BaryoDev/Verdict/releases/tag/v2.1.0
 [2.0.0]: https://github.com/BaryoDev/Verdict/releases/tag/v2.0.0

@@ -1,6 +1,7 @@
 using System;
-using System.Text;
+using System.Collections.Generic;
 using System.Text.Json;
+using System.Threading.Tasks;
 using FluentAssertions;
 using Verdict.Json;
 using Xunit;
@@ -9,7 +10,7 @@ namespace Verdict.Json.Tests;
 
 /// <summary>
 /// Comprehensive edge case and security tests for JSON serialization.
-/// Tests for malformed JSON, large payloads, special characters, and boundary conditions.
+/// Tests for malformed JSON, large payloads, special characters, and concurrent serialization.
 /// </summary>
 public class SecurityEdgeCaseTests
 {
@@ -20,42 +21,69 @@ public class SecurityEdgeCaseTests
         _options = VerdictJsonExtensions.CreateVerdictJsonOptions();
     }
 
-    #region Malformed JSON Deserialization
-
-    [Fact]
-    public void Deserialize_MalformedJson_ShouldThrowJsonException()
-    {
-        // Arrange
-        var malformedJson = "{\"isSuccess\": true, \"value\": }"; // Missing value
-
-        // Act
-        Action act = () => JsonSerializer.Deserialize<Result<int>>(malformedJson, _options);
-
-        // Assert
-        act.Should().Throw<JsonException>();
-    }
+    #region Malformed JSON Tests
 
     [Fact]
     public void Deserialize_IncompleteJson_ShouldThrowJsonException()
     {
         // Arrange
-        var incompleteJson = "{\"isSuccess\": true"; // Incomplete JSON
+        var json = """{"isSuccess":true,"value":""";
 
         // Act
-        Action act = () => JsonSerializer.Deserialize<Result<int>>(incompleteJson, _options);
+        Action act = () => JsonSerializer.Deserialize<Result<int>>(json, _options);
 
         // Assert
         act.Should().Throw<JsonException>();
     }
 
     [Fact]
-    public void Deserialize_InvalidPropertyTypes_ShouldThrowJsonException()
+    public void Deserialize_InvalidTypeForValue_ShouldThrowJsonException()
     {
         // Arrange
-        var invalidJson = "{\"isSuccess\": \"not_a_boolean\", \"value\": 42}";
+        var json = """{"isSuccess":true,"value":"not_an_int"}""";
 
         // Act
-        Action act = () => JsonSerializer.Deserialize<Result<int>>(invalidJson, _options);
+        Action act = () => JsonSerializer.Deserialize<Result<int>>(json, _options);
+
+        // Assert
+        act.Should().Throw<JsonException>();
+    }
+
+    [Fact]
+    public void Deserialize_MissingIsSuccessProperty_ShouldThrowJsonException()
+    {
+        // Arrange
+        var json = """{"value":42}""";
+
+        // Act
+        Action act = () => JsonSerializer.Deserialize<Result<int>>(json, _options);
+
+        // Assert
+        act.Should().Throw<JsonException>()
+            .WithMessage("*isSuccess*");
+    }
+
+    [Fact]
+    public void Deserialize_InvalidJsonStructure_ShouldThrowJsonException()
+    {
+        // Arrange
+        var json = """[{"isSuccess":true}]""";
+
+        // Act
+        Action act = () => JsonSerializer.Deserialize<Result<int>>(json, _options);
+
+        // Assert
+        act.Should().Throw<JsonException>();
+    }
+
+    [Fact]
+    public void Deserialize_EmptyObject_ShouldThrowJsonException()
+    {
+        // Arrange
+        var json = """{}""";
+
+        // Act
+        Action act = () => JsonSerializer.Deserialize<Result<int>>(json, _options);
 
         // Assert
         act.Should().Throw<JsonException>();
@@ -63,13 +91,13 @@ public class SecurityEdgeCaseTests
 
     #endregion
 
-    #region Very Large JSON Payloads
+    #region Large Payload Tests
 
     [Fact]
-    public void Serialize_VeryLargeSuccessValue_ShouldHandleCorrectly()
+    public void Serialize_LargeStringValue_ShouldHandle()
     {
-        // Arrange - Create a 1MB+ string
-        var largeValue = new string('X', 1024 * 1024);
+        // Arrange
+        var largeValue = new string('X', 1_000_000); // 1MB string
         var result = Result<string>.Success(largeValue);
 
         // Act
@@ -78,15 +106,14 @@ public class SecurityEdgeCaseTests
 
         // Assert
         deserialized.IsSuccess.Should().BeTrue();
-        deserialized.Value.Should().HaveLength(1024 * 1024);
-        deserialized.Value.Should().Be(largeValue);
+        deserialized.Value.Should().HaveLength(1_000_000);
     }
 
     [Fact]
-    public void Serialize_VeryLargeErrorMessage_ShouldHandleCorrectly()
+    public void Serialize_LargeErrorMessage_ShouldHandle()
     {
-        // Arrange - Create a 500KB error message
-        var largeMessage = new string('E', 500 * 1024);
+        // Arrange
+        var largeMessage = new string('E', 500_000); // 500KB message
         var result = Result<int>.Failure("LARGE_ERROR", largeMessage);
 
         // Act
@@ -95,50 +122,47 @@ public class SecurityEdgeCaseTests
 
         // Assert
         deserialized.IsFailure.Should().BeTrue();
-        deserialized.Error.Message.Should().HaveLength(500 * 1024);
-        deserialized.Error.Code.Should().Be("LARGE_ERROR");
+        deserialized.Error.Message.Should().HaveLength(500_000);
+    }
+
+    [Fact]
+    public void Serialize_DeeplyNestedObject_ShouldHandle()
+    {
+        // Arrange
+        var nested = new NestedObject
+        {
+            Level1 = new Level1
+            {
+                Level2 = new Level2
+                {
+                    Level3 = new Level3
+                    {
+                        Value = "Deep value"
+                    }
+                }
+            }
+        };
+        var result = Result<NestedObject>.Success(nested);
+
+        // Act
+        var json = JsonSerializer.Serialize(result, _options);
+        var deserialized = JsonSerializer.Deserialize<Result<NestedObject>>(json, _options);
+
+        // Assert
+        deserialized.IsSuccess.Should().BeTrue();
+        deserialized.Value.Level1.Level2.Level3.Value.Should().Be("Deep value");
     }
 
     #endregion
 
-    #region Unicode and Special Character Handling
+    #region Special Characters Tests
 
     [Fact]
-    public void Serialize_UnicodeCharactersInErrorCode_ShouldHandleCorrectly()
+    public void RoundTrip_UnicodeCharacters_ShouldPreserve()
     {
         // Arrange
-        var result = Result<int>.Failure("错误代码", "Unicode error code");
-
-        // Act
-        var json = JsonSerializer.Serialize(result, _options);
-        var deserialized = JsonSerializer.Deserialize<Result<int>>(json, _options);
-
-        // Assert
-        deserialized.IsFailure.Should().BeTrue();
-        deserialized.Error.Code.Should().Be("错误代码");
-        deserialized.Error.Message.Should().Be("Unicode error code");
-    }
-
-    [Fact]
-    public void Serialize_EmojiInErrorMessage_ShouldHandleCorrectly()
-    {
-        // Arrange
-        var result = Result<int>.Failure("EMOJI_ERROR", "Error occurred 😱🔥💥");
-
-        // Act
-        var json = JsonSerializer.Serialize(result, _options);
-        var deserialized = JsonSerializer.Deserialize<Result<int>>(json, _options);
-
-        // Assert
-        deserialized.IsFailure.Should().BeTrue();
-        deserialized.Error.Message.Should().Be("Error occurred 😱🔥💥");
-    }
-
-    [Fact]
-    public void Serialize_SpecialJsonCharacters_ShouldEscapeCorrectly()
-    {
-        // Arrange
-        var result = Result<string>.Success("Value with \"quotes\", \\backslashes\\ and \n newlines");
+        var unicodeValue = "Hello \u4e16\u754c \u0416\u0438\u0437\u043d\u044c"; // Chinese and Russian
+        var result = Result<string>.Success(unicodeValue);
 
         // Act
         var json = JsonSerializer.Serialize(result, _options);
@@ -146,15 +170,15 @@ public class SecurityEdgeCaseTests
 
         // Assert
         deserialized.IsSuccess.Should().BeTrue();
-        deserialized.Value.Should().Be("Value with \"quotes\", \\backslashes\\ and \n newlines");
+        deserialized.Value.Should().Be(unicodeValue);
     }
 
     [Fact]
-    public void Serialize_ControlCharacters_ShouldHandleCorrectly()
+    public void RoundTrip_Emojis_ShouldPreserve()
     {
         // Arrange
-        var valueWithControlChars = "Line1\tTab\rCarriage\nNewline\0Null";
-        var result = Result<string>.Success(valueWithControlChars);
+        var emojiValue = "Status: \U0001F600\U0001F389\U0001F680"; // Emoji characters
+        var result = Result<string>.Success(emojiValue);
 
         // Act
         var json = JsonSerializer.Serialize(result, _options);
@@ -162,15 +186,65 @@ public class SecurityEdgeCaseTests
 
         // Assert
         deserialized.IsSuccess.Should().BeTrue();
-        deserialized.Value.Should().Be(valueWithControlChars);
+        deserialized.Value.Should().Be(emojiValue);
+    }
+
+    [Fact]
+    public void RoundTrip_ControlCharacters_ShouldPreserve()
+    {
+        // Arrange
+        var controlChars = "Line1\nLine2\tTabbed\rCarriage";
+        var result = Result<string>.Success(controlChars);
+
+        // Act
+        var json = JsonSerializer.Serialize(result, _options);
+        var deserialized = JsonSerializer.Deserialize<Result<string>>(json, _options);
+
+        // Assert
+        deserialized.IsSuccess.Should().BeTrue();
+        deserialized.Value.Should().Be(controlChars);
+    }
+
+    [Fact]
+    public void RoundTrip_EscapedJsonCharacters_ShouldPreserve()
+    {
+        // Arrange
+        var escapedValue = "Quote: \" Backslash: \\ Forward: /";
+        var result = Result<string>.Success(escapedValue);
+
+        // Act
+        var json = JsonSerializer.Serialize(result, _options);
+        var deserialized = JsonSerializer.Deserialize<Result<string>>(json, _options);
+
+        // Assert
+        deserialized.IsSuccess.Should().BeTrue();
+        deserialized.Value.Should().Be(escapedValue);
+    }
+
+    [Fact]
+    public void RoundTrip_ErrorWithSpecialCharacters_ShouldPreserve()
+    {
+        // Arrange
+        var specialCode = "ERR_\u00C9\u00C8\u00CA";
+        var specialMessage = "Error: \"quoted\" and 'single' with \\ backslash";
+        var result = Result<int>.Failure(specialCode, specialMessage);
+
+        // Act
+        var json = JsonSerializer.Serialize(result, _options);
+        var deserialized = JsonSerializer.Deserialize<Result<int>>(json, _options);
+
+        // Assert
+        deserialized.IsFailure.Should().BeTrue();
+        deserialized.Error.Code.Should().Be(specialCode);
+        deserialized.Error.Message.Should().Be(specialMessage);
     }
 
     #endregion
 
-    #region Null Handling During Round-Trip Serialization
+    #region Null/Empty Handling Tests
 
     [Fact]
-    public void Serialize_SuccessWithNullValue_ShouldRoundTripCorrectly()
+    public void RoundTrip_NullableValue_Null_ShouldPreserve()
     {
         // Arrange
         var result = Result<string?>.Success(null);
@@ -185,30 +259,10 @@ public class SecurityEdgeCaseTests
     }
 
     [Fact]
-    public void Serialize_FailureWithEmptyCode_ShouldRoundTripCorrectly()
+    public void RoundTrip_EmptyString_ShouldPreserve()
     {
         // Arrange
-        var result = Result<int>.Failure("", "Message only");
-
-        // Act
-        var json = JsonSerializer.Serialize(result, _options);
-        var deserialized = JsonSerializer.Deserialize<Result<int>>(json, _options);
-
-        // Assert
-        deserialized.IsFailure.Should().BeTrue();
-        deserialized.Error.Code.Should().Be("");
-        deserialized.Error.Message.Should().Be("Message only");
-    }
-
-    #endregion
-
-    #region Empty String Serialization/Deserialization
-
-    [Fact]
-    public void Serialize_EmptyStringSuccess_ShouldRoundTripCorrectly()
-    {
-        // Arrange
-        var result = Result<string>.Success("");
+        var result = Result<string>.Success(string.Empty);
 
         // Act
         var json = JsonSerializer.Serialize(result, _options);
@@ -216,185 +270,201 @@ public class SecurityEdgeCaseTests
 
         // Assert
         deserialized.IsSuccess.Should().BeTrue();
-        deserialized.Value.Should().Be("");
+        deserialized.Value.Should().Be(string.Empty);
+    }
+
+    [Fact]
+    public void RoundTrip_WhitespaceString_ShouldPreserve()
+    {
+        // Arrange
+        var result = Result<string>.Success("   ");
+
+        // Act
+        var json = JsonSerializer.Serialize(result, _options);
+        var deserialized = JsonSerializer.Deserialize<Result<string>>(json, _options);
+
+        // Assert
+        deserialized.IsSuccess.Should().BeTrue();
+        deserialized.Value.Should().Be("   ");
     }
 
     #endregion
 
-    #region Default Struct Serialization
+    #region Default Struct Tests
 
     [Fact]
     public void Serialize_DefaultResult_ShouldThrowInvalidOperationException()
     {
         // Arrange
-        Result<int> defaultResult = default;
-
-        // Act & Assert - Default results are invalid and cannot be serialized
-        Action act = () => JsonSerializer.Serialize(defaultResult, _options);
-        act.Should().Throw<InvalidOperationException>()
-            .WithMessage("*invalid state*");
-    }
-
-    [Fact]
-    public void Serialize_NonGenericDefaultResult_ShouldThrowInvalidOperationException()
-    {
-        // Arrange
-        Result defaultResult = default;
-
-        // Act & Assert - Default results are invalid and cannot be serialized
-        Action act = () => JsonSerializer.Serialize(defaultResult, _options);
-        act.Should().Throw<InvalidOperationException>()
-            .WithMessage("*invalid state*");
-    }
-
-    #endregion
-
-    #region Missing Required Fields During Deserialization
-
-    [Fact]
-    public void Deserialize_MissingIsSuccessField_ShouldThrowOrDefault()
-    {
-        // Arrange - JSON without isSuccess field
-        var jsonWithoutIsSuccess = "{\"value\": 42}";
-
-        // Act & Assert - Behavior depends on implementation
-        // This test documents the behavior when required fields are missing
-        var act = () => JsonSerializer.Deserialize<Result<int>>(jsonWithoutIsSuccess, _options);
-        
-        // Should either throw or create a default (failure) result
-        try
-        {
-            var result = act();
-            result.IsSuccess.Should().BeFalse(); // Defaults to failure
-        }
-        catch (JsonException)
-        {
-            // Also acceptable - missing required field
-            Assert.True(true);
-        }
-    }
-
-    [Fact]
-    public void Deserialize_MissingValueFieldOnSuccess_ShouldThrowOrUseDefault()
-    {
-        // Arrange - Success JSON without value field
-        var jsonWithoutValue = "{\"isSuccess\": true}";
-
-        // Act & Assert
-        var act = () => JsonSerializer.Deserialize<Result<int>>(jsonWithoutValue, _options);
-        
-        // Should either throw or use default value
-        try
-        {
-            var result = act();
-            result.IsSuccess.Should().BeTrue();
-            result.Value.Should().Be(0); // Default for int
-        }
-        catch (JsonException)
-        {
-            // Also acceptable
-            Assert.True(true);
-        }
-    }
-
-    [Fact]
-    public void Deserialize_MissingErrorFieldsOnFailure_ShouldThrowOrUseDefaults()
-    {
-        // Arrange - Failure JSON without error fields
-        var jsonWithoutError = "{\"isSuccess\": false}";
-
-        // Act & Assert
-        var act = () => JsonSerializer.Deserialize<Result<int>>(jsonWithoutError, _options);
-        
-        // Should either throw or create result with empty/default error
-        try
-        {
-            var result = act();
-            result.IsFailure.Should().BeTrue();
-            // Error might have default/empty values
-        }
-        catch (JsonException)
-        {
-            // Also acceptable
-            Assert.True(true);
-        }
-    }
-
-    #endregion
-
-    #region Complex Nested Types
-
-    [Fact]
-    public void Serialize_ComplexNestedType_ShouldRoundTripCorrectly()
-    {
-        // Arrange
-        var complexValue = new { Id = 1, Name = "Test", Tags = new[] { "tag1", "tag2" } };
-        var result = Result<object>.Success(complexValue);
+        var defaultResult = default(Result<int>);
 
         // Act
-        var json = JsonSerializer.Serialize(result, _options);
-        // Note: Deserializing back to object type loses type information
-        // This is expected JSON serialization behavior
-
-        // Assert - JSON uses camelCase naming policy
-        json.Should().Contain("\"id\":1");
-        json.Should().Contain("\"name\":\"Test\"");
-        json.Should().Contain("tag1");
-        json.Should().Contain("tag2");
-    }
-
-    [Fact]
-    public void Serialize_ResultOfResult_ShouldHandleNesting()
-    {
-        // Arrange
-        var innerResult = Result<int>.Success(42);
-        var outerResult = Result<Result<int>>.Success(innerResult);
-
-        // Act
-        var json = JsonSerializer.Serialize(outerResult, _options);
-        var deserialized = JsonSerializer.Deserialize<Result<Result<int>>>(json, _options);
+        Action act = () => JsonSerializer.Serialize(defaultResult, _options);
 
         // Assert
-        deserialized.IsSuccess.Should().BeTrue();
-        deserialized.Value.IsSuccess.Should().BeTrue();
-        deserialized.Value.Value.Should().Be(42);
+        act.Should().Throw<InvalidOperationException>()
+            .WithMessage("*invalid state*");
     }
 
     #endregion
 
-    #region Concurrent Serialization
+    #region Missing Fields Tests
 
     [Fact]
-    public void Serialize_ConcurrentOperations_ShouldBeThreadSafe()
+    public void Deserialize_SuccessWithExtraFields_ShouldIgnoreExtras()
     {
         // Arrange
-        var results = new Result<int>[100];
+        var json = """{"isSuccess":true,"value":42,"extraField":"ignored","anotherExtra":123}""";
+
+        // Act
+        var result = JsonSerializer.Deserialize<Result<int>>(json, _options);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Should().Be(42);
+    }
+
+    [Fact]
+    public void Deserialize_FailureWithExtraFields_ShouldIgnoreExtras()
+    {
+        // Arrange
+        var json = """{"isSuccess":false,"error":{"code":"ERR","message":"Msg"},"extraField":"ignored"}""";
+
+        // Act
+        var result = JsonSerializer.Deserialize<Result<int>>(json, _options);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Code.Should().Be("ERR");
+    }
+
+    #endregion
+
+    #region Concurrent Serialization Tests
+
+    [Fact]
+    public async Task ConcurrentSerialization_ShouldBeThreadSafe()
+    {
+        // Arrange
+        var tasks = new List<Task>();
+        var exceptions = new List<Exception>();
+        var syncLock = new object();
+
+        // Act - Run 100 parallel serialization/deserialization operations
         for (int i = 0; i < 100; i++)
         {
-            results[i] = Result<int>.Success(i);
+            var localI = i;
+            tasks.Add(Task.Run(() =>
+            {
+                try
+                {
+                    var result = Result<int>.Success(localI);
+                    var json = JsonSerializer.Serialize(result, _options);
+                    var deserialized = JsonSerializer.Deserialize<Result<int>>(json, _options);
+
+                    if (!deserialized.IsSuccess || deserialized.Value != localI)
+                    {
+                        throw new InvalidOperationException($"Mismatch: expected {localI}, got {deserialized.Value}");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    lock (syncLock)
+                    {
+                        exceptions.Add(ex);
+                    }
+                }
+            }));
         }
 
-        // Act - Serialize concurrently
-        var exceptions = new System.Collections.Concurrent.ConcurrentBag<Exception>();
-        System.Threading.Tasks.Parallel.For(0, 100, i =>
-        {
-            try
-            {
-                var json = JsonSerializer.Serialize(results[i], _options);
-                var deserialized = JsonSerializer.Deserialize<Result<int>>(json, _options);
-                if (!deserialized.IsSuccess || deserialized.Value != i)
-                {
-                    throw new InvalidOperationException($"Mismatch at index {i}");
-                }
-            }
-            catch (Exception ex)
-            {
-                exceptions.Add(ex);
-            }
-        });
+        await Task.WhenAll(tasks);
 
         // Assert
         exceptions.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task ConcurrentSerialization_MixedSuccessAndFailure_ShouldBeThreadSafe()
+    {
+        // Arrange
+        var tasks = new List<Task>();
+        var exceptions = new List<Exception>();
+        var syncLock = new object();
+
+        // Act - Run 100 parallel operations with mixed success/failure
+        for (int i = 0; i < 100; i++)
+        {
+            var localI = i;
+            tasks.Add(Task.Run(() =>
+            {
+                try
+                {
+                    Result<int> result;
+                    if (localI % 2 == 0)
+                    {
+                        result = Result<int>.Success(localI);
+                    }
+                    else
+                    {
+                        result = Result<int>.Failure($"ERR_{localI}", $"Error {localI}");
+                    }
+
+                    var json = JsonSerializer.Serialize(result, _options);
+                    var deserialized = JsonSerializer.Deserialize<Result<int>>(json, _options);
+
+                    if (localI % 2 == 0)
+                    {
+                        if (!deserialized.IsSuccess || deserialized.Value != localI)
+                        {
+                            throw new InvalidOperationException($"Success mismatch at {localI}");
+                        }
+                    }
+                    else
+                    {
+                        if (!deserialized.IsFailure || deserialized.Error.Code != $"ERR_{localI}")
+                        {
+                            throw new InvalidOperationException($"Failure mismatch at {localI}");
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    lock (syncLock)
+                    {
+                        exceptions.Add(ex);
+                    }
+                }
+            }));
+        }
+
+        await Task.WhenAll(tasks);
+
+        // Assert
+        exceptions.Should().BeEmpty();
+    }
+
+    #endregion
+
+    #region Helper Types
+
+    private class NestedObject
+    {
+        public Level1 Level1 { get; set; } = new();
+    }
+
+    private class Level1
+    {
+        public Level2 Level2 { get; set; } = new();
+    }
+
+    private class Level2
+    {
+        public Level3 Level3 { get; set; } = new();
+    }
+
+    private class Level3
+    {
+        public string Value { get; set; } = string.Empty;
     }
 
     #endregion

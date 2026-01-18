@@ -5,7 +5,7 @@
     <Nullable>enable</Nullable>
 
     <PackageId>Verdict.Logging</PackageId>
-    <Version>1.0.0</Version>
+    <Version>2.3.0</Version>
     <Authors>Baryo.Dev</Authors>
     <Company>Baryo.Dev</Company>
     <Description>Baryo.Dev: Logging extensions for Verdict. Automatic logging integration with Microsoft.Extensions.Logging for success and error flows.</Description>

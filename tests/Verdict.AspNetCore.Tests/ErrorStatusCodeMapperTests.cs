@@ -71,19 +71,32 @@ public class ErrorStatusCodeMapperTests
     }
 
     [Fact]
-    public void GetCustomMappings_ShouldReturnAllRegisteredMappings()
+    public void GetCustomMappings_ShouldReturnRegisteredMappings()
     {
-        // Arrange
-        ErrorStatusCodeMapper.ClearCustomMappings();
-        ErrorStatusCodeMapper.RegisterMapping("M1", 401);
-        ErrorStatusCodeMapper.RegisterMapping("M2", 402);
+        // Arrange - use unique codes to avoid test pollution from parallel tests
+        var uniquePrefix = $"UNIT_{Guid.NewGuid():N}_";
+        var code1 = $"{uniquePrefix}M1";
+        var code2 = $"{uniquePrefix}M2";
 
-        // Act
-        var mappings = ErrorStatusCodeMapper.GetCustomMappings();
+        ErrorStatusCodeMapper.RegisterMapping(code1, 401);
+        ErrorStatusCodeMapper.RegisterMapping(code2, 402);
 
-        // Assert
-        mappings.Should().HaveCount(2);
-        mappings["M1"].Should().Be(401);
-        mappings["M2"].Should().Be(402);
+        try
+        {
+            // Act
+            var mappings = ErrorStatusCodeMapper.GetCustomMappings();
+
+            // Assert - verify our specific codes are present with correct values
+            mappings.Should().ContainKey(code1);
+            mappings.Should().ContainKey(code2);
+            mappings[code1].Should().Be(401);
+            mappings[code2].Should().Be(402);
+        }
+        finally
+        {
+            // Cleanup
+            ErrorStatusCodeMapper.RemoveMapping(code1);
+            ErrorStatusCodeMapper.RemoveMapping(code2);
+        }
     }
 }

@@ -5,7 +5,7 @@
     <Nullable>enable</Nullable>
 
     <PackageId>Verdict.AspNetCore</PackageId>
-    <Version>1.0.0</Version>
+    <Version>2.3.0</Version>
     <Authors>Baryo.Dev</Authors>
     <Company>Baryo.Dev</Company>
     <Description>Baryo.Dev: ASP.NET Core integration for Verdict. Automatic Result to IResult conversion, ProblemDetails RFC 7807 support, and Minimal API extensions.</Description>

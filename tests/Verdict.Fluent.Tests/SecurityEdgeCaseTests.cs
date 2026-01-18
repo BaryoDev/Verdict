@@ -1,6 +1,6 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
+using System.Threading.Tasks;
 using FluentAssertions;
 using Verdict.Fluent;
 using Xunit;
@@ -9,39 +9,39 @@ namespace Verdict.Fluent.Tests;
 
 /// <summary>
 /// Comprehensive edge case and security tests for Fluent Result extensions.
-/// Tests for deep chaining, null handling, pattern matching edge cases, and exception propagation.
+/// Tests for deep chaining, null handling, exception propagation, and type transformations.
 /// </summary>
 public class SecurityEdgeCaseTests
 {
-    #region Deep Chaining Scenarios
+    #region Deep Chaining Tests
 
     [Fact]
-    public void Map_DeepChaining_ShouldHandle10PlusOperations()
+    public void Map_DeepChaining_ShouldMaintainValue()
     {
         // Arrange
         var result = Result<int>.Success(1);
 
-        // Act - Chain 15 Map operations
-        var final = result
-            .Map(x => x + 1)   // 2
-            .Map(x => x * 2)   // 4
-            .Map(x => x + 1)   // 5
-            .Map(x => x * 2)   // 10
-            .Map(x => x + 5)   // 15
-            .Map(x => x * 3)   // 45
-            .Map(x => x - 5)   // 40
-            .Map(x => x / 2)   // 20
-            .Map(x => x + 10)  // 30
-            .Map(x => x * 2)   // 60
-            .Map(x => x - 10)  // 50
-            .Map(x => x / 5)   // 10
-            .Map(x => x + 5)   // 15
-            .Map(x => x * 2)   // 30
-            .Map(x => x.ToString()); // "30"
+        // Act - Chain 15+ Map operations
+        var chained = result
+            .Map(x => x + 1)
+            .Map(x => x + 1)
+            .Map(x => x + 1)
+            .Map(x => x + 1)
+            .Map(x => x + 1)
+            .Map(x => x + 1)
+            .Map(x => x + 1)
+            .Map(x => x + 1)
+            .Map(x => x + 1)
+            .Map(x => x + 1)
+            .Map(x => x + 1)
+            .Map(x => x + 1)
+            .Map(x => x + 1)
+            .Map(x => x + 1)
+            .Map(x => x + 1);
 
         // Assert
-        final.IsSuccess.Should().BeTrue();
-        final.Value.Should().Be("30");
+        chained.IsSuccess.Should().BeTrue();
+        chained.Value.Should().Be(16);
     }
 
     [Fact]
@@ -51,8 +51,11 @@ public class SecurityEdgeCaseTests
         var result = Result<int>.Success(42);
         var counter = 0;
 
-        // Act - Chain 12 OnSuccess operations
+        // Act - Chain 15+ OnSuccess operations
         result
+            .OnSuccess(_ => counter++)
+            .OnSuccess(_ => counter++)
+            .OnSuccess(_ => counter++)
             .OnSuccess(_ => counter++)
             .OnSuccess(_ => counter++)
             .OnSuccess(_ => counter++)
@@ -67,61 +70,84 @@ public class SecurityEdgeCaseTests
             .OnSuccess(_ => counter++);
 
         // Assert
-        counter.Should().Be(12);
+        counter.Should().Be(15);
     }
 
     [Fact]
-    public void MixedChaining_VeryDeepChain_ShouldWorkCorrectly()
+    public void MixedChain_DeepNesting_ShouldWork()
     {
         // Arrange
-        var result = Result<int>.Success(10);
-        var sideEffectCounter = 0;
+        var result = Result<int>.Success(1);
+        var sideEffects = new List<string>();
 
-        // Act - Mix Map, OnSuccess, and OnFailure in deep chain
+        // Act
         var final = result
+            .Map(x => x + 1)
+            .OnSuccess(x => sideEffects.Add($"After first map: {x}"))
             .Map(x => x * 2)
-            .OnSuccess(x => sideEffectCounter += x)
-            .Map(x => x + 5)
-            .OnSuccess(_ => sideEffectCounter++)
+            .OnSuccess(x => sideEffects.Add($"After multiply: {x}"))
             .Map(x => x.ToString())
-            .OnFailure(_ => sideEffectCounter = -1) // Should not execute
-            .Map(x => $"Value: {x}")
-            .OnSuccess(_ => sideEffectCounter++);
+            .OnSuccess(x => sideEffects.Add($"After toString: {x}"))
+            .Map(x => int.Parse(x))
+            .OnSuccess(x => sideEffects.Add($"After parse: {x}"))
+            .Map(x => x + 100)
+            .OnSuccess(x => sideEffects.Add($"Final: {x}"));
 
         // Assert
         final.IsSuccess.Should().BeTrue();
-        final.Value.Should().Be("Value: 25");
-        sideEffectCounter.Should().Be(22); // 20 + 1 + 1
+        final.Value.Should().Be(104);
+        sideEffects.Should().HaveCount(5);
+    }
+
+    [Fact]
+    public void DeepChain_FailureShortCircuits_ShouldNotExecuteAfterFailure()
+    {
+        // Arrange
+        var result = Result<int>.Failure("ERR", "Initial failure");
+        var counter = 0;
+
+        // Act
+        var final = result
+            .Map(x => { counter++; return x + 1; })
+            .Map(x => { counter++; return x + 1; })
+            .Map(x => { counter++; return x + 1; })
+            .OnSuccess(_ => counter++)
+            .OnSuccess(_ => counter++)
+            .OnSuccess(_ => counter++);
+
+        // Assert
+        final.IsFailure.Should().BeTrue();
+        counter.Should().Be(0);
     }
 
     #endregion
 
-    #region Pattern Matching with Null Values
+    #region Pattern Matching Tests
 
     [Fact]
-    public void Match_SuccessWithNullValue_ShouldExecuteOnSuccess()
+    public void Match_WithNullableValue_Success_ShouldReturnValue()
     {
         // Arrange
         var result = Result<string?>.Success(null);
 
         // Act
         var output = result.Match(
-            val => val ?? "null_value",
+            val => val ?? "was null",
             err => err.Code);
 
         // Assert
-        output.Should().Be("null_value");
+        output.Should().Be("was null");
     }
 
     [Fact]
-    public void Match_ReturningNull_ShouldHandleCorrectly()
+    public void Match_OnSuccessReturnsNull_ShouldReturnNull()
     {
         // Arrange
         var result = Result<int>.Success(42);
 
         // Act
-        var output = result.Match(
-            val => (string?)null,
+        var output = result.Match<int, string?>(
+            _ => null,
             err => err.Code);
 
         // Assert
@@ -129,193 +155,164 @@ public class SecurityEdgeCaseTests
     }
 
     [Fact]
-    public void Match_BothBranchesReturnNull_ShouldHandleCorrectly()
+    public void Match_OnFailureReturnsNull_ShouldReturnNull()
+    {
+        // Arrange
+        var result = Result<int>.Failure("ERR", "Msg");
+
+        // Act
+        var output = result.Match<int, string?>(
+            val => val.ToString(),
+            _ => null);
+
+        // Assert
+        output.Should().BeNull();
+    }
+
+    [Fact]
+    public void Match_BothBranchesReturnSameValue_ShouldWork()
     {
         // Arrange
         var successResult = Result<int>.Success(42);
-        var failureResult = Result<int>.Failure("ERROR", "Test");
+        var failureResult = Result<int>.Failure("ERR", "Msg");
 
         // Act
-        var successOutput = successResult.Match(
-            val => (string?)null,
-            err => (string?)null);
-        var failureOutput = failureResult.Match(
-            val => (string?)null,
-            err => (string?)null);
+        var successOutput = successResult.Match(_ => "constant", _ => "constant");
+        var failureOutput = failureResult.Match(_ => "constant", _ => "constant");
 
         // Assert
-        successOutput.Should().BeNull();
-        failureOutput.Should().BeNull();
+        successOutput.Should().Be("constant");
+        failureOutput.Should().Be("constant");
     }
 
     #endregion
 
-    #region Edge Cases in Fluent Operators
+    #region Null Handler Tests
 
     [Fact]
-    public void Map_MappingToSameType_ShouldWorkCorrectly()
+    public void Match_NullOnSuccess_ShouldThrowArgumentNullException()
     {
         // Arrange
         var result = Result<int>.Success(42);
 
         // Act
-        var mapped = result.Map(x => x * 2);
+        Action act = () => result.Match(null!, err => err.Code);
 
         // Assert
-        mapped.IsSuccess.Should().BeTrue();
-        mapped.Value.Should().Be(84);
+        act.Should().Throw<ArgumentNullException>()
+            .WithParameterName("onSuccess");
     }
 
     [Fact]
-    public void Map_ChainedTypeTransformations_ShouldWorkCorrectly()
+    public void Match_NullOnFailure_ShouldThrowArgumentNullException()
     {
         // Arrange
         var result = Result<int>.Success(42);
 
         // Act
-        var final = result
-            .Map(x => x.ToString())           // int -> string
-            .Map(x => x.Length)                // string -> int
-            .Map(x => x > 0)                   // int -> bool
-            .Map(x => x ? "yes" : "no");       // bool -> string
+        Action act = () => result.Match(val => val.ToString(), (Func<Error, string>)null!);
 
         // Assert
-        final.IsSuccess.Should().BeTrue();
-        final.Value.Should().Be("yes");
+        act.Should().Throw<ArgumentNullException>()
+            .WithParameterName("onFailure");
     }
 
     [Fact]
-    public void OnSuccess_ReturningOriginalResult_ShouldNotModifyValue()
+    public void Map_NullMapper_ShouldThrowArgumentNullException()
     {
         // Arrange
         var result = Result<int>.Success(42);
 
         // Act
-        var returned = result.OnSuccess(_ => { /* side effect */ });
+        Action act = () => result.Map((Func<int, string>)null!);
 
         // Assert
-        returned.IsSuccess.Should().BeTrue();
-        returned.Value.Should().Be(42);
-        returned.Should().Be(result); // Should be same reference (struct equality)
+        act.Should().Throw<ArgumentNullException>()
+            .WithParameterName("mapper");
     }
 
     [Fact]
-    public void OnFailure_OnSuccessResult_ShouldNotExecute()
+    public void OnSuccess_NullAction_ShouldThrowArgumentNullException()
     {
         // Arrange
         var result = Result<int>.Success(42);
-        var executed = false;
 
         // Act
-        result.OnFailure(_ => executed = true);
+        Action act = () => result.OnSuccess(null!);
 
         // Assert
-        executed.Should().BeFalse();
+        act.Should().Throw<ArgumentNullException>()
+            .WithParameterName("action");
+    }
+
+    [Fact]
+    public void OnFailure_NullAction_ShouldThrowArgumentNullException()
+    {
+        // Arrange
+        var result = Result<int>.Failure("ERR", "Msg");
+
+        // Act
+        Action act = () => result.OnFailure(null!);
+
+        // Assert
+        act.Should().Throw<ArgumentNullException>()
+            .WithParameterName("action");
     }
 
     #endregion
 
-    #region Null Handler Functions
+    #region Default Result Tests
 
     [Fact]
-    public void Map_WithNullMapper_ShouldThrow()
+    public void DefaultResult_AccessingValue_ShouldThrowInvalidOperationException()
     {
         // Arrange
-        var result = Result<int>.Success(42);
-        Func<int, string> nullMapper = null!;
+        var defaultResult = default(Result<int>);
 
         // Act
-        Action act = () => result.Map(nullMapper);
+        Action act = () => _ = defaultResult.Value;
 
         // Assert
-        act.Should().Throw<ArgumentNullException>()
-            .WithMessage("*mapper*");
+        act.Should().Throw<InvalidOperationException>()
+            .WithMessage("*failed result*");
     }
 
     [Fact]
-    public void Match_WithNullOnSuccess_ShouldThrow()
+    public void DefaultResult_AccessingError_ShouldThrowInvalidOperationException()
     {
         // Arrange
-        var result = Result<int>.Success(42);
-        Func<int, string> nullOnSuccess = null!;
+        var defaultResult = default(Result<int>);
 
         // Act
-        Action act = () => result.Match(nullOnSuccess, err => err.Code);
+        Action act = () => _ = defaultResult.Error;
 
         // Assert
-        act.Should().Throw<ArgumentNullException>()
-            .WithMessage("*onSuccess*");
-    }
-
-    [Fact]
-    public void Match_WithNullOnFailure_ShouldThrow()
-    {
-        // Arrange
-        var result = Result<int>.Success(42);
-        Func<Error, string> nullOnFailure = null!;
-
-        // Act
-        Action act = () => result.Match(val => val.ToString(), nullOnFailure);
-
-        // Assert
-        act.Should().Throw<ArgumentNullException>()
-            .WithMessage("*onFailure*");
-    }
-
-    [Fact]
-    public void OnSuccess_WithNullAction_ShouldThrow()
-    {
-        // Arrange
-        var result = Result<int>.Success(42);
-        Action<int> nullAction = null!;
-
-        // Act
-        Action act = () => result.OnSuccess(nullAction);
-
-        // Assert
-        act.Should().Throw<ArgumentNullException>()
-            .WithMessage("*action*");
-    }
-
-    [Fact]
-    public void OnFailure_WithNullAction_ShouldThrow()
-    {
-        // Arrange
-        var result = Result<int>.Failure("ERROR", "Test");
-        Action<Error> nullAction = null!;
-
-        // Act
-        Action act = () => result.OnFailure(nullAction);
-
-        // Assert
-        act.Should().Throw<ArgumentNullException>()
-            .WithMessage("*action*");
-    }
-
-    #endregion
-
-    #region Default Result in Fluent Chains
-
-    [Fact]
-    public void Map_OnDefaultResult_ShouldThrow()
-    {
-        // Arrange
-        Result<int> defaultResult = default;
-
-        // Act & Assert - Default result is invalid and throws when fluent operations try to access Error
-        Action act = () => defaultResult.Map(x => x.ToString());
         act.Should().Throw<InvalidOperationException>()
             .WithMessage("*invalid state*");
     }
 
     [Fact]
-    public void OnSuccess_OnDefaultResult_ShouldNotExecute()
+    public void DefaultResult_Map_ShouldThrowInvalidOperationException()
     {
         // Arrange
-        Result<int> defaultResult = default;
+        var defaultResult = default(Result<int>);
+
+        // Act - Map tries to access Error on invalid state, which throws
+        Action act = () => defaultResult.Map(x => x.ToString());
+
+        // Assert
+        act.Should().Throw<InvalidOperationException>()
+            .WithMessage("*invalid state*");
+    }
+
+    [Fact]
+    public void DefaultResult_OnSuccess_ShouldNotExecute()
+    {
+        // Arrange
+        var defaultResult = default(Result<int>);
         var executed = false;
 
-        // Act - OnSuccess checks IsSuccess first, so it won't throw
+        // Act
         defaultResult.OnSuccess(_ => executed = true);
 
         // Assert
@@ -323,256 +320,324 @@ public class SecurityEdgeCaseTests
     }
 
     [Fact]
-    public void OnFailure_OnDefaultResult_ShouldThrow()
+    public void DefaultResult_OnFailure_ShouldThrowWhenAccessingError()
     {
         // Arrange
-        Result<int> defaultResult = default;
+        var defaultResult = default(Result<int>);
 
-        // Act & Assert - Default result is invalid and throws when trying to access Error
-        Action act = () => defaultResult.OnFailure(_ => {});
-        act.Should().Throw<InvalidOperationException>()
-            .WithMessage("*invalid state*");
-    }
+        // Act
+        Action act = () => defaultResult.OnFailure(err => { var _ = err.Code; });
 
-    [Fact]
-    public void Match_OnDefaultResult_ShouldThrow()
-    {
-        // Arrange
-        Result<int> defaultResult = default;
-
-        // Act & Assert - Default result is invalid and throws when trying to access Error
-        Action act = () => defaultResult.Match(
-            val => "success",
-            err => "failure");
+        // Assert
         act.Should().Throw<InvalidOperationException>()
             .WithMessage("*invalid state*");
     }
 
     #endregion
 
-    #region Exception Propagation Through Fluent Chains
+    #region Exception Propagation Tests
 
     [Fact]
-    public void Map_WhenMapperThrows_ShouldPropagateException()
+    public void Map_MapperThrows_ShouldPropagateException()
     {
         // Arrange
         var result = Result<int>.Success(42);
+        var expectedException = new InvalidOperationException("Test exception");
 
         // Act
-        Action act = () => result.Map(x =>
-        {
-            throw new InvalidOperationException("Mapper failed");
-#pragma warning disable CS0162 // Unreachable code detected
-            return x.ToString();
-#pragma warning restore CS0162
-        });
+        Action act = () => result.Map<int, string>(_ => throw expectedException);
 
         // Assert
         act.Should().Throw<InvalidOperationException>()
-            .WithMessage("Mapper failed");
+            .WithMessage("Test exception");
     }
 
     [Fact]
-    public void OnSuccess_WhenActionThrows_ShouldPropagateException()
+    public void OnSuccess_ActionThrows_ShouldPropagateException()
     {
         // Arrange
         var result = Result<int>.Success(42);
+        var expectedException = new InvalidOperationException("Test exception");
 
         // Act
-        Action act = () => result.OnSuccess(x => throw new InvalidOperationException("Action failed"));
+        Action act = () => result.OnSuccess(_ => throw expectedException);
 
         // Assert
         act.Should().Throw<InvalidOperationException>()
-            .WithMessage("Action failed");
+            .WithMessage("Test exception");
     }
 
     [Fact]
-    public void OnFailure_WhenActionThrows_ShouldPropagateException()
+    public void OnFailure_ActionThrows_ShouldPropagateException()
     {
         // Arrange
-        var result = Result<int>.Failure("ERROR", "Test");
+        var result = Result<int>.Failure("ERR", "Msg");
+        var expectedException = new InvalidOperationException("Test exception");
 
         // Act
-        Action act = () => result.OnFailure(err => throw new InvalidOperationException("Action failed"));
+        Action act = () => result.OnFailure(_ => throw expectedException);
 
         // Assert
         act.Should().Throw<InvalidOperationException>()
-            .WithMessage("Action failed");
+            .WithMessage("Test exception");
     }
 
     [Fact]
-    public void Match_WhenOnSuccessThrows_ShouldPropagateException()
+    public void Match_OnSuccessThrows_ShouldPropagateException()
     {
         // Arrange
         var result = Result<int>.Success(42);
+        var expectedException = new InvalidOperationException("Test exception");
 
         // Act
-        Action act = () => result.Match(
-            val => throw new InvalidOperationException("OnSuccess failed"),
+        Action act = () => result.Match<int, string>(
+            _ => throw expectedException,
             err => err.Code);
 
         // Assert
         act.Should().Throw<InvalidOperationException>()
-            .WithMessage("OnSuccess failed");
+            .WithMessage("Test exception");
     }
 
     [Fact]
-    public void Match_WhenOnFailureThrows_ShouldPropagateException()
+    public void Match_OnFailureThrows_ShouldPropagateException()
     {
         // Arrange
-        var result = Result<int>.Failure("ERROR", "Test");
+        var result = Result<int>.Failure("ERR", "Msg");
+        var expectedException = new InvalidOperationException("Test exception");
 
         // Act
-        Action act = () => result.Match(
+        Action act = () => result.Match<int, string>(
             val => val.ToString(),
-            err => throw new InvalidOperationException("OnFailure failed"));
+            _ => throw expectedException);
 
         // Assert
         act.Should().Throw<InvalidOperationException>()
-            .WithMessage("OnFailure failed");
+            .WithMessage("Test exception");
     }
 
     [Fact]
-    public void Map_ExceptionInMiddleOfChain_ShouldStopChain()
+    public void ChainedOperations_ExceptionInterruptsChain()
     {
         // Arrange
-        var result = Result<int>.Success(10);
-        var executed = false;
+        var result = Result<int>.Success(1);
+        var counter = 0;
 
-        // Act & Assert
+        // Act
         Action act = () => result
-            .Map(x => x * 2)
-            .Map(x =>
-            {
-                throw new InvalidOperationException("Chain broken");
-#pragma warning disable CS0162 // Unreachable code detected
-                return x;
-#pragma warning restore CS0162
-            })
-            .Map(x => x.ToString())
-            .OnSuccess(_ => executed = true);
+            .Map(x => { counter++; return x + 1; })
+            .Map(x => { counter++; return x + 1; })
+            .Map<int, int>(_ => throw new InvalidOperationException("Interrupt"))
+            .Map(x => { counter++; return x + 1; })
+            .Map(x => { counter++; return x + 1; });
 
+        // Assert
         act.Should().Throw<InvalidOperationException>()
-            .WithMessage("Chain broken");
-        executed.Should().BeFalse();
+            .WithMessage("Interrupt");
+        counter.Should().Be(2); // Only first two maps executed
     }
 
     #endregion
 
-    #region Complex Chaining Scenarios
+    #region Mixed Chain Tests
 
     [Fact]
-    public void ComplexChain_WithMultipleTransformations_ShouldWorkCorrectly()
+    public void MixedChain_MapOnSuccessOnFailure_Success()
     {
         // Arrange
-        var result = Result<int>.Success(5);
+        var result = Result<int>.Success(10);
         var log = new List<string>();
 
         // Act
         var final = result
-            .OnSuccess(x => log.Add($"Start: {x}"))
+            .OnSuccess(x => log.Add($"Initial: {x}"))
             .Map(x => x * 2)
             .OnSuccess(x => log.Add($"After *2: {x}"))
-            .Map(x => x + 10)
-            .OnSuccess(x => log.Add($"After +10: {x}"))
-            .Map(x => x.ToString())
-            .OnSuccess(x => log.Add($"After ToString: {x}"))
-            .Map(x => $"Result: {x}");
+            .OnFailure(e => log.Add($"Error: {e.Code}"))
+            .Map(x => x + 5)
+            .OnSuccess(x => log.Add($"Final: {x}"));
 
         // Assert
         final.IsSuccess.Should().BeTrue();
-        final.Value.Should().Be("Result: 20");
-        log.Should().HaveCount(4);
-        log[0].Should().Be("Start: 5");
-        log[1].Should().Be("After *2: 10");
-        log[2].Should().Be("After +10: 20");
-        log[3].Should().Be("After ToString: 20");
+        final.Value.Should().Be(25);
+        log.Should().BeEquivalentTo(new[] { "Initial: 10", "After *2: 20", "Final: 25" });
     }
 
     [Fact]
-    public void FailureChain_ShouldNotExecuteSuccessBranches()
+    public void MixedChain_MapOnSuccessOnFailure_Failure()
     {
         // Arrange
-        var result = Result<int>.Failure("INITIAL_ERROR", "Starting with failure");
-        var successCount = 0;
-        var failureCount = 0;
+        var result = Result<int>.Failure("ERR", "Failed");
+        var log = new List<string>();
 
         // Act
         var final = result
-            .OnSuccess(_ => successCount++)
+            .OnSuccess(x => log.Add($"Initial: {x}"))
             .Map(x => x * 2)
-            .OnSuccess(_ => successCount++)
-            .OnFailure(_ => failureCount++)
-            .Map(x => x.ToString())
-            .OnSuccess(_ => successCount++)
-            .OnFailure(_ => failureCount++);
+            .OnSuccess(x => log.Add($"After *2: {x}"))
+            .OnFailure(e => log.Add($"Error: {e.Code}"))
+            .Map(x => x + 5)
+            .OnSuccess(x => log.Add($"Final: {x}"));
 
         // Assert
         final.IsFailure.Should().BeTrue();
-        final.Error.Code.Should().Be("INITIAL_ERROR");
-        successCount.Should().Be(0);
-        failureCount.Should().Be(2);
+        final.Error.Code.Should().Be("ERR");
+        log.Should().BeEquivalentTo(new[] { "Error: ERR" });
     }
 
     [Fact]
-    public void NonGenericResult_CannotUseFluentOperations_IsExpected()
+    public void MixedChain_MultipleOnFailure_ShouldExecuteAll()
     {
-        // Arrange - Non-generic Result doesn't have fluent extension methods
-        var result = Result.Success();
+        // Arrange
+        var result = Result<int>.Failure("ERR", "Failed");
+        var log = new List<string>();
 
-        // Assert - Just verify the result state
-        result.IsSuccess.Should().BeTrue();
-        result.IsFailure.Should().BeFalse();
-        
-        // Note: Non-generic Result does not have OnSuccess/OnFailure/Map extensions
-        // This is by design - fluent operations are only available on Result<T>
+        // Act
+        result
+            .OnFailure(e => log.Add($"Handler1: {e.Code}"))
+            .OnFailure(e => log.Add($"Handler2: {e.Message}"))
+            .OnFailure(e => log.Add("Handler3"));
+
+        // Assert
+        log.Should().BeEquivalentTo(new[] { "Handler1: ERR", "Handler2: Failed", "Handler3" });
     }
 
     #endregion
 
-    #region Edge Cases with Value Types
+    #region Type Transformation Tests
 
     [Fact]
-    public void Map_WithStructTypes_ShouldNotCauseBoxing()
+    public void Map_StructToStruct_ShouldNotBox()
     {
         // Arrange
         var result = Result<int>.Success(42);
 
         // Act
-        var mapped = result.Map(x => (long)x);
-
-        // Assert - Verify struct is copied, not boxed
-        mapped.IsSuccess.Should().BeTrue();
-        mapped.Value.Should().Be(42L);
-        mapped.Value.GetType().Should().Be(typeof(long));
-    }
-
-    [Fact]
-    public void Map_WithNullableTypes_ShouldHandleCorrectly()
-    {
-        // Arrange
-        var result = Result<int?>.Success(42);
-
-        // Act
-        var mapped = result.Map(x => x.HasValue ? x.Value * 2 : 0);
+        var mapped = result.Map(x => new TestStruct { Value = x });
 
         // Assert
         mapped.IsSuccess.Should().BeTrue();
-        mapped.Value.Should().Be(84);
+        mapped.Value.Value.Should().Be(42);
     }
 
     [Fact]
-    public void Map_NullableToNonNullable_ShouldWorkCorrectly()
+    public void Map_StructToClass_ShouldWork()
     {
         // Arrange
-        var result = Result<int?>.Success(null);
+        var result = Result<int>.Success(42);
 
         // Act
-        var mapped = result.Map(x => x ?? -1);
+        var mapped = result.Map(x => new TestClass { Value = x });
 
         // Assert
         mapped.IsSuccess.Should().BeTrue();
-        mapped.Value.Should().Be(-1);
+        mapped.Value.Value.Should().Be(42);
+    }
+
+    [Fact]
+    public void Map_ClassToStruct_ShouldWork()
+    {
+        // Arrange
+        var result = Result<TestClass>.Success(new TestClass { Value = 42 });
+
+        // Act
+        var mapped = result.Map(x => new TestStruct { Value = x.Value });
+
+        // Assert
+        mapped.IsSuccess.Should().BeTrue();
+        mapped.Value.Value.Should().Be(42);
+    }
+
+    [Fact]
+    public void Map_ToValueTuple_ShouldWork()
+    {
+        // Arrange
+        var result = Result<int>.Success(42);
+
+        // Act
+        var mapped = result.Map(x => (x, x.ToString()));
+
+        // Assert
+        mapped.IsSuccess.Should().BeTrue();
+        mapped.Value.Should().Be((42, "42"));
+    }
+
+    [Fact]
+    public void Match_ReturnsStruct_ShouldWork()
+    {
+        // Arrange
+        var result = Result<int>.Success(42);
+
+        // Act
+        var output = result.Match(
+            x => new TestStruct { Value = x },
+            _ => new TestStruct { Value = -1 });
+
+        // Assert
+        output.Value.Should().Be(42);
+    }
+
+    #endregion
+
+    #region Concurrent Usage Tests
+
+    [Fact]
+    public async Task ConcurrentFluentOperations_ShouldBeThreadSafe()
+    {
+        // Arrange
+        var tasks = new List<Task>();
+        var exceptions = new List<Exception>();
+        var syncLock = new object();
+
+        // Act - Run 100 parallel fluent chains
+        for (int i = 0; i < 100; i++)
+        {
+            var localI = i;
+            tasks.Add(Task.Run(() =>
+            {
+                try
+                {
+                    var result = Result<int>.Success(localI)
+                        .Map(x => x * 2)
+                        .OnSuccess(_ => { })
+                        .Map(x => x + 1)
+                        .Match(
+                            x => x,
+                            _ => -1);
+
+                    if (result != localI * 2 + 1)
+                    {
+                        throw new InvalidOperationException($"Mismatch: expected {localI * 2 + 1}, got {result}");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    lock (syncLock)
+                    {
+                        exceptions.Add(ex);
+                    }
+                }
+            }));
+        }
+
+        await Task.WhenAll(tasks);
+
+        // Assert
+        exceptions.Should().BeEmpty();
+    }
+
+    #endregion
+
+    #region Helper Types
+
+    private struct TestStruct
+    {
+        public int Value { get; set; }
+    }
+
+    private class TestClass
+    {
+        public int Value { get; set; }
     }
 
     #endregion

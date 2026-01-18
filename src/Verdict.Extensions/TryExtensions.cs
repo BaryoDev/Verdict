@@ -9,6 +9,8 @@ public static class TryExtensions
 {
     /// <summary>
     /// Executes a function and returns a Result, catching any exceptions.
+    /// By default, creates an error with the exception message sanitized.
+    /// Pass a custom errorFactory to control error creation.
     /// </summary>
     public static Result<T> Try<T>(
         Func<T> action,
@@ -24,13 +26,15 @@ public static class TryExtensions
         {
             var error = errorFactory != null
                 ? errorFactory(ex)
-                : Error.FromException(ex);
+                : Error.FromException(ex, sanitize: true);
             return Result<T>.Failure(error);
         }
     }
 
     /// <summary>
     /// Executes an action and returns a Result, catching any exceptions.
+    /// By default, creates an error with the exception message sanitized.
+    /// Pass a custom errorFactory to control error creation.
     /// </summary>
     public static Result Try(
         Action action,
@@ -47,13 +51,15 @@ public static class TryExtensions
         {
             var error = errorFactory != null
                 ? errorFactory(ex)
-                : Error.FromException(ex);
+                : Error.FromException(ex, sanitize: true);
             return Result.Failure(error);
         }
     }
 
     /// <summary>
     /// Wraps a Result-returning function in a try/catch.
+    /// By default, creates an error with the exception message sanitized.
+    /// Pass a custom errorFactory to control error creation.
     /// </summary>
     public static Result<T> TryResult<T>(
         Func<Result<T>> action,
@@ -69,13 +75,15 @@ public static class TryExtensions
         {
             var error = errorFactory != null
                 ? errorFactory(ex)
-                : Error.FromException(ex);
+                : Error.FromException(ex, sanitize: true);
             return Result<T>.Failure(error);
         }
     }
 
     /// <summary>
     /// Wraps a non-generic Result-returning function in a try/catch.
+    /// By default, creates an error with the exception message sanitized.
+    /// Pass a custom errorFactory to control error creation.
     /// </summary>
     public static Result TryResult(
         Func<Result> action,
@@ -91,7 +99,7 @@ public static class TryExtensions
         {
             var error = errorFactory != null
                 ? errorFactory(ex)
-                : Error.FromException(ex);
+                : Error.FromException(ex, sanitize: true);
             return Result.Failure(error);
         }
     }

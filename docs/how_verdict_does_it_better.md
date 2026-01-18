@@ -18,7 +18,7 @@ This document compares Verdict's implementation of key Result pattern features a
 | **Validation**       | Manual           | Ensure/EnsureAll            | **Tie**    | Similar API, Verdict faster           |
 | **Try/Catch**        | Result.Try()     | TryExtensions               | **Tie**    | Similar API, Verdict faster           |
 | **Pattern Matching** | Deconstruct      | Deconstruct                 | **Verdict** | Better C# 10+ integration            |
-| **Global Config**    | Result.Setup()   | ResultConfiguration         | **Tie**    | Similar approach                     |
+| **Global Config**    | Result.Setup()   | Explicit factories           | **Verdict** | No global state, explicit is better  |
 | **ASP.NET Core**     | Official package | Verdict.AspNetCore           | **Tie**    | Both have integration                |
 | **Logging**          | Built-in         | Verdict.Logging              | **Tie**    | Both have integration                |
 | **Performance**      | Acceptable       | Exceptional                 | **Verdict** | 20-188x faster across all scenarios  |
@@ -396,27 +396,29 @@ Result.Setup(cfg => {
 
 ### Verdict Approach
 ```csharp
-using Verdict.Rich;
+using Verdict.Extensions;
 
-ResultConfiguration.Configure(cfg =>
+// Define your error factory explicitly - no hidden global state
+Func<Exception, Error> errorFactory = ex => Error.FromException(ex, sanitize: true);
+
+// Use it explicitly in your operations
+var result = TryExtensions.Try(() => DoSomething(), errorFactory);
+
+// Or create a project-specific helper
+public static class MyApp
 {
-    cfg.UseExceptionHandler(ex => new Error(
-        ex.GetType().Name,
-        ex.Message,
-        ex
-    ));
-    
-    cfg.UseSuccessFactory(msg => new SuccessInfo(msg)
-        .WithMetadata("Timestamp", DateTime.UtcNow));
-});
+    public static Func<Exception, Error> ErrorFactory { get; } =
+        ex => Error.FromException(ex, sanitize: true);
+}
 ```
 
 **Advantages:**
-- ✅ **Same capability** as FluentResults
-- ✅ **Opt-in** (Verdict.Rich package)
+- ✅ **No global mutable state** (cleaner architecture)
+- ✅ **Explicit dependencies** (easier to test)
 - ✅ **Doesn't bloat core**
+- ✅ **Thread-safe by design**
 
-**Winner:** **Tie** (similar approach, both work well)
+**Winner:** **Verdict** (explicit > implicit, no hidden global state)
 
 ---
 

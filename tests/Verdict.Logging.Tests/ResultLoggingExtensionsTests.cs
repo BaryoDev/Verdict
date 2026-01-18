@@ -51,16 +51,16 @@ public class ResultLoggingExtensionsTests
     }
 
     [Fact]
-    public void Log_WithNullLogger_ShouldReturnResultUnchanged()
+    public void Log_WithNullLogger_ShouldThrowArgumentNullException()
     {
         // Arrange
         var result = Result<int>.Success(42);
 
         // Act
-        var logged = result.Log(null!, "Message");
+        Action act = () => result.Log(null!, "Message");
 
-        // Assert
-        logged.Should().Be(result);
+        // Assert - now throws to fail fast on misconfiguration
+        act.Should().Throw<ArgumentNullException>();
     }
 
     [Fact]
