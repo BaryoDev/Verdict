@@ -93,8 +93,10 @@ public class ResultExtensionsTests
         var actionResult = result.ToActionResult(successStatusCode: 202);
 
         // Assert
-        actionResult.Result.Should().BeOfType<AcceptedResult>();
-        ((AcceptedResult)actionResult.Result!).StatusCode.Should().Be(202);
+        actionResult.Result.Should().BeOfType<ObjectResult>();
+        var objectResult = (ObjectResult)actionResult.Result!;
+        objectResult.StatusCode.Should().Be(202);
+        objectResult.Value.Should().Be(42);
     }
 
     [Fact]
@@ -125,7 +127,7 @@ public class ResultExtensionsTests
     }
 
     [Fact]
-    public void ToActionResult_With201Status_ShouldReturnCreatedResult()
+    public void ToActionResult_With201Status_WithoutLocation_ShouldReturnObjectResult()
     {
         // Arrange
         var result = Result<int>.Success(42);
@@ -133,8 +135,43 @@ public class ResultExtensionsTests
         // Act
         var actionResult = result.ToActionResult(successStatusCode: 201);
 
+        // Assert - without locationUri, returns ObjectResult to avoid empty Location header
+        actionResult.Result.Should().BeOfType<ObjectResult>();
+        var objectResult = (ObjectResult)actionResult.Result!;
+        objectResult.StatusCode.Should().Be(201);
+        objectResult.Value.Should().Be(42);
+    }
+
+    [Fact]
+    public void ToActionResult_With201Status_WithLocation_ShouldReturnCreatedResult()
+    {
+        // Arrange
+        var result = Result<int>.Success(42);
+
+        // Act
+        var actionResult = result.ToActionResult(successStatusCode: 201, locationUri: "/api/items/42");
+
         // Assert
         actionResult.Result.Should().BeOfType<CreatedResult>();
+        var createdResult = (CreatedResult)actionResult.Result!;
+        createdResult.Location.Should().Be("/api/items/42");
+        createdResult.Value.Should().Be(42);
+    }
+
+    [Fact]
+    public void ToActionResult_With202Status_WithLocation_ShouldReturnAcceptedResult()
+    {
+        // Arrange
+        var result = Result<int>.Success(42);
+
+        // Act
+        var actionResult = result.ToActionResult(successStatusCode: 202, locationUri: "/api/status/123");
+
+        // Assert
+        actionResult.Result.Should().BeOfType<AcceptedResult>();
+        var acceptedResult = (AcceptedResult)actionResult.Result!;
+        acceptedResult.Location.Should().Be("/api/status/123");
+        acceptedResult.Value.Should().Be(42);
     }
 
     [Fact]

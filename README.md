@@ -45,7 +45,7 @@
 - ✅ Zero external dependencies (core)
 - ✅ Security audited (zero vulnerabilities)
 - ✅ Immutable, thread-safe design
-- ✅ Comprehensive test coverage
+- ✅ 525 tests with comprehensive coverage
 
 ---
 
@@ -85,7 +85,7 @@ dotnet add package Verdict.Fluent
 | Package               | Purpose                    | Dependencies          | Allocation       |
 | --------------------- | -------------------------- | --------------------- | ---------------- |
 | **Verdict**            | Core Result types          | Zero                  | 0 bytes          |
-| **Verdict.Extensions** | Multi-error, validation    | System.Memory         | ~200 bytes       |
+| **Verdict.Extensions** | Multi-error, validation    | System.Memory         | ~200 bytes (pooled) |
 | **Verdict.Async**      | Async API, cancellation    | Zero                  | Task only        |
 | **Verdict.Rich**       | Success/error metadata     | Zero                  | ~160-350 bytes   |
 | **Verdict.Logging**    | Auto-logging               | MS.Extensions.Logging | Logging overhead |
@@ -197,10 +197,35 @@ services.AddControllers()
 builder.Services.AddVerdictProblemDetails(builder.Environment);
 ```
 
+### ASP.NET Core Integration
+
+```csharp
+using Verdict;
+using Verdict.AspNetCore;
+
+// Minimal API - returns RFC 7807 ProblemDetails on failure
+app.MapGet("/users/{id}", async (int id) =>
+{
+    var result = await userService.GetUserAsync(id);
+    return result.ToHttpResult();
+});
+
+// MVC Controller - with location URI for 201 Created
+[HttpPost]
+public ActionResult<User> Create(CreateUserRequest request)
+{
+    var result = userService.CreateUser(request);
+    return result.ToActionResult(
+        successStatusCode: 201,
+        locationUri: $"/api/users/{result.ValueOrDefault?.Id}");
+}
+```
+
 ### Security Defaults
 
 - **Sanitize exceptions by default** in production: use `Error.FromException(ex, sanitize: true)` to avoid leaking sensitive details.
 - **ProblemDetails options**: `IncludeExceptionDetails`/`IncludeStackTrace` off by default; enable only in development via `AddVerdictProblemDetails(environment)`.
+- **RFC 7807 compliant**: ProblemDetails responses include proper `application/problem+json` content type.
 - **Validate error codes**: `Error.CreateValidated` / `Error.ValidateErrorCode` enforce alphanumeric + underscore codes (safe for logs/headers).
 
 ### Running JSON Benchmarks

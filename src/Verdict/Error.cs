@@ -1,5 +1,4 @@
 using System;
-using System.Linq;
 
 namespace Verdict;
 
@@ -181,6 +180,11 @@ public readonly record struct Error
             return false;
         }
 
-        return code.All(c => char.IsLetterOrDigit(c) || c == '_');
+        foreach (var c in code)
+        {
+            if (!char.IsLetterOrDigit(c) && c != '_')
+                return false;
+        }
+        return true;
     }
 }

@@ -1,6 +1,7 @@
 using System;
 using System.Buffers;
 using System.Collections.Generic;
+using System.Threading;
 
 namespace Verdict.Extensions;
 
@@ -12,7 +13,7 @@ public readonly struct ErrorCollection : IDisposable
 {
     private readonly Error[] _errors;
     private readonly int _count;
-    private readonly bool _isRented;
+    private readonly RentalTracker? _rentalTracker;
 
     /// <summary>
     /// Gets the number of errors in the collection.
@@ -29,11 +30,11 @@ public readonly struct ErrorCollection : IDisposable
     /// </summary>
     public ReadOnlySpan<Error> AsSpan() => _errors.AsSpan(0, _count);
 
-    private ErrorCollection(Error[] errors, int count, bool isRented)
+    private ErrorCollection(Error[] errors, int count, RentalTracker? rentalTracker)
     {
         _errors = errors;
         _count = count;
-        _isRented = isRented;
+        _rentalTracker = rentalTracker;
     }
 
     /// <summary>
@@ -43,7 +44,7 @@ public readonly struct ErrorCollection : IDisposable
     {
         var array = new Error[1];
         array[0] = error;
-        return new ErrorCollection(array, 1, false);
+        return new ErrorCollection(array, 1, null);
     }
 
     /// <summary>
@@ -56,7 +57,7 @@ public readonly struct ErrorCollection : IDisposable
 
         var array = new Error[errors.Length];
         Array.Copy(errors, array, errors.Length);
-        return new ErrorCollection(array, errors.Length, false);
+        return new ErrorCollection(array, errors.Length, null);
     }
 
     /// <summary>
@@ -84,7 +85,7 @@ public readonly struct ErrorCollection : IDisposable
             {
                 array[i++] = error;
             }
-            return new ErrorCollection(array, collection.Count, true);
+            return new ErrorCollection(array, collection.Count, new RentalTracker(array));
         }
 
         // Slow path: unknown size, must enumerate
@@ -102,7 +103,7 @@ public readonly struct ErrorCollection : IDisposable
                     // Grow the buffer
                     var newBuffer = ArrayPool<Error>.Shared.Rent(buffer.Length * 2);
                     Array.Copy(buffer, newBuffer, count);
-                    ArrayPool<Error>.Shared.Return(buffer);
+                    ArrayPool<Error>.Shared.Return(buffer, clearArray: true);
                     buffer = newBuffer;
                 }
                 buffer[count++] = error;
@@ -110,15 +111,15 @@ public readonly struct ErrorCollection : IDisposable
 
             if (count == 0)
             {
-                ArrayPool<Error>.Shared.Return(buffer);
+                ArrayPool<Error>.Shared.Return(buffer, clearArray: true);
                 return default;
             }
 
-            return new ErrorCollection(buffer, count, true);
+            return new ErrorCollection(buffer, count, new RentalTracker(buffer));
         }
         catch
         {
-            ArrayPool<Error>.Shared.Return(buffer);
+            ArrayPool<Error>.Shared.Return(buffer, clearArray: true);
             throw;
         }
     }
@@ -162,15 +163,12 @@ public readonly struct ErrorCollection : IDisposable
 
     /// <summary>
     /// Returns the rented array to the pool if applicable.
-    /// IMPORTANT: Arrays are returned with clearArray: false to prevent data corruption
-    /// when struct copies exist. Error structs are value types and safe to leave in pool.
+    /// Thread-safe and idempotent: only the first call returns the array to the pool.
+    /// Uses clearArray: true to prevent retaining Exception references in pooled arrays.
     /// </summary>
     public void Dispose()
     {
-        if (_isRented && _errors != null)
-        {
-            ArrayPool<Error>.Shared.Return(_errors, clearArray: false);
-        }
+        _rentalTracker?.Return();
     }
 
     /// <summary>
@@ -178,4 +176,28 @@ public readonly struct ErrorCollection : IDisposable
     /// </summary>
     public override string ToString() =>
         _count == 0 ? "No errors" : $"{_count} error(s)";
+
+    /// <summary>
+    /// Tracks the rental state of a pooled array to ensure idempotent disposal.
+    /// This is a class (reference type) so that all struct copies of ErrorCollection
+    /// share the same tracker instance, preventing double-return to the pool.
+    /// </summary>
+    internal sealed class RentalTracker
+    {
+        private Error[]? _array;
+
+        internal RentalTracker(Error[] array)
+        {
+            _array = array;
+        }
+
+        internal void Return()
+        {
+            var array = Interlocked.Exchange(ref _array, null);
+            if (array != null)
+            {
+                ArrayPool<Error>.Shared.Return(array, clearArray: true);
+            }
+        }
+    }
 }

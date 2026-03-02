@@ -120,14 +120,19 @@ public static class ProblemDetailsFactory
     {
         return statusCode switch
         {
-            400 => "https://tools.ietf.org/html/rfc7231#section-6.5.1",
-            401 => "https://tools.ietf.org/html/rfc7235#section-3.1",
-            403 => "https://tools.ietf.org/html/rfc7231#section-6.5.3",
-            404 => "https://tools.ietf.org/html/rfc7231#section-6.5.4",
-            409 => "https://tools.ietf.org/html/rfc7231#section-6.5.8",
-            422 => "https://tools.ietf.org/html/rfc4918#section-11.2",
-            500 => "https://tools.ietf.org/html/rfc7231#section-6.6.1",
-            _ => "https://tools.ietf.org/html/rfc7231"
+            400 => "https://tools.ietf.org/html/rfc9110#section-15.5.1",
+            401 => "https://tools.ietf.org/html/rfc9110#section-15.5.2",
+            402 => "https://tools.ietf.org/html/rfc9110#section-15.5.3",
+            403 => "https://tools.ietf.org/html/rfc9110#section-15.5.4",
+            404 => "https://tools.ietf.org/html/rfc9110#section-15.5.5",
+            409 => "https://tools.ietf.org/html/rfc9110#section-15.5.10",
+            422 => "https://tools.ietf.org/html/rfc9110#section-15.5.21",
+            429 => "https://tools.ietf.org/html/rfc6585#section-4",
+            500 => "https://tools.ietf.org/html/rfc9110#section-15.6.1",
+            502 => "https://tools.ietf.org/html/rfc9110#section-15.6.3",
+            503 => "https://tools.ietf.org/html/rfc9110#section-15.6.4",
+            504 => "https://tools.ietf.org/html/rfc9110#section-15.6.5",
+            _ => "https://tools.ietf.org/html/rfc9110#section-15"
         };
     }
 
@@ -137,11 +142,16 @@ public static class ProblemDetailsFactory
         {
             400 => "Bad Request",
             401 => "Unauthorized",
+            402 => "Payment Required",
             403 => "Forbidden",
             404 => "Not Found",
             409 => "Conflict",
             422 => "Unprocessable Entity",
+            429 => "Too Many Requests",
             500 => "Internal Server Error",
+            502 => "Bad Gateway",
+            503 => "Service Unavailable",
+            504 => "Gateway Timeout",
             _ => "Error"
         };
     }

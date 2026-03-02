@@ -114,8 +114,23 @@ public readonly struct RichResult
         if (value == null) throw new ArgumentNullException(nameof(value));
 
         var newMetadata = _errorMetadata == null
-            ? ImmutableDictionary.Create<string, object>().Add(key, value)
+            ? ImmutableDictionary<string, object>.Empty.Add(key, value)
             : _errorMetadata.SetItem(key, value);
+
+        return new RichResult(_result, _successes, newMetadata);
+    }
+
+    /// <summary>
+    /// Adds multiple metadata entries to the error in one shot.
+    /// Used internally for efficient bulk metadata assignment.
+    /// </summary>
+    internal RichResult WithErrorMetadataBulk(ImmutableDictionary<string, object> metadata)
+    {
+        if (IsSuccess) return this;
+
+        var newMetadata = _errorMetadata == null
+            ? metadata
+            : _errorMetadata.SetItems(metadata);
 
         return new RichResult(_result, _successes, newMetadata);
     }

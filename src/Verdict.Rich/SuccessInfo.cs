@@ -51,7 +51,7 @@ public readonly struct SuccessInfo
         if (value == null) throw new ArgumentNullException(nameof(value));
 
         var newMetadata = _metadata == null
-            ? ImmutableDictionary.Create<string, object>().Add(key, value)
+            ? ImmutableDictionary<string, object>.Empty.Add(key, value)
             : _metadata.SetItem(key, value);
 
         return new SuccessInfo(Message, newMetadata);

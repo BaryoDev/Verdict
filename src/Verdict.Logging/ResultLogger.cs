@@ -6,9 +6,58 @@ namespace Verdict.Logging;
 
 /// <summary>
 /// Helper class for creating logging-aware result operations.
+/// Uses LoggerMessage.Define for high-performance, zero-allocation logging.
 /// </summary>
 public static class ResultLogger
 {
+    private static readonly Action<ILogger, string, Exception?> _logStarting =
+        LoggerMessage.Define<string>(
+            LogLevel.Debug,
+            new EventId(10, "OperationStarting"),
+            "Starting operation: {OperationName}");
+
+    private static readonly Action<ILogger, string, Exception?> _logStartingAsync =
+        LoggerMessage.Define<string>(
+            LogLevel.Debug,
+            new EventId(11, "AsyncOperationStarting"),
+            "Starting async operation: {OperationName}");
+
+    private static readonly Action<ILogger, string, Exception?> _logSucceeded =
+        LoggerMessage.Define<string>(
+            LogLevel.Information,
+            new EventId(12, "OperationSucceeded"),
+            "Operation succeeded: {OperationName}");
+
+    private static readonly Action<ILogger, string, Exception?> _logSucceededAsync =
+        LoggerMessage.Define<string>(
+            LogLevel.Information,
+            new EventId(13, "AsyncOperationSucceeded"),
+            "Async operation succeeded: {OperationName}");
+
+    private static readonly Action<ILogger, string, string, string, Exception?> _logFailed =
+        LoggerMessage.Define<string, string, string>(
+            LogLevel.Error,
+            new EventId(14, "OperationFailed"),
+            "Operation failed: {OperationName} - [{ErrorCode}] {ErrorMessage}");
+
+    private static readonly Action<ILogger, string, string, string, Exception?> _logFailedAsync =
+        LoggerMessage.Define<string, string, string>(
+            LogLevel.Error,
+            new EventId(15, "AsyncOperationFailed"),
+            "Async operation failed: {OperationName} - [{ErrorCode}] {ErrorMessage}");
+
+    private static readonly Action<ILogger, string, Exception?> _logException =
+        LoggerMessage.Define<string>(
+            LogLevel.Error,
+            new EventId(16, "OperationException"),
+            "Operation threw exception: {OperationName}");
+
+    private static readonly Action<ILogger, string, Exception?> _logExceptionAsync =
+        LoggerMessage.Define<string>(
+            LogLevel.Error,
+            new EventId(17, "AsyncOperationException"),
+            "Async operation threw exception: {OperationName}");
+
     /// <summary>
     /// Creates a result with automatic logging.
     /// </summary>
@@ -25,7 +74,7 @@ public static class ResultLogger
         if (logger == null) throw new ArgumentNullException(nameof(logger));
         if (operation == null) throw new ArgumentNullException(nameof(operation));
 
-        logger.LogDebug("Starting operation: {OperationName}", operationName);
+        _logStarting(logger, operationName, null);
 
         try
         {
@@ -33,19 +82,18 @@ public static class ResultLogger
 
             if (result.IsSuccess)
             {
-                logger.LogInformation("Operation succeeded: {OperationName}", operationName);
+                _logSucceeded(logger, operationName, null);
             }
             else
             {
-                logger.LogError("Operation failed: {OperationName} - [{ErrorCode}] {ErrorMessage}",
-                    operationName, result.Error.Code, result.Error.Message);
+                _logFailed(logger, operationName, result.Error.Code, result.Error.Message, result.Error.Exception);
             }
 
             return result;
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Operation threw exception: {OperationName}", operationName);
+            _logException(logger, operationName, ex);
             throw;
         }
     }
@@ -66,7 +114,7 @@ public static class ResultLogger
         if (logger == null) throw new ArgumentNullException(nameof(logger));
         if (operation == null) throw new ArgumentNullException(nameof(operation));
 
-        logger.LogDebug("Starting async operation: {OperationName}", operationName);
+        _logStartingAsync(logger, operationName, null);
 
         try
         {
@@ -74,19 +122,18 @@ public static class ResultLogger
 
             if (result.IsSuccess)
             {
-                logger.LogInformation("Async operation succeeded: {OperationName}", operationName);
+                _logSucceededAsync(logger, operationName, null);
             }
             else
             {
-                logger.LogError("Async operation failed: {OperationName} - [{ErrorCode}] {ErrorMessage}",
-                    operationName, result.Error.Code, result.Error.Message);
+                _logFailedAsync(logger, operationName, result.Error.Code, result.Error.Message, result.Error.Exception);
             }
 
             return result;
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Async operation threw exception: {OperationName}", operationName);
+            _logExceptionAsync(logger, operationName, ex);
             throw;
         }
     }
@@ -106,7 +153,7 @@ public static class ResultLogger
         if (logger == null) throw new ArgumentNullException(nameof(logger));
         if (operation == null) throw new ArgumentNullException(nameof(operation));
 
-        logger.LogDebug("Starting operation: {OperationName}", operationName);
+        _logStarting(logger, operationName, null);
 
         try
         {
@@ -114,19 +161,18 @@ public static class ResultLogger
 
             if (result.IsSuccess)
             {
-                logger.LogInformation("Operation succeeded: {OperationName}", operationName);
+                _logSucceeded(logger, operationName, null);
             }
             else
             {
-                logger.LogError("Operation failed: {OperationName} - [{ErrorCode}] {ErrorMessage}",
-                    operationName, result.Error.Code, result.Error.Message);
+                _logFailed(logger, operationName, result.Error.Code, result.Error.Message, result.Error.Exception);
             }
 
             return result;
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Operation threw exception: {OperationName}", operationName);
+            _logException(logger, operationName, ex);
             throw;
         }
     }
@@ -146,7 +192,7 @@ public static class ResultLogger
         if (logger == null) throw new ArgumentNullException(nameof(logger));
         if (operation == null) throw new ArgumentNullException(nameof(operation));
 
-        logger.LogDebug("Starting async operation: {OperationName}", operationName);
+        _logStartingAsync(logger, operationName, null);
 
         try
         {
@@ -154,19 +200,18 @@ public static class ResultLogger
 
             if (result.IsSuccess)
             {
-                logger.LogInformation("Async operation succeeded: {OperationName}", operationName);
+                _logSucceededAsync(logger, operationName, null);
             }
             else
             {
-                logger.LogError("Async operation failed: {OperationName} - [{ErrorCode}] {ErrorMessage}",
-                    operationName, result.Error.Code, result.Error.Message);
+                _logFailedAsync(logger, operationName, result.Error.Code, result.Error.Message, result.Error.Exception);
             }
 
             return result;
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Async operation threw exception: {OperationName}", operationName);
+            _logExceptionAsync(logger, operationName, ex);
             throw;
         }
     }

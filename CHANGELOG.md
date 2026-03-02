@@ -5,6 +5,33 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.4.0] - 2026-03-02
+
+### Fixed (Critical)
+
+- **Fixed double-dispose pool corruption in `ErrorCollection`**: Introduced `RentalTracker` reference-type wrapper with `Interlocked.Exchange` to ensure idempotent disposal. All struct copies now share the same tracker, preventing the same array from being returned to `ArrayPool` twice.
+- **Fixed `clearArray: false` retaining `Exception` references in pool**: Changed all `ArrayPool.Return` calls to use `clearArray: true`, preventing GC from retaining exception objects referenced through un-cleared pooled arrays.
+- **Fixed RFC 7807 compliance**: Added `contentType: "application/problem+json"` to all ProblemDetails responses in `ResultExtensions`, making responses compliant with the RFC 7807 specification.
+- **Fixed `CreatedResult`/`AcceptedResult` empty `Location` header**: 201/202 responses without a location URI now return `ObjectResult` instead of `CreatedResult(string.Empty, ...)`. Added `locationUri` parameter to `ToActionResult` for proper REST semantics when a location is available.
+
+### Performance
+
+- **Fixed `ImmutableDictionary.Create<K,V>().Add()` double allocation**: Replaced with `ImmutableDictionary<string, object>.Empty.Add()` in `RichResult`, `RichResultNonGeneric`, and `SuccessInfo` to avoid allocating an intermediate empty dictionary on first metadata entry.
+- **Fixed `WithCustomError` O(N) intermediate allocations**: Replaced per-entry `WithErrorMetadata` loop with `ImmutableDictionary.CreateBuilder()` in `IErrorMetadata.cs`, reducing N intermediate dictionary allocations to 1. Added internal `WithErrorMetadataBulk` method to `RichResult<T>` and `RichResult`.
+- **Fixed `ResultLogger` to use `LoggerMessage.Define`**: Replaced all direct `logger.LogDebug`/`LogInformation`/`LogError` calls with pre-compiled `LoggerMessage.Define` delegates, eliminating `object[]` allocations on every log call.
+- **Removed LINQ from zero-allocation core**: Replaced `code.All(...)` in `Error.IsValidErrorCode` with a manual `foreach` loop. Removed unused `using System.Linq` from `Error.cs` and `ValidationExtensions.cs`.
+
+### Improved
+
+- **Added missing ProblemDetails entries**: Added `GetProblemType`/`GetTitle` entries for HTTP 402, 429, 502, 503, 504 status codes. Updated all RFC URIs from obsolete RFC 7231 to current RFC 9110.
+
+### Testing
+
+- All 525 tests passing (2 new tests added for `locationUri` feature)
+- New tests for `ToActionResult` with `locationUri` parameter (Created and Accepted responses)
+
+---
+
 ## [2.3.0] - 2026-01-18
 
 ### Security Hardening
@@ -323,6 +350,7 @@ Result<int> plain = rich;
 - Minor bugs in Result deconstruction.
 
 ---
+[2.4.0]: https://github.com/BaryoDev/Verdict/releases/tag/v2.4.0
 [2.3.0]: https://github.com/BaryoDev/Verdict/releases/tag/v2.3.0
 [2.2.0]: https://github.com/BaryoDev/Verdict/releases/tag/v2.2.0
 [2.1.0]: https://github.com/BaryoDev/Verdict/releases/tag/v2.1.0

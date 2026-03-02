@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Collections.Immutable;
 
 namespace Verdict.Rich;
 
@@ -26,6 +27,7 @@ public static class CustomErrorExtensions
 {
     /// <summary>
     /// Attaches custom error metadata to the result.
+    /// Builds the metadata dictionary in one shot to avoid O(N) intermediate allocations.
     /// </summary>
     public static RichResult<T> WithCustomError<T>(
         this Result<T> result,
@@ -34,22 +36,20 @@ public static class CustomErrorExtensions
         if (result.IsSuccess) return result;
         if (errorMetadata == null) throw new System.ArgumentNullException(nameof(errorMetadata));
 
-        RichResult<T> richResult = result;
-        
-        // Add all metadata from the custom error
+        var builder = ImmutableDictionary.CreateBuilder<string, object>();
         foreach (var kvp in errorMetadata.GetMetadata())
         {
-            richResult = richResult.WithErrorMetadata(kvp.Key, kvp.Value);
+            builder[kvp.Key] = kvp.Value;
         }
+        builder["ErrorType"] = errorMetadata.GetErrorType();
 
-        // Add error type
-        richResult = richResult.WithErrorMetadata("ErrorType", errorMetadata.GetErrorType());
-
-        return richResult;
+        RichResult<T> richResult = result;
+        return richResult.WithErrorMetadataBulk(builder.ToImmutable());
     }
 
     /// <summary>
     /// Attaches custom error metadata to the result.
+    /// Builds the metadata dictionary in one shot to avoid O(N) intermediate allocations.
     /// </summary>
     public static RichResult WithCustomError(
         this Result result,
@@ -58,17 +58,14 @@ public static class CustomErrorExtensions
         if (result.IsSuccess) return result;
         if (errorMetadata == null) throw new System.ArgumentNullException(nameof(errorMetadata));
 
-        RichResult richResult = result;
-        
-        // Add all metadata from the custom error
+        var builder = ImmutableDictionary.CreateBuilder<string, object>();
         foreach (var kvp in errorMetadata.GetMetadata())
         {
-            richResult = richResult.WithErrorMetadata(kvp.Key, kvp.Value);
+            builder[kvp.Key] = kvp.Value;
         }
+        builder["ErrorType"] = errorMetadata.GetErrorType();
 
-        // Add error type
-        richResult = richResult.WithErrorMetadata("ErrorType", errorMetadata.GetErrorType());
-
-        return richResult;
+        RichResult richResult = result;
+        return richResult.WithErrorMetadataBulk(builder.ToImmutable());
     }
 }
