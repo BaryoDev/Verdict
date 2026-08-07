@@ -460,6 +460,38 @@ Optional functional extensions:
 ### Benchmarks (`Verdict.Benchmarks`)
 Performance validation using BenchmarkDotNet.
 
+## Releasing
+
+Publishing uses **NuGet Trusted Publishing**. No API key is stored in this
+repository; the workflow exchanges a short-lived GitHub OIDC token for a NuGet
+key that expires after an hour.
+
+The version comes from `<VersionPrefix>` in `Directory.Build.props`, so the
+released version is always recorded in git.
+
+```bash
+# bump VersionPrefix, update CHANGELOG, then:
+git tag v2.6.0 && git push origin v2.6.0
+```
+
+The workflow verifies manifests, runs the tests, builds, checks the tag matches
+the version in source, then publishes. Run it manually from the Actions tab with
+**dry run** checked to build and pack without publishing.
+
+### The trusted publishing policy
+
+Configured once on nuget.org under **Account → Trusted Publishing**. It is
+per-owner, so one policy covers every package:
+
+| Field | Value |
+| --- | --- |
+| Repository Owner | `BaryoDev` |
+| Repository | `Verdict` |
+| Workflow File | `publish-nuget.yml` (filename only, no path) |
+| Environment | leave empty |
+
+Renaming the workflow file breaks publishing until the policy is updated.
+
 ## Documentation
 
 ### For Architects & Decision Makers
