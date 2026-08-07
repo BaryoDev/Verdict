@@ -561,7 +561,7 @@ public IActionResult GetUser(int id)
 
 // ProblemDetails support (RFC 7807)
 return _userService.GetUser(id)
-    .ToProblemDetails(HttpContext);
+    .ToActionResult();   // RFC 7807 ProblemDetails on failure
 ```
 
 **Advantages:**

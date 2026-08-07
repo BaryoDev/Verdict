@@ -91,11 +91,11 @@ public Result<User> CreateUser(CreateUserDto dto)
             .WithMetadata("Timestamp", DateTime.UtcNow));
 }
 
-// Access success messages
+// Access the success messages
 var result = CreateUser(dto);
-foreach (var success in result.GetSuccesses())
+foreach (var success in result.Successes)
 {
-    _logger.LogInformation(success.Message);
+    _logger.LogInformation("{Message}", success.Message);
 }
 ```
 
@@ -154,8 +154,9 @@ public class UsersController : ControllerBase
     [HttpPut("{id}")]
     public IActionResult UpdateUser(int id, UpdateUserDto dto)
     {
+        // ToActionResult produces an RFC 7807 ProblemDetails body on failure.
         return _userService.UpdateUser(id, dto)
-            .ToProblemDetails(HttpContext);
+            .ToActionResult();
     }
 }
 ```
@@ -245,10 +246,12 @@ using Verdict.Logging;
 
 public Result<User> GetUser(int id)
 {
-    return _db.Users.Find(id)
-        .ToResult("NOT_FOUND", "User not found")
-        .Log(_logger, "User retrieved")
-        .LogOnFailure(_logger, LogLevel.Warning);
+    var user = _db.Users.Find(id);
+
+    return (user is null
+            ? Result<User>.Failure("USER_NOT_FOUND", "User not found")
+            : Result<User>.Success(user))
+        .Log(_logger, "User retrieved");   // Information on success, Error on failure
 }
 ```
 
