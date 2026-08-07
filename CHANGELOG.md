@@ -5,6 +5,34 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- **`AddVerdictProblemDetails` registered nothing in the container.** It took an
+  `IServiceCollection`, assigned a process-wide static, and returned the
+  collection untouched. Two applications hosted in one process therefore shared
+  a single configuration and the last registration won. Options and services are
+  now registered properly and scoped to the container.
+
+### Added
+
+- `IVerdictProblemDetailsFactory` and `IErrorStatusCodeMapper`, both registered
+  by `AddVerdictProblemDetails`, so ProblemDetails generation and status code
+  mapping read the options of the container they are resolved from.
+- `VerdictProblemDetailsOptions.StatusCodeMappings` for per-container error code
+  to status code mappings, checked before the shared defaults. Prefer this to
+  the process-wide `ErrorStatusCodeMapper.RegisterMapping`.
+- `ProblemDetailsFactory.ResetDefaultOptions()` so tests can restore the
+  process-wide default instead of leaking configuration into later tests.
+
+### Notes
+
+The static path is unchanged and still supported. `ToActionResult` and
+`ToHttpResult` are extension methods with no access to DI, so they continue to
+read the process-wide defaults, which `AddVerdictProblemDetails` still assigns.
+For a single application both paths agree.
+
 ## [2.6.0] - 2026-08-07
 
 ### Added

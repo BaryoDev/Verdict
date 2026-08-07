@@ -1,6 +1,7 @@
 using System;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
 
 namespace Verdict.AspNetCore;
 
@@ -19,10 +20,9 @@ public static class ServiceCollectionExtensions
         this IServiceCollection services,
         Action<VerdictProblemDetailsOptions>? configure = null)
     {
-        var options = new VerdictProblemDetailsOptions();
-        configure?.Invoke(options);
-        ProblemDetailsFactory.SetDefaultOptions(options);
-        return services;
+        if (services is null) throw new ArgumentNullException(nameof(services));
+
+        return services.AddVerdictCore(new VerdictProblemDetailsOptions(), configure);
     }
 
     /// <summary>
@@ -38,6 +38,7 @@ public static class ServiceCollectionExtensions
         IHostEnvironment environment,
         Action<VerdictProblemDetailsOptions>? configure = null)
     {
+        if (services is null) throw new ArgumentNullException(nameof(services));
         if (environment == null) throw new ArgumentNullException(nameof(environment));
 
         var options = new VerdictProblemDetailsOptions
@@ -48,8 +49,37 @@ public static class ServiceCollectionExtensions
             IncludeErrorCode = true
         };
 
+        return services.AddVerdictCore(options, configure);
+    }
+
+    /// <summary>
+    /// Registers the options and the services that read them.
+    /// </summary>
+    /// <remarks>
+    /// Previously this method registered nothing and only assigned a static, so
+    /// two hosts in one process shared a single configuration and the last
+    /// registration won. Options and services are now container-scoped. The
+    /// static default is still assigned so the parameterless extension methods,
+    /// which have no access to DI, keep behaving as configured.
+    /// </remarks>
+    private static IServiceCollection AddVerdictCore(
+        this IServiceCollection services,
+        VerdictProblemDetailsOptions options,
+        Action<VerdictProblemDetailsOptions>? configure)
+    {
+        if (services is null) throw new ArgumentNullException(nameof(services));
+
         configure?.Invoke(options);
+
+        services.AddSingleton<IOptions<VerdictProblemDetailsOptions>>(
+            new OptionsWrapper<VerdictProblemDetailsOptions>(options));
+        services.AddSingleton<IErrorStatusCodeMapper, OptionsErrorStatusCodeMapper>();
+        services.AddSingleton<IVerdictProblemDetailsFactory, OptionsProblemDetailsFactory>();
+
+        // Kept so the parameterless ToActionResult/ToHttpResult overloads, which
+        // cannot reach the container, still honour this configuration.
         ProblemDetailsFactory.SetDefaultOptions(options);
+
         return services;
     }
 }

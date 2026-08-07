@@ -19,6 +19,16 @@ public class VerdictProblemDetailsOptions
     public bool IncludeErrorCode { get; set; } = true;
 
     /// <summary>
+    /// Gets error code to HTTP status code mappings for this container.
+    /// </summary>
+    /// <remarks>
+    /// Checked before the shared defaults in <see cref="ErrorStatusCodeMapper"/>,
+    /// so two hosts in one process can map the same code differently. Prefer
+    /// this over the static <c>RegisterMapping</c>, which is process-wide.
+    /// </remarks>
+    public System.Collections.Generic.Dictionary<string, int> StatusCodeMappings { get; } = new();
+
+    /// <summary>
     /// Gets or sets whether to include the error message as the ProblemDetails detail.
     /// If false, a generic message will be used for server errors (5xx).
     /// Default is true.
