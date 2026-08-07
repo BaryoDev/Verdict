@@ -11,7 +11,7 @@
     <!-- Single source of truth for the release version. The publish workflow
          reads this rather than taking a hand-typed input, so what shipped is
          always recorded in git. -->
-    <VersionPrefix>2.6.0</VersionPrefix>
+    <VersionPrefix>2.7.0</VersionPrefix>
   </PropertyGroup>
 
   <!-- Everything below applies only to the shipping libraries. -->
