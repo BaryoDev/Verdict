@@ -24,6 +24,21 @@ public static class ProblemDetailsFactory
     }
 
     /// <summary>
+    /// Restores the process-wide defaults.
+    /// </summary>
+    /// <remarks>
+    /// The default options are static, so a test that configures them affects
+    /// every test that runs afterwards in the same process. Call this in
+    /// teardown, or prefer the DI-scoped
+    /// <see cref="IVerdictProblemDetailsFactory"/>, which reads options from a
+    /// container instead.
+    /// </remarks>
+    public static void ResetDefaultOptions()
+    {
+        Interlocked.Exchange(ref _defaultOptions, new VerdictProblemDetailsOptions());
+    }
+
+    /// <summary>
     /// Creates ProblemDetails from an Error.
     /// Maps Error.Code to ProblemDetails.Type
     /// Maps Error.Message to ProblemDetails.Detail
