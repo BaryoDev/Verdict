@@ -7,6 +7,45 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [2.5.0] - 2026-08-07
 
+### BREAKING CHANGE
+
+**`ErrorCollection` accessors now throw `ObjectDisposedException` after `Dispose()`.**
+
+Previously they kept working and returned whatever the pooled buffer happened to
+contain, which in a server is another caller's data. Code that read after
+disposal was already returning wrong values silently; it now fails loudly.
+
+Affected members: `Count`, `HasErrors`, `AsSpan()`, `this[int]`, `First()`,
+`ToArray()`.
+
+`ErrorCollection` is a **struct**, so disposing any copy invalidates every copy.
+Passing one to a method that disposes it leaves the caller's copy disposed too.
+
+```csharp
+// Before: read stale or foreign data, no error.
+// Now:    throws ObjectDisposedException.
+var errors = ErrorCollection.Create(list);
+errors.Dispose();
+var first = errors[0];
+
+// Fix: finish reading before disposing.
+using (var errors = ErrorCollection.Create(list))
+{
+    var first = errors[0];
+}
+
+// Or copy out what you need first.
+Error[] snapshot;
+using (var errors = ErrorCollection.Create(list))
+{
+    snapshot = errors.ToArray();
+}
+```
+
+Check with `errors.IsDisposed` if ownership is unclear. Collections created by
+`Create(Error)` or `Create(params Error[])` never use the pool and are
+unaffected.
+
 ### Fixed (Critical)
 
 - **`ErrorCollection` could read another caller's data after disposal.** `Dispose()`

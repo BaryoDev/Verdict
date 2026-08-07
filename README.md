@@ -20,6 +20,14 @@
 
 ---
 
+## Upgrading to 2.5.0
+
+**Breaking:** `ErrorCollection` accessors now throw `ObjectDisposedException`
+after `Dispose()` instead of silently reading a buffer that has been returned to
+the pool. Read before disposing, or copy out with `ToArray()`. `ErrorCollection`
+is a struct, so disposing any copy invalidates them all. See the
+[changelog](CHANGELOG.md) for the migration snippet.
+
 ## Thread Safety
 
 A `Result<T>` is **immutable once created** and safe to read from any number of
