@@ -465,7 +465,7 @@ Performance validation using BenchmarkDotNet.
 ### For Architects & Decision Makers
 - 📊 **[Architect's Decision Guide](docs/architects_decision_guide.md)** - ROI calculations, migration strategy, risk assessment
 - 🎯 **[How Verdict Does It Better](docs/how_verdict_does_it_better.md)** - Feature-by-feature comparison with FluentResults
-- 🔒 **[Security Audit](docs/security_audit.md)** - Comprehensive security assessment (zero vulnerabilities)
+- 🔒 **[Security Audit](docs/internal/security_audit.md)** - Comprehensive security assessment (zero vulnerabilities)
 
 ### For Developers
 - 🚀 **[Quick Reference Guide](docs/developer_quick_reference.md)** - Common patterns, best practices, cheat sheet
