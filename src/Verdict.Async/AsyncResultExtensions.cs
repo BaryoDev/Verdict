@@ -323,17 +323,9 @@ public static class AsyncResultExtensions
         TimeSpan timeout,
         Error timeoutError)
     {
-        using var cts = new CancellationTokenSource();
-        var delayTask = Task.Delay(timeout, cts.Token);
-        var completedTask = await Task.WhenAny(resultTask, delayTask).ConfigureAwait(false);
-
-        if (completedTask == delayTask)
-        {
-            return Result<T>.Failure(timeoutError);
-        }
-
-        cts.Cancel();
-        return await resultTask.ConfigureAwait(false);
+        return await RaceAgainstTimeout(resultTask, timeout, CancellationToken.None).ConfigureAwait(false)
+            ? await resultTask.ConfigureAwait(false)
+            : Result<T>.Failure(timeoutError);
     }
 
     /// <summary>
@@ -358,17 +350,9 @@ public static class AsyncResultExtensions
         Error timeoutError,
         CancellationToken cancellationToken)
     {
-        using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        cts.CancelAfter(timeout);
-
-        try
-        {
-            return await resultTask.ConfigureAwait(false);
-        }
-        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
-        {
-            return Result<T>.Failure(timeoutError);
-        }
+        return await RaceAgainstTimeout(resultTask, timeout, cancellationToken).ConfigureAwait(false)
+            ? await resultTask.ConfigureAwait(false)
+            : Result<T>.Failure(timeoutError);
     }
 
     // ==================== Non-Generic Result Extensions ====================
@@ -493,16 +477,81 @@ public static class AsyncResultExtensions
         TimeSpan timeout,
         Error timeoutError)
     {
-        using var cts = new CancellationTokenSource();
-        var delayTask = Task.Delay(timeout, cts.Token);
-        var completedTask = await Task.WhenAny(resultTask, delayTask).ConfigureAwait(false);
+        return await RaceAgainstTimeout(resultTask, timeout, CancellationToken.None).ConfigureAwait(false)
+            ? await resultTask.ConfigureAwait(false)
+            : Result.Failure(timeoutError);
+    }
 
-        if (completedTask == delayTask)
+    /// <summary>
+    /// Fails a non-generic Result if the operation outlives the timeout, honouring
+    /// the caller's cancellation token.
+    /// </summary>
+    public static async Task<Result> WithTimeout(
+        this Task<Result> resultTask,
+        TimeSpan timeout,
+        Error timeoutError,
+        CancellationToken cancellationToken)
+    {
+        return await RaceAgainstTimeout(resultTask, timeout, cancellationToken).ConfigureAwait(false)
+            ? await resultTask.ConfigureAwait(false)
+            : Result.Failure(timeoutError);
+    }
+
+    /// <summary>
+    /// Races a task against a timer, returning true if the task won.
+    /// </summary>
+    /// <remarks>
+    /// The task being raced was created by the caller, so this cannot cancel it;
+    /// it can only stop waiting. On timeout the operation keeps running, and its
+    /// outcome is observed to avoid an unobserved task exception.
+    /// A caller cancelling is distinct from a timeout and is surfaced as
+    /// OperationCanceledException rather than as a timeout failure.
+    /// </remarks>
+    private static async Task<bool> RaceAgainstTimeout(
+        Task resultTask,
+        TimeSpan timeout,
+        CancellationToken cancellationToken)
+    {
+        if (resultTask is null) throw new ArgumentNullException(nameof(resultTask));
+        if (timeout < TimeSpan.Zero && timeout != Timeout.InfiniteTimeSpan)
         {
-            return Result.Failure(timeoutError);
+            throw new ArgumentOutOfRangeException(nameof(timeout), timeout,
+                "Timeout must not be negative.");
         }
 
-        cts.Cancel();
-        return await resultTask.ConfigureAwait(false);
+        cancellationToken.ThrowIfCancellationRequested();
+
+        if (resultTask.IsCompleted) return true;
+
+        using var timerCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        var delayTask = Task.Delay(timeout, timerCts.Token);
+
+        var winner = await Task.WhenAny(resultTask, delayTask).ConfigureAwait(false);
+
+        if (winner == resultTask)
+        {
+            timerCts.Cancel();
+            Observe(delayTask);
+            return true;
+        }
+
+        // The timer won, which means either the timeout elapsed or the caller
+        // cancelled. Cancellation is the caller's, not a timeout.
+        cancellationToken.ThrowIfCancellationRequested();
+        Observe(resultTask);
+        return false;
+    }
+
+    /// <summary>
+    /// Attaches a continuation that reads any fault, so a task we stopped waiting
+    /// on cannot surface later as an unobserved task exception.
+    /// </summary>
+    private static void Observe(Task task)
+    {
+        _ = task.ContinueWith(
+            static t => _ = t.Exception,
+            CancellationToken.None,
+            TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously,
+            TaskScheduler.Default);
     }
 }
