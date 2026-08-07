@@ -2,21 +2,11 @@
 
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
-    <LangVersion>latest</LangVersion>
-    <Nullable>enable</Nullable>
     
     <!-- Package Metadata -->
     <PackageId>Verdict.Rich</PackageId>
-    <Version>2.3.0</Version>
-    <Authors>Baryo.Dev</Authors>
-    <Company>Baryo.Dev</Company>
     <Description>Baryo.Dev: Rich metadata extensions for Verdict. Success messages, error metadata, global factories, and custom error types with minimal performance overhead.</Description>
-    <PackageLicenseExpression>MPL-2.0</PackageLicenseExpression>
-    <PackageProjectUrl>https://github.com/BaryoDev/Verdict</PackageProjectUrl>
-    <RepositoryUrl>https://github.com/BaryoDev/Verdict</RepositoryUrl>
-    <RepositoryType>git</RepositoryType>
     <PackageTags>result;metadata;audit;enterprise;rich</PackageTags>
-    <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
 
   <ItemGroup>

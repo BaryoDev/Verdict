@@ -56,7 +56,7 @@ public static class ResultExtensions
     }
 
     /// <summary>
-    /// Converts a Result<T> to a non-generic Result, discarding the value.
+    /// Converts a Result&lt;T&gt; to a non-generic Result, discarding the value.
     /// </summary>
     public static Result ToNonGeneric<T>(this Result<T> result)
     {
@@ -122,7 +122,7 @@ public static class ResultExtensions
     }
 
     /// <summary>
-    /// Converts a non-generic Result to Result<Unit>.
+    /// Converts a non-generic Result to Result&lt;Unit&gt;.
     /// </summary>
     public static Result<Unit> ToGeneric(this Result result)
     {

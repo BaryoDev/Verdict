@@ -1,6 +1,9 @@
 using System;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+#if NET8_0_OR_GREATER
+using System.Diagnostics.CodeAnalysis;
+#endif
 
 namespace Verdict.Json;
 
@@ -8,6 +11,11 @@ namespace Verdict.Json;
 /// Factory for creating Result JSON converters.
 /// Required for generic type support in System.Text.Json.
 /// </summary>
+#if NET8_0_OR_GREATER
+[RequiresDynamicCode(
+    "The converter factory constructs ResultJsonConverter<T> with MakeGenericType. " +
+    "Under Native AOT register concrete converters with JsonSerializerOptions.AddVerdictConverter<T>() instead.")]
+#endif
 public class ResultJsonConverterFactory : JsonConverterFactory
 {
     private readonly ErrorJsonConverter _errorConverter;

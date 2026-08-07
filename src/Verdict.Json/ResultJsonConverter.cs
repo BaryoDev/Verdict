@@ -1,6 +1,7 @@
 using System;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Text.Json.Serialization.Metadata;
 
 namespace Verdict.Json;
 
@@ -78,7 +79,7 @@ public class ResultJsonConverter<T> : JsonConverter<Result<T>>
                     isSuccess = reader.GetBoolean();
                     break;
                 case "value":
-                    value = JsonSerializer.Deserialize<T>(ref reader, options);
+                    value = JsonSerializer.Deserialize(ref reader, GetValueTypeInfo(options));
                     break;
                 case "error":
                     error = _errorConverter.Read(ref reader, typeof(Error), options);
@@ -92,6 +93,20 @@ public class ResultJsonConverter<T> : JsonConverter<Result<T>>
         throw new JsonException("Expected EndObject token");
     }
 
+    /// <summary>
+    /// Resolves the JsonTypeInfo for T from the caller's options.
+    /// </summary>
+    /// <remarks>
+    /// Using the JsonTypeInfo overloads rather than the JsonSerializerOptions
+    /// ones is what makes this converter trim and AOT safe: the metadata comes
+    /// from the consumer's resolver, typically a source-generated
+    /// JsonSerializerContext, so nothing has to be discovered by reflection.
+    /// </remarks>
+    private static JsonTypeInfo<T> GetValueTypeInfo(JsonSerializerOptions options)
+    {
+        return (JsonTypeInfo<T>)options.GetTypeInfo(typeof(T));
+    }
+
     /// <inheritdoc />
     public override void Write(Utf8JsonWriter writer, Result<T> value, JsonSerializerOptions options)
     {
@@ -101,7 +116,7 @@ public class ResultJsonConverter<T> : JsonConverter<Result<T>>
         if (value.IsSuccess)
         {
             writer.WritePropertyName("value");
-            JsonSerializer.Serialize(writer, value.Value, options);
+            JsonSerializer.Serialize(writer, value.Value, GetValueTypeInfo(options));
         }
         else
         {

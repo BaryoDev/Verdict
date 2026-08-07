@@ -1,22 +1,21 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
+    <!-- Reflection-based System.Text.Json cannot be made trim or AOT safe
+         without source generation, and the converters are invoked by STJ so
+         they cannot carry Requires* annotations. Claiming compatibility here
+         would be false; the public entry points are annotated instead so
+         consumers get an accurate warning. -->
+    <IsTrimmable>true</IsTrimmable>
+    <IsAotCompatible>true</IsAotCompatible>
+    <EnableTrimAnalyzer>true</EnableTrimAnalyzer>
+
     <TargetFrameworks>netstandard2.0;net8.0</TargetFrameworks>
-    <LangVersion>latest</LangVersion>
-    <Nullable>enable</Nullable>
     
     <!-- Package Metadata -->
     <PackageId>Verdict.Json</PackageId>
-    <Version>2.3.0</Version>
-    <Authors>Baryo.Dev</Authors>
-    <Company>Baryo.Dev</Company>
     <Description>Baryo.Dev: JSON serialization support for Verdict. Includes System.Text.Json converters for Result types.</Description>
-    <PackageLicenseExpression>MPL-2.0</PackageLicenseExpression>
-    <PackageProjectUrl>https://github.com/BaryoDev/Verdict</PackageProjectUrl>
-    <RepositoryUrl>https://github.com/BaryoDev/Verdict</RepositoryUrl>
-    <RepositoryType>git</RepositoryType>
     <PackageTags>result;json;serialization;system-text-json</PackageTags>
-    <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
 
   <ItemGroup>

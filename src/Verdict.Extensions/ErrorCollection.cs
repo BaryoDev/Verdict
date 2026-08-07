@@ -18,17 +18,59 @@ public readonly struct ErrorCollection : IDisposable
     /// <summary>
     /// Gets the number of errors in the collection.
     /// </summary>
-    public int Count => _count;
+    /// <exception cref="ObjectDisposedException">The collection has been disposed.</exception>
+    public int Count
+    {
+        get
+        {
+            ThrowIfDisposed();
+            return _count;
+        }
+    }
 
     /// <summary>
     /// Gets whether this collection has any errors.
     /// </summary>
-    public bool HasErrors => _count > 0;
+    /// <exception cref="ObjectDisposedException">The collection has been disposed.</exception>
+    public bool HasErrors
+    {
+        get
+        {
+            ThrowIfDisposed();
+            return _count > 0;
+        }
+    }
 
     /// <summary>
     /// Gets a read-only span of the errors.
     /// </summary>
-    public ReadOnlySpan<Error> AsSpan() => _errors.AsSpan(0, _count);
+    /// <exception cref="ObjectDisposedException">The collection has been disposed.</exception>
+    public ReadOnlySpan<Error> AsSpan()
+    {
+        ThrowIfDisposed();
+        return _errors.AsSpan(0, _count);
+    }
+
+    /// <summary>
+    /// Gets whether this collection's pooled buffer has been returned.
+    /// Always false for collections that do not use the pool.
+    /// </summary>
+    public bool IsDisposed => _rentalTracker?.IsDisposed ?? false;
+
+    /// <summary>
+    /// Disposal returns the buffer to ArrayPool.Shared, where another caller can
+    /// rent it and overwrite the contents. Reading afterwards would surface that
+    /// caller's data, so every accessor fails loudly instead.
+    /// </summary>
+    private void ThrowIfDisposed()
+    {
+        if (_rentalTracker is { IsDisposed: true })
+        {
+            throw new ObjectDisposedException(nameof(ErrorCollection),
+                "This ErrorCollection was disposed and its buffer returned to the pool. " +
+                "Note that ErrorCollection is a struct: disposing any copy invalidates them all.");
+        }
+    }
 
     private ErrorCollection(Error[] errors, int count, RentalTracker? rentalTracker)
     {
@@ -131,6 +173,7 @@ public readonly struct ErrorCollection : IDisposable
     {
         get
         {
+            ThrowIfDisposed();
             if (index < 0 || index >= _count)
                 throw new IndexOutOfRangeException(
                     $"Index {index} is out of range. Valid range: 0 to {_count - 1}");
@@ -143,6 +186,7 @@ public readonly struct ErrorCollection : IDisposable
     /// </summary>
     public Error First()
     {
+        ThrowIfDisposed();
         if (_count == 0)
             throw new InvalidOperationException("Error collection is empty");
         return _errors[0];
@@ -153,6 +197,7 @@ public readonly struct ErrorCollection : IDisposable
     /// </summary>
     public Error[] ToArray()
     {
+        ThrowIfDisposed();
         if (_count == 0)
             return Array.Empty<Error>();
 
@@ -175,7 +220,9 @@ public readonly struct ErrorCollection : IDisposable
     /// Returns a string representation of the error collection.
     /// </summary>
     public override string ToString() =>
-        _count == 0 ? "No errors" : $"{_count} error(s)";
+        IsDisposed ? "ErrorCollection (disposed)"
+        : _count == 0 ? "No errors"
+        : $"{_count} error(s)";
 
     /// <summary>
     /// Tracks the rental state of a pooled array to ensure idempotent disposal.
@@ -190,6 +237,8 @@ public readonly struct ErrorCollection : IDisposable
         {
             _array = array;
         }
+
+        internal bool IsDisposed => Volatile.Read(ref _array) is null;
 
         internal void Return()
         {
