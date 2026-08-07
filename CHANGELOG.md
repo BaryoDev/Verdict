@@ -5,6 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- **`WithTimeout` did not time out when given a `CancellationToken`.** The
+  overload created a linked `CancellationTokenSource` and called `CancelAfter`,
+  but never passed the token to anything. The awaited task was created by the
+  caller and had no knowledge of it, so the timeout had no effect and the call
+  waited for the operation to finish. All four overloads now share one race
+  implementation.
+- **Caller cancellation was reported as a timeout.** Cancelling the supplied
+  token produced a timeout `Error` instead of an `OperationCanceledException`,
+  so callers could not tell "I cancelled this" from "the service was slow".
+- **A timed-out operation could surface as an unobserved task exception.** The
+  abandoned task is now observed.
+- `WithTimeout` validates its arguments: `ArgumentNullException` for a null
+  task, `ArgumentOutOfRangeException` for a negative timeout.
+
+### Added
+
+- `WithTimeout(this Task<Result>, TimeSpan, Error, CancellationToken)`, the
+  non-generic overload that was missing.
+
 ## [2.5.0] - 2026-08-07
 
 ### BREAKING CHANGE
