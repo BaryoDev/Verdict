@@ -22,7 +22,9 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      id-token: write # NuGet trusted publishing
+      # Lets the runner mint the OIDC token nuget.org exchanges for a
+      # short-lived API key. No long-lived secret is involved.
+      id-token: write
 
     steps:
       - uses: actions/checkout@v4
@@ -68,13 +70,19 @@ jobs:
           name: nupkgs
           path: ./nupkgs/*
 
+      # Requested here rather than earlier because the key expires after an
+      # hour and each OIDC token buys exactly one key.
+      - name: Exchange OIDC token for a short-lived NuGet key
+        if: ${{ !inputs.dry_run }}
+        id: nuget_login
+        uses: NuGet/login@v1
+        with:
+          user: ${{ vars.NUGET_USER || 'arnelirobles' }}
+
       - name: Publish
         if: ${{ !inputs.dry_run }}
         run: |
-          if [ -z "${{ secrets.NUGET_API_KEY }}" ]; then
-            echo "::error::NUGET_API_KEY secret is not set." && exit 1
-          fi
           dotnet nuget push ./nupkgs/*.nupkg \
-            --api-key "${{ secrets.NUGET_API_KEY }}" \
+            --api-key "${{ steps.nuget_login.outputs.NUGET_API_KEY }}" \
             --source https://api.nuget.org/v3/index.json \
             --skip-duplicate
