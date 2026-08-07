@@ -72,12 +72,20 @@ jobs:
 
       # Requested here rather than earlier because the key expires after an
       # hour and each OIDC token buys exactly one key.
+      # Runs on dry runs too, so a dry run actually verifies the trusted
+      # publishing policy. Obtaining a key publishes nothing.
       - name: Exchange OIDC token for a short-lived NuGet key
-        if: ${{ !inputs.dry_run }}
         id: nuget_login
         uses: NuGet/login@v1
         with:
           user: ${{ vars.NUGET_USER || 'arnelirobles' }}
+
+      - name: Confirm the key was issued
+        run: |
+          if [ -z "${{ steps.nuget_login.outputs.NUGET_API_KEY }}" ]; then
+            echo "::error::No API key returned. Check the trusted publishing policy on nuget.org." && exit 1
+          fi
+          echo "Trusted publishing OK: short-lived key issued."
 
       - name: Publish
         if: ${{ !inputs.dry_run }}
