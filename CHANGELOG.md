@@ -5,7 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [2.6.0] - 2026-08-07
+
+### Added
+
+- **Combinators for `MultiResult`.** Accumulating validation errors previously
+  ended the chain: `MultiResult<T>` had no `Map`, `Bind` or `Match`, so the
+  moment you used `EnsureAll` you dropped off the composable API. Adds `Map`,
+  `Bind`, `Match`, `OnSuccess`, `OnFailure` and the async forms `MapAsync`,
+  `BindAsync` and `OnSuccessAsync`, for both the generic and non-generic types.
+  A failure carries its `ErrorCollection` through unchanged rather than copying
+  it, so pooled buffers are neither duplicated nor orphaned, and the failure
+  branch of `Match` and `OnFailure` receives that collection by value so nothing
+  allocates.
+
+### Changed
+
+- Publishing now uses **NuGet Trusted Publishing**. The workflow exchanges a
+  short-lived GitHub OIDC token for a NuGet key valid for one hour, so no
+  long-lived API key is stored in the repository.
+
 
 ### Fixed
 
