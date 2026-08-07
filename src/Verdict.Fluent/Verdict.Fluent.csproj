@@ -2,21 +2,11 @@
 
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
-    <LangVersion>latest</LangVersion>
-    <Nullable>enable</Nullable>
     
     <!-- Package Metadata -->
     <PackageId>Verdict.Fluent</PackageId>
-    <Version>2.3.0</Version>
-    <Authors>Baryo.Dev</Authors>
-    <Company>Baryo.Dev</Company>
     <Description>Baryo.Dev: Fluent extensions for Verdict. Functional composition methods (Match, Map, OnSuccess, OnFailure) for the Result pattern.</Description>
-    <PackageLicenseExpression>MPL-2.0</PackageLicenseExpression>
-    <PackageProjectUrl>https://github.com/BaryoDev/Verdict</PackageProjectUrl>
-    <RepositoryUrl>https://github.com/BaryoDev/Verdict</RepositoryUrl>
-    <RepositoryType>git</RepositoryType>
     <PackageTags>result;error-handling;functional;fluent;extensions</PackageTags>
-    <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
 
   <ItemGroup>

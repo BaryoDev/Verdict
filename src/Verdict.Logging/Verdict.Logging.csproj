@@ -1,20 +1,10 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
-    <LangVersion>latest</LangVersion>
-    <Nullable>enable</Nullable>
 
     <PackageId>Verdict.Logging</PackageId>
-    <Version>2.3.0</Version>
-    <Authors>Baryo.Dev</Authors>
-    <Company>Baryo.Dev</Company>
     <Description>Baryo.Dev: Logging extensions for Verdict. Automatic logging integration with Microsoft.Extensions.Logging for success and error flows.</Description>
-    <PackageLicenseExpression>MPL-2.0</PackageLicenseExpression>
-    <PackageProjectUrl>https://github.com/BaryoDev/Verdict</PackageProjectUrl>
-    <RepositoryUrl>https://github.com/BaryoDev/Verdict</RepositoryUrl>
-    <RepositoryType>git</RepositoryType>
     <PackageTags>result;logging;microsoft-extensions-logging</PackageTags>
-    <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
 
   <ItemGroup>

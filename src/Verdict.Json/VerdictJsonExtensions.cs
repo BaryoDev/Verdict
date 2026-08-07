@@ -1,4 +1,7 @@
 using System.Text.Json;
+#if NET8_0_OR_GREATER
+using System.Diagnostics.CodeAnalysis;
+#endif
 
 namespace Verdict.Json;
 
@@ -13,6 +16,10 @@ public static class VerdictJsonExtensions
     /// <param name="options">The JSON serializer options.</param>
     /// <param name="includeExceptionDetails">Whether to include exception details in serialization.</param>
     /// <returns>The JSON serializer options for chaining.</returns>
+#if NET8_0_OR_GREATER
+    [RequiresDynamicCode("Registers a converter factory that uses MakeGenericType. Under Native AOT use AddVerdictConverter<T>() instead.")]
+    [RequiresUnreferencedCode("Registers a reflection-based converter factory. Under trimming use AddVerdictConverter<T>() instead.")]
+#endif
     public static JsonSerializerOptions AddVerdictConverters(
         this JsonSerializerOptions options,
         bool includeExceptionDetails = false)
@@ -27,6 +34,10 @@ public static class VerdictJsonExtensions
     /// </summary>
     /// <param name="includeExceptionDetails">Whether to include exception details in serialization.</param>
     /// <returns>Configured JSON serializer options.</returns>
+#if NET8_0_OR_GREATER
+    [RequiresDynamicCode("Registers a converter factory that uses MakeGenericType. Under Native AOT use AddVerdictConverter<T>() instead.")]
+    [RequiresUnreferencedCode("Registers a reflection-based converter factory. Under trimming use AddVerdictConverter<T>() instead.")]
+#endif
     public static JsonSerializerOptions CreateVerdictJsonOptions(bool includeExceptionDetails = false)
     {
         var options = new JsonSerializerOptions
@@ -44,6 +55,10 @@ public static class VerdictJsonExtensions
     /// <param name="result">The result to serialize.</param>
     /// <param name="options">Optional JSON serializer options.</param>
     /// <returns>JSON string representation of the result.</returns>
+#if NET8_0_OR_GREATER
+    [RequiresUnreferencedCode("Uses reflection-based System.Text.Json. Supply a JsonSerializerContext or avoid trimming this call path.")]
+    [RequiresDynamicCode("Uses reflection-based System.Text.Json, which needs runtime code generation under Native AOT.")]
+#endif
     public static string ToJson<T>(this Result<T> result, JsonSerializerOptions? options = null)
     {
         options ??= CreateVerdictJsonOptions();
@@ -56,6 +71,10 @@ public static class VerdictJsonExtensions
     /// <param name="result">The result to serialize.</param>
     /// <param name="options">Optional JSON serializer options.</param>
     /// <returns>JSON string representation of the result.</returns>
+#if NET8_0_OR_GREATER
+    [RequiresUnreferencedCode("Uses reflection-based System.Text.Json. Supply a JsonSerializerContext or avoid trimming this call path.")]
+    [RequiresDynamicCode("Uses reflection-based System.Text.Json, which needs runtime code generation under Native AOT.")]
+#endif
     public static string ToJson(this Result result, JsonSerializerOptions? options = null)
     {
         options ??= CreateVerdictJsonOptions();
@@ -69,6 +88,10 @@ public static class VerdictJsonExtensions
     /// <param name="json">The JSON string to deserialize.</param>
     /// <param name="options">Optional JSON serializer options.</param>
     /// <returns>Deserialized Result.</returns>
+#if NET8_0_OR_GREATER
+    [RequiresUnreferencedCode("Uses reflection-based System.Text.Json. Supply a JsonSerializerContext or avoid trimming this call path.")]
+    [RequiresDynamicCode("Uses reflection-based System.Text.Json, which needs runtime code generation under Native AOT.")]
+#endif
     public static Result<T> FromJson<T>(string json, JsonSerializerOptions? options = null)
     {
         options ??= CreateVerdictJsonOptions();
@@ -81,6 +104,10 @@ public static class VerdictJsonExtensions
     /// <param name="json">The JSON string to deserialize.</param>
     /// <param name="options">Optional JSON serializer options.</param>
     /// <returns>Deserialized Result.</returns>
+#if NET8_0_OR_GREATER
+    [RequiresUnreferencedCode("Uses reflection-based System.Text.Json. Supply a JsonSerializerContext or avoid trimming this call path.")]
+    [RequiresDynamicCode("Uses reflection-based System.Text.Json, which needs runtime code generation under Native AOT.")]
+#endif
     public static Result ResultFromJson(string json, JsonSerializerOptions? options = null)
     {
         options ??= CreateVerdictJsonOptions();

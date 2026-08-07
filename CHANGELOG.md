@@ -5,6 +5,69 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.5.0] - 2026-08-07
+
+### Fixed (Critical)
+
+- **`ErrorCollection` could read another caller's data after disposal.** `Dispose()`
+  returns the buffer to `ArrayPool.Shared` but the struct kept the reference, so
+  `Count`, the indexer, `AsSpan()`, `First()` and `ToArray()` continued to work and
+  returned whatever the next renter wrote. Across requests that is one caller
+  reading another's errors. All accessors now throw `ObjectDisposedException`.
+  Because `ErrorCollection` is a struct, disposing any copy invalidates them all,
+  which is now enforced rather than silent.
+
+### Fixed
+
+- **`Result<T>` and `Result` allocated on every equality comparison.** Neither
+  overrode `Equals` or `GetHashCode`, so both fell through to reflection-based
+  `ValueType.Equals`: 320 bytes per call, in a library whose guarantee is zero
+  allocation. Any `HashSet`, dictionary key, `Contains` or `Distinct` paid it.
+  Both now implement `IEquatable<>` with `==`, `!=` and `GetHashCode`. Measured
+  320,000 bytes to 0 over 1,000 comparisons.
+- **Corrected the thread-safety claim.** The package description, README and XML
+  docs described `Result<T>` as thread-safe. It is immutable and safe to read
+  concurrently, but it is 32-48 bytes, so concurrently reassigning a shared field
+  can tear. A test observed 256,854 torn reads in 1.5 seconds. The docs now state
+  the actual guarantee.
+- **Corrected the GC pressure figure.** The README claimed 25 GB/sec saved at
+  100k req/sec. From its own stated FluentResults allocation rate the correct
+  figure is 18-38 MB/sec, roughly 1000x smaller.
+- **Malformed XML doc comments** in `ResultExtensions` never compiled, because
+  documentation generation had never been enabled.
+
+### Added
+
+- **Trimming and Native AOT support.** All packages except `Verdict.Json` are
+  `IsTrimmable` and `IsAotCompatible` and publish clean under `PublishAot`.
+  `ResultJsonConverter<T>` now resolves `JsonTypeInfo` from the caller's options
+  rather than calling reflection-based `JsonSerializer`, and
+  `AddVerdictConverter<T>()` / `AddVerdictResultConverter()` give an AOT-safe
+  registration path. The convenience factory is annotated `[RequiresDynamicCode]`.
+  Verified with a real `PublishAot` binary.
+- **XML documentation now ships.** `GenerateDocumentationFile` was not set on any
+  project, so every `///` comment was discarded at pack time and consumers got no
+  IntelliSense.
+- **SourceLink, symbol packages and deterministic builds** via a new
+  `Directory.Build.props`, which is also the single source of the version.
+- `ErrorCollection.IsDisposed`.
+
+### Changed
+
+- **The publish workflow now runs the tests** before packing. It previously went
+  restore, build, pack, push.
+- **The release version comes from `Directory.Build.props`**, not a hand-typed
+  workflow input, and the tag is checked against it. Previously the published
+  version existed nowhere in source: `csproj` said 2.3.0 while nuget.org had 2.4.0.
+- `TreatWarningsAsErrors` on all shipping projects.
+
+### Known limitations
+
+- `Error.Exception` is a public property, so System.Text.Json's source generator
+  descends into `System.Exception` and emits two `IL2026` warnings for
+  `TargetSite`. Harmless at runtime; `ErrorJsonConverter` never serializes it.
+  Replacing the property with a method is planned for the next major version.
+
 ## [2.4.0] - 2026-03-02
 
 ### Fixed (Critical)

@@ -2,21 +2,11 @@
 
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
-    <LangVersion>latest</LangVersion>
-    <Nullable>enable</Nullable>
     
     <!-- Package Metadata -->
     <PackageId>Verdict.Extensions</PackageId>
-    <Version>2.3.0</Version>
-    <Authors>Baryo.Dev</Authors>
-    <Company>Baryo.Dev</Company>
     <Description>Baryo.Dev: Enterprise extensions for Verdict. Multi-error support, validation helpers, and advanced operations with minimal allocation overhead.</Description>
-    <PackageLicenseExpression>MPL-2.0</PackageLicenseExpression>
-    <PackageProjectUrl>https://github.com/BaryoDev/Verdict</PackageProjectUrl>
-    <RepositoryUrl>https://github.com/BaryoDev/Verdict</RepositoryUrl>
-    <RepositoryType>git</RepositoryType>
     <PackageTags>result;error-handling;validation;enterprise;multi-error</PackageTags>
-    <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
 
   <ItemGroup>

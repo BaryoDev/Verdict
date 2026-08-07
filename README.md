@@ -14,11 +14,66 @@
 
 **Solution:** Verdict delivers **zero-allocation** error handling with **72-189x better performance** than FluentResults, while providing the same enterprise features through opt-in packages.
 
-**ROI:** In a 100k req/sec API, Verdict eliminates ~25GB/sec of GC pressure. That's real cost savings in cloud infrastructure.
+**ROI:** FluentResults allocates roughly 180-380 bytes per operation. At 100k req/sec that is about 18-38 MB/sec of GC pressure that Verdict removes entirely.
 
 **Risk:** Zero. Drop-in replacement. Start with core (zero allocation), add features as needed. No vendor lock-in (MPL-2.0).
 
 ---
+
+## Thread Safety
+
+A `Result<T>` is **immutable once created** and safe to read from any number of
+threads. That is the guarantee.
+
+It is **not** safe to reassign a shared `Result<T>` field from one thread while
+another reads it. `Result<T>` is 32-48 bytes depending on `T`, and the CLR only
+guarantees atomic writes up to pointer size, so a concurrent reader can observe
+a half-written struct: `IsSuccess` from one write and the value from another.
+
+```csharp
+// Safe: published once, read by many.
+private readonly Result<Config> _config = LoadConfig();
+
+// Not safe: concurrent reassignment can tear.
+private Result<Config> _current;          // written by a refresh thread
+```
+
+If you need a mutable shared slot, guard it with a lock or wrap it in a
+reference type and swap atomically:
+
+```csharp
+private volatile ResultBox<Config> _current;   // class, so the write is atomic
+sealed class ResultBox<T>(Result<T> value) { public Result<T> Value { get; } = value; }
+```
+
+## Trimming and Native AOT
+
+`Verdict`, `Verdict.Extensions`, `Verdict.Fluent`, `Verdict.Rich`,
+`Verdict.Logging` and `Verdict.AspNetCore` are annotated `IsTrimmable` and
+`IsAotCompatible` and publish clean under `PublishAot`.
+
+`Verdict.Json` works under AOT, but you must register converters explicitly.
+The convenience factory uses `MakeGenericType`, which needs runtime code
+generation, so it is annotated `[RequiresDynamicCode]`:
+
+```csharp
+// Native AOT: register the closed generic for each type you serialize.
+var options = new JsonSerializerOptions { TypeInfoResolver = AppJsonContext.Default }
+    .AddVerdictConverter<Order>()
+    .AddVerdictResultConverter();
+
+// Reflection-based apps can keep using the factory.
+var options = VerdictJsonExtensions.CreateVerdictJsonOptions();
+```
+
+Verified: a `PublishAot` console app using `Result<T>`, JSON round-trips and
+`HashSet<Result<T>>` compiles and runs as a 3.3 MB native binary.
+
+**Known limitation.** `Error.Exception` is a public property, so if System.Text.Json's
+source generator walks `Error` it descends into `System.Exception` and emits two
+`IL2026` warnings for `Exception.TargetSite`. Harmless at runtime, and the
+supplied `ErrorJsonConverter` never serializes the exception. Removing the
+property in favour of a method is planned for the next major version.
 
 ## Why Architects Choose Verdict
 

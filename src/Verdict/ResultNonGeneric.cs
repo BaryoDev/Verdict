@@ -4,9 +4,14 @@ namespace Verdict;
 
 /// <summary>
 /// Represents the result of an operation with no return value that can either succeed or fail with an error.
-/// Implemented as a readonly struct for zero-allocation on the success path and thread-safety.
+/// Implemented as a readonly struct so the success path allocates nothing.
+/// <para>
+/// Immutable once created and safe to read from multiple threads. Reassigning a
+/// shared field concurrently is NOT safe: the struct exceeds pointer size, so a
+/// reader can observe a partially written value. Guard mutable shared slots.
+/// </para>
 /// </summary>
-public readonly struct Result
+public readonly struct Result : IEquatable<Result>
 {
     private readonly Error _error;
     private readonly bool _isSuccess;
@@ -92,6 +97,36 @@ public readonly struct Result
         _isSuccess
             ? Result<Unit>.Success(Unit.Value)
             : Result<Unit>.Failure(_error);
+
+    /// <summary>
+    /// Determines whether this result equals another.
+    /// </summary>
+    public bool Equals(Result other) =>
+        _isSuccess == other._isSuccess && (_isSuccess || _error.Equals(other._error));
+
+    /// <inheritdoc />
+    public override bool Equals(object? obj) => obj is Result other && Equals(other);
+
+    /// <summary>
+    /// Returns a hash code for this result.
+    /// </summary>
+    public override int GetHashCode()
+    {
+        unchecked
+        {
+            return _isSuccess ? 17 : (23 * 31) + _error.GetHashCode();
+        }
+    }
+
+    /// <summary>
+    /// Determines whether two results are equal.
+    /// </summary>
+    public static bool operator ==(Result left, Result right) => left.Equals(right);
+
+    /// <summary>
+    /// Determines whether two results are not equal.
+    /// </summary>
+    public static bool operator !=(Result left, Result right) => !left.Equals(right);
 
     /// <summary>
     /// Returns a string representation of the result.

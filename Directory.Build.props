@@ -1,0 +1,59 @@
+<Project>
+
+  <!-- Shared build and packaging settings. Applies to every project in the
+       solution; package-specific metadata stays in each csproj. -->
+
+  <PropertyGroup>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+
+    <!-- Single source of truth for the release version. The publish workflow
+         reads this rather than taking a hand-typed input, so what shipped is
+         always recorded in git. -->
+    <VersionPrefix>2.5.0</VersionPrefix>
+  </PropertyGroup>
+
+  <!-- Everything below applies only to the shipping libraries. -->
+  <PropertyGroup Condition="'$(IsPackable)' != 'false' AND $(MSBuildProjectDirectory.Contains('src'))">
+    <Authors>Baryo.Dev</Authors>
+    <Company>Baryo.Dev</Company>
+    <Copyright>Copyright (c) Baryo.Dev</Copyright>
+    <PackageLicenseExpression>MPL-2.0</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/BaryoDev/Verdict</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/BaryoDev/Verdict</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+
+    <!-- Ship the XML docs. Without this every /// comment in the codebase is
+         discarded at pack time and consumers get no IntelliSense. -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+
+    <!-- SourceLink: lets consumers step into library code from their debugger. -->
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+
+    <!-- Reproducible builds. ContinuousIntegrationBuild normalises paths so the
+         same source produces a byte-identical package. -->
+    <Deterministic>true</Deterministic>
+    <ContinuousIntegrationBuild Condition="'$(GITHUB_ACTIONS)' == 'true'">true</ContinuousIntegrationBuild>
+
+    <!-- Trimming and Native AOT. Only meaningful on the net8.0 targets; the
+         netstandard2.0 builds ignore these. -->
+    <IsTrimmable Condition="'$(TargetFramework)' == 'net8.0'">true</IsTrimmable>
+    <IsAotCompatible Condition="'$(TargetFramework)' == 'net8.0'">true</IsAotCompatible>
+    <EnableTrimAnalyzer Condition="'$(TargetFramework)' == 'net8.0'">true</EnableTrimAnalyzer>
+
+    <!-- A library that emits warnings teaches consumers to ignore warnings. -->
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <AnalysisLevel>latest</AnalysisLevel>
+    <EnforceCodeStyleInBuild>false</EnforceCodeStyleInBuild>
+  </PropertyGroup>
+
+  <ItemGroup Condition="$(MSBuildProjectDirectory.Contains('src'))">
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All" />
+  </ItemGroup>
+
+</Project>
