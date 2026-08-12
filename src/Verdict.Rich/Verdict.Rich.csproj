@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>netstandard2.0</TargetFramework>
+    <TargetFrameworks>netstandard2.0;net8.0</TargetFrameworks>
     
     <!-- Package Metadata -->
     <PackageId>Verdict.Rich</PackageId>
@@ -17,7 +17,9 @@
     <ProjectReference Include="..\Verdict\Verdict.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
+
+  <!-- Backfills a BCL type that netstandard2.0 lacks; net8.0 has it in-box. -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
     <PackageReference Include="System.Collections.Immutable" Version="10.0.1" />
   </ItemGroup>
 

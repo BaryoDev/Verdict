@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>netstandard2.0</TargetFramework>
+    <TargetFrameworks>netstandard2.0;net8.0</TargetFrameworks>
 
     <PackageId>Verdict.Logging</PackageId>
     <Description>Baryo.Dev: Logging extensions for Verdict. Automatic logging integration with Microsoft.Extensions.Logging for success and error flows.</Description>
