@@ -1,0 +1,89 @@
+namespace Verdict
+{
+    public readonly struct Error : System.IEquatable<Verdict.Error>
+    {
+        public Error(string code, string message, System.Exception? exception = null) { }
+        public string Code { get; }
+        public System.Exception? Exception { get; }
+        public string Message { get; }
+        public Verdict.Error WithException(System.Exception exception) { }
+        public static Verdict.Error Create(string code, string message) { }
+        public static Verdict.Error Create(string code, string message, System.Exception exception) { }
+        public static Verdict.Error CreateValidated(string code, string message) { }
+        public static Verdict.Error CreateValidated(string code, string message, System.Exception exception) { }
+        [System.Obsolete("This method exposes raw exception messages. Use FromException(exception, sanitize" +
+            ": true) in production to prevent information leakage.")]
+        public static Verdict.Error FromException(System.Exception exception) { }
+        [System.Obsolete("This method exposes raw exception messages. Use FromException(exception, code, sa" +
+            "nitize: true) in production to prevent information leakage.")]
+        public static Verdict.Error FromException(System.Exception exception, string code) { }
+        public static Verdict.Error FromException(System.Exception exception, bool sanitize, string? sanitizedMessage = null) { }
+        public static Verdict.Error FromException(System.Exception exception, string code, bool sanitize, string? sanitizedMessage = null) { }
+        public static bool IsValidErrorCode(string code) { }
+        public static void ValidateErrorCode(string code) { }
+    }
+    public readonly struct Result : System.IEquatable<Verdict.Result>
+    {
+        public Verdict.Error Error { get; }
+        public bool IsFailure { get; }
+        public bool IsSuccess { get; }
+        public void Deconstruct(out bool isSuccess, out Verdict.Error error) { }
+        public bool Equals(Verdict.Result other) { }
+        public override bool Equals(object? obj) { }
+        public override int GetHashCode() { }
+        public Verdict.Result<Verdict.Unit> ToGeneric() { }
+        public override string ToString() { }
+        public static Verdict.Result Failure(Verdict.Error error) { }
+        public static Verdict.Result Failure(string code, string message) { }
+        public static Verdict.Result Failure(string code, string message, System.Exception exception) { }
+        public static Verdict.Result Success() { }
+        public static Verdict.Result op_Implicit(Verdict.Error error) { }
+        public static bool operator !=(Verdict.Result left, Verdict.Result right) { }
+        public static bool operator ==(Verdict.Result left, Verdict.Result right) { }
+    }
+    public static class ResultExtensions
+    {
+        public static Verdict.Result Bind(this Verdict.Result result, System.Func<Verdict.Result> binder) { }
+        public static Verdict.Result<T> Bind<T>(this Verdict.Result result, System.Func<Verdict.Result<T>> binder) { }
+        public static Verdict.Result<K> Bind<T, K>(this Verdict.Result<T> result, System.Func<T, Verdict.Result<K>> binder) { }
+        public static Verdict.Result Tap(this Verdict.Result result, System.Action action) { }
+        public static Verdict.Result<T> Tap<T>(this Verdict.Result<T> result, System.Action<T> action) { }
+        public static Verdict.Result TapError(this Verdict.Result result, System.Action<Verdict.Error> action) { }
+        public static Verdict.Result<T> TapError<T>(this Verdict.Result<T> result, System.Action<Verdict.Error> action) { }
+        public static Verdict.Result<Verdict.Unit> ToGeneric(this Verdict.Result result) { }
+        public static Verdict.Result ToNonGeneric<T>(this Verdict.Result<T> result) { }
+    }
+    public readonly struct Result<T> : System.IEquatable<Verdict.Result<T>>
+    {
+        public Verdict.Error Error { get; }
+        public bool IsFailure { get; }
+        public bool IsSuccess { get; }
+        public T Value { get; }
+        public T ValueOrDefault { get; }
+        public void Deconstruct(out bool isSuccess, out T? value, out Verdict.Error error) { }
+        public bool Equals(Verdict.Result<T> other) { }
+        public override bool Equals(object? obj) { }
+        public override int GetHashCode() { }
+        public override string ToString() { }
+        public T ValueOr(System.Func<Verdict.Error, T> fallbackFactory) { }
+        public T ValueOr(T fallback) { }
+        public static Verdict.Result<T> Failure(Verdict.Error error) { }
+        public static Verdict.Result<T> Failure(string code, string message) { }
+        public static Verdict.Result<T> Success(T value) { }
+        public static Verdict.Result<T> op_Implicit(T value) { }
+        public static Verdict.Result<T> op_Implicit(Verdict.Error error) { }
+        public static bool operator !=(Verdict.Result<T> left, Verdict.Result<T> right) { }
+        public static bool operator ==(Verdict.Result<T> left, Verdict.Result<T> right) { }
+    }
+    public readonly struct Unit : System.IComparable<Verdict.Unit>, System.IEquatable<Verdict.Unit>
+    {
+        public static readonly Verdict.Unit Value;
+        public int CompareTo(Verdict.Unit other) { }
+        public bool Equals(Verdict.Unit other) { }
+        public override bool Equals(object? obj) { }
+        public override int GetHashCode() { }
+        public override string ToString() { }
+        public static bool operator !=(Verdict.Unit left, Verdict.Unit right) { }
+        public static bool operator ==(Verdict.Unit left, Verdict.Unit right) { }
+    }
+}

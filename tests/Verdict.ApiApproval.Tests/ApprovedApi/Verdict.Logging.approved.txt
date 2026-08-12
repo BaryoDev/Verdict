@@ -1,0 +1,21 @@
+namespace Verdict.Logging
+{
+    public static class ResultLogger
+    {
+        public static Verdict.Result Create(Microsoft.Extensions.Logging.ILogger logger, System.Func<Verdict.Result> operation, string operationName) { }
+        public static Verdict.Result<T> Create<T>(Microsoft.Extensions.Logging.ILogger logger, System.Func<Verdict.Result<T>> operation, string operationName) { }
+        public static System.Threading.Tasks.Task<Verdict.Result> CreateAsync(Microsoft.Extensions.Logging.ILogger logger, System.Func<System.Threading.Tasks.Task<Verdict.Result>> operation, string operationName) { }
+        public static System.Threading.Tasks.Task<Verdict.Result<T>> CreateAsync<T>(Microsoft.Extensions.Logging.ILogger logger, System.Func<System.Threading.Tasks.Task<Verdict.Result<T>>> operation, string operationName) { }
+    }
+    public static class ResultLoggingExtensions
+    {
+        public static Verdict.Result Log(this Verdict.Result result, Microsoft.Extensions.Logging.ILogger logger, string message) { }
+        public static Verdict.Result<T> Log<T>(this Verdict.Result<T> result, Microsoft.Extensions.Logging.ILogger logger, string message) { }
+        public static Verdict.Result<T> Log<T>(this Verdict.Result<T> result, Microsoft.Extensions.Logging.ILogger logger, string message, Microsoft.Extensions.Logging.LogLevel successLevel, Microsoft.Extensions.Logging.LogLevel failureLevel) { }
+        public static Verdict.Result LogError(this Verdict.Result result, Microsoft.Extensions.Logging.ILogger logger, string message, Microsoft.Extensions.Logging.LogLevel level = 4) { }
+        public static Verdict.Result<T> LogError<T>(this Verdict.Result<T> result, Microsoft.Extensions.Logging.ILogger logger, string message, Microsoft.Extensions.Logging.LogLevel level = 4) { }
+        public static Verdict.Result<T> LogStructured<T>(this Verdict.Result<T> result, Microsoft.Extensions.Logging.ILogger logger, string messageTemplate) { }
+        public static Verdict.Result LogSuccess(this Verdict.Result result, Microsoft.Extensions.Logging.ILogger logger, string message, Microsoft.Extensions.Logging.LogLevel level = 2) { }
+        public static Verdict.Result<T> LogSuccess<T>(this Verdict.Result<T> result, Microsoft.Extensions.Logging.ILogger logger, string message, Microsoft.Extensions.Logging.LogLevel level = 2) { }
+    }
+}

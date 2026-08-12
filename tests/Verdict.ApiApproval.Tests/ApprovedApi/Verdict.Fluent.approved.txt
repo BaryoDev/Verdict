@@ -1,0 +1,10 @@
+namespace Verdict.Fluent
+{
+    public static class ResultExtensions
+    {
+        public static Verdict.Result<K> Map<T, K>(this Verdict.Result<T> result, System.Func<T, K> mapper) { }
+        public static TOut Match<T, TOut>(this Verdict.Result<T> result, System.Func<T, TOut> onSuccess, System.Func<Verdict.Error, TOut> onFailure) { }
+        public static Verdict.Result<T> OnFailure<T>(this Verdict.Result<T> result, System.Action<Verdict.Error> action) { }
+        public static Verdict.Result<T> OnSuccess<T>(this Verdict.Result<T> result, System.Action<T> action) { }
+    }
+}

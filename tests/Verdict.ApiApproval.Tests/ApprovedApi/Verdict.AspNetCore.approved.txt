@@ -1,0 +1,51 @@
+namespace Verdict.AspNetCore
+{
+    public static class ErrorStatusCodeMapper
+    {
+        public static void ClearCustomMappings() { }
+        public static System.Collections.Generic.IReadOnlyDictionary<string, int> GetCustomMappings() { }
+        public static int GetStatusCode(Verdict.Error error) { }
+        public static void RegisterMapping(string errorCode, int statusCode) { }
+        public static bool RemoveMapping(string errorCode) { }
+    }
+    public interface IErrorStatusCodeMapper
+    {
+        int GetStatusCode(Verdict.Error error);
+    }
+    public interface IVerdictProblemDetailsFactory
+    {
+        Microsoft.AspNetCore.Mvc.ProblemDetails CreateFromError(Verdict.Error error, int statusCode = 400);
+    }
+    public static class ProblemDetailsFactory
+    {
+        public static Microsoft.AspNetCore.Mvc.ProblemDetails CreateFromError(Verdict.Error error, int statusCode = 400) { }
+        public static Microsoft.AspNetCore.Mvc.ProblemDetails CreateFromError(Verdict.Error error, int statusCode, Verdict.AspNetCore.VerdictProblemDetailsOptions options) { }
+        public static Microsoft.AspNetCore.Mvc.ValidationProblemDetails CreateFromMultiResult<T>(Verdict.Extensions.MultiResult<T> result) { }
+        public static void ResetDefaultOptions() { }
+        public static void SetDefaultOptions(Verdict.AspNetCore.VerdictProblemDetailsOptions options) { }
+    }
+    public static class ResultExtensions
+    {
+        public static Microsoft.AspNetCore.Mvc.IActionResult ToActionResult(this Verdict.Result result) { }
+        public static Microsoft.AspNetCore.Mvc.ActionResult<T> ToActionResult<T>(this Verdict.Result<T> result) { }
+        public static Microsoft.AspNetCore.Mvc.ActionResult<T> ToActionResult<T>(this Verdict.Result<T> result, int successStatusCode = 200, System.Func<Verdict.Error, int>? errorStatusCodeMapper = null, string? locationUri = null) { }
+        public static Microsoft.AspNetCore.Http.IResult ToHttpResult(this Verdict.Result result) { }
+        public static Microsoft.AspNetCore.Http.IResult ToHttpResult<T>(this Verdict.Result<T> result) { }
+        public static Microsoft.AspNetCore.Http.IResult ToHttpResult<T>(this Verdict.Result<T> result, int successStatusCode = 200, System.Func<Verdict.Error, int>? errorStatusCodeMapper = null) { }
+    }
+    public static class ServiceCollectionExtensions
+    {
+        public static Microsoft.Extensions.DependencyInjection.IServiceCollection AddVerdictProblemDetails(this Microsoft.Extensions.DependencyInjection.IServiceCollection services, System.Action<Verdict.AspNetCore.VerdictProblemDetailsOptions>? configure = null) { }
+        public static Microsoft.Extensions.DependencyInjection.IServiceCollection AddVerdictProblemDetails(this Microsoft.Extensions.DependencyInjection.IServiceCollection services, Microsoft.Extensions.Hosting.IHostEnvironment environment, System.Action<Verdict.AspNetCore.VerdictProblemDetailsOptions>? configure = null) { }
+    }
+    public class VerdictProblemDetailsOptions
+    {
+        public VerdictProblemDetailsOptions() { }
+        public string GenericServerErrorMessage { get; set; }
+        public bool IncludeErrorCode { get; set; }
+        public bool IncludeErrorMessage { get; set; }
+        public bool IncludeExceptionDetails { get; set; }
+        public bool IncludeStackTrace { get; set; }
+        public System.Collections.Generic.Dictionary<string, int> StatusCodeMappings { get; }
+    }
+}

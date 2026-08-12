@@ -1,0 +1,33 @@
+namespace Verdict.Async
+{
+    public static class AsyncResultExtensions
+    {
+        public static System.Threading.Tasks.Task<Verdict.Result<K>> Bind<T, K>(this System.Threading.Tasks.Task<Verdict.Result<T>> resultTask, System.Func<T, Verdict.Result<K>> binder) { }
+        public static System.Threading.Tasks.Task<Verdict.Result> BindAsync(this System.Threading.Tasks.Task<Verdict.Result> resultTask, System.Func<System.Threading.Tasks.Task<Verdict.Result>> binder) { }
+        public static System.Threading.Tasks.Task<Verdict.Result> BindAsync(this System.Threading.Tasks.Task<Verdict.Result> resultTask, System.Func<System.Threading.CancellationToken, System.Threading.Tasks.Task<Verdict.Result>> binder, System.Threading.CancellationToken cancellationToken) { }
+        public static System.Threading.Tasks.Task<Verdict.Result<T>> BindAsync<T>(this System.Threading.Tasks.Task<Verdict.Result> resultTask, System.Func<System.Threading.Tasks.Task<Verdict.Result<T>>> binder) { }
+        public static System.Threading.Tasks.Task<Verdict.Result<T>> BindAsync<T>(this System.Threading.Tasks.Task<Verdict.Result> resultTask, System.Func<System.Threading.CancellationToken, System.Threading.Tasks.Task<Verdict.Result<T>>> binder, System.Threading.CancellationToken cancellationToken) { }
+        public static System.Threading.Tasks.Task<Verdict.Result<K>> BindAsync<T, K>(this System.Threading.Tasks.Task<Verdict.Result<T>> resultTask, System.Func<T, System.Threading.Tasks.Task<Verdict.Result<K>>> binder) { }
+        public static System.Threading.Tasks.Task<Verdict.Result<K>> BindAsync<T, K>(this System.Threading.Tasks.Task<Verdict.Result<T>> resultTask, System.Func<T, System.Threading.CancellationToken, System.Threading.Tasks.Task<Verdict.Result<K>>> binder, System.Threading.CancellationToken cancellationToken) { }
+        public static System.Threading.Tasks.Task<Verdict.Result<T>> EnsureAsync<T>(this System.Threading.Tasks.Task<Verdict.Result<T>> resultTask, System.Func<T, System.Threading.Tasks.Task<bool>> predicate, System.Func<T, Verdict.Error> errorFactory) { }
+        public static System.Threading.Tasks.Task<Verdict.Result<T>> EnsureAsync<T>(this System.Threading.Tasks.Task<Verdict.Result<T>> resultTask, System.Func<T, System.Threading.Tasks.Task<bool>> predicate, Verdict.Error error) { }
+        public static System.Threading.Tasks.Task<Verdict.Result<T>> EnsureAsync<T>(this System.Threading.Tasks.Task<Verdict.Result<T>> resultTask, System.Func<T, System.Threading.Tasks.Task<bool>> predicate, string code, string message) { }
+        public static System.Threading.Tasks.Task<Verdict.Result<T>> EnsureAsync<T>(this System.Threading.Tasks.Task<Verdict.Result<T>> resultTask, System.Func<T, System.Threading.CancellationToken, System.Threading.Tasks.Task<bool>> predicate, System.Func<T, Verdict.Error> errorFactory, System.Threading.CancellationToken cancellationToken) { }
+        public static System.Threading.Tasks.Task<Verdict.Result<T>> EnsureAsync<T>(this System.Threading.Tasks.Task<Verdict.Result<T>> resultTask, System.Func<T, System.Threading.CancellationToken, System.Threading.Tasks.Task<bool>> predicate, Verdict.Error error, System.Threading.CancellationToken cancellationToken) { }
+        public static System.Threading.Tasks.Task<Verdict.Result<T>> EnsureAsync<T>(this System.Threading.Tasks.Task<Verdict.Result<T>> resultTask, System.Func<T, System.Threading.CancellationToken, System.Threading.Tasks.Task<bool>> predicate, string code, string message, System.Threading.CancellationToken cancellationToken) { }
+        public static System.Threading.Tasks.Task<Verdict.Result<K>> Map<T, K>(this System.Threading.Tasks.Task<Verdict.Result<T>> resultTask, System.Func<T, K> mapper) { }
+        public static System.Threading.Tasks.Task<Verdict.Result<K>> MapAsync<T, K>(this System.Threading.Tasks.Task<Verdict.Result<T>> resultTask, System.Func<T, System.Threading.Tasks.Task<K>> mapper) { }
+        public static System.Threading.Tasks.Task<Verdict.Result<K>> MapAsync<T, K>(this System.Threading.Tasks.Task<Verdict.Result<T>> resultTask, System.Func<T, System.Threading.CancellationToken, System.Threading.Tasks.Task<K>> mapper, System.Threading.CancellationToken cancellationToken) { }
+        public static System.Threading.Tasks.Task<Verdict.Result<T>> Tap<T>(this System.Threading.Tasks.Task<Verdict.Result<T>> resultTask, System.Action<T> action) { }
+        public static System.Threading.Tasks.Task<Verdict.Result> TapAsync(this System.Threading.Tasks.Task<Verdict.Result> resultTask, System.Func<System.Threading.Tasks.Task> action) { }
+        public static System.Threading.Tasks.Task<Verdict.Result> TapAsync(this System.Threading.Tasks.Task<Verdict.Result> resultTask, System.Func<System.Threading.CancellationToken, System.Threading.Tasks.Task> action, System.Threading.CancellationToken cancellationToken) { }
+        public static System.Threading.Tasks.Task<Verdict.Result<T>> TapAsync<T>(this System.Threading.Tasks.Task<Verdict.Result<T>> resultTask, System.Func<T, System.Threading.Tasks.Task> action) { }
+        public static System.Threading.Tasks.Task<Verdict.Result<T>> TapAsync<T>(this System.Threading.Tasks.Task<Verdict.Result<T>> resultTask, System.Func<T, System.Threading.CancellationToken, System.Threading.Tasks.Task> action, System.Threading.CancellationToken cancellationToken) { }
+        public static System.Threading.Tasks.Task<Verdict.Result<T>> TapErrorAsync<T>(this System.Threading.Tasks.Task<Verdict.Result<T>> resultTask, System.Func<Verdict.Error, System.Threading.Tasks.Task> action) { }
+        public static System.Threading.Tasks.Task<Verdict.Result> WithTimeout(this System.Threading.Tasks.Task<Verdict.Result> resultTask, System.TimeSpan timeout, Verdict.Error timeoutError) { }
+        public static System.Threading.Tasks.Task<Verdict.Result> WithTimeout(this System.Threading.Tasks.Task<Verdict.Result> resultTask, System.TimeSpan timeout, Verdict.Error timeoutError, System.Threading.CancellationToken cancellationToken) { }
+        public static System.Threading.Tasks.Task<Verdict.Result<T>> WithTimeout<T>(this System.Threading.Tasks.Task<Verdict.Result<T>> resultTask, System.TimeSpan timeout, Verdict.Error timeoutError) { }
+        public static System.Threading.Tasks.Task<Verdict.Result<T>> WithTimeout<T>(this System.Threading.Tasks.Task<Verdict.Result<T>> resultTask, System.TimeSpan timeout, string code, string message) { }
+        public static System.Threading.Tasks.Task<Verdict.Result<T>> WithTimeout<T>(this System.Threading.Tasks.Task<Verdict.Result<T>> resultTask, System.TimeSpan timeout, Verdict.Error timeoutError, System.Threading.CancellationToken cancellationToken) { }
+    }
+}

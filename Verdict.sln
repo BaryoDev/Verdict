@@ -43,6 +43,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Verdict.Json", "src\Verdict
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Verdict.Json.Tests", "tests\Verdict.Json.Tests\Verdict.Json.Tests.csproj", "{8AA0E605-E6C4-4AAC-9465-1B76BE862B37}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Verdict.ApiApproval.Tests", "tests\Verdict.ApiApproval.Tests\Verdict.ApiApproval.Tests.csproj", "{017A7355-3CED-469E-8539-62E6DAC98054}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -257,6 +259,18 @@ Global
 		{8AA0E605-E6C4-4AAC-9465-1B76BE862B37}.Release|x64.Build.0 = Release|Any CPU
 		{8AA0E605-E6C4-4AAC-9465-1B76BE862B37}.Release|x86.ActiveCfg = Release|Any CPU
 		{8AA0E605-E6C4-4AAC-9465-1B76BE862B37}.Release|x86.Build.0 = Release|Any CPU
+		{017A7355-3CED-469E-8539-62E6DAC98054}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{017A7355-3CED-469E-8539-62E6DAC98054}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{017A7355-3CED-469E-8539-62E6DAC98054}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{017A7355-3CED-469E-8539-62E6DAC98054}.Debug|x64.Build.0 = Debug|Any CPU
+		{017A7355-3CED-469E-8539-62E6DAC98054}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{017A7355-3CED-469E-8539-62E6DAC98054}.Debug|x86.Build.0 = Debug|Any CPU
+		{017A7355-3CED-469E-8539-62E6DAC98054}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{017A7355-3CED-469E-8539-62E6DAC98054}.Release|Any CPU.Build.0 = Release|Any CPU
+		{017A7355-3CED-469E-8539-62E6DAC98054}.Release|x64.ActiveCfg = Release|Any CPU
+		{017A7355-3CED-469E-8539-62E6DAC98054}.Release|x64.Build.0 = Release|Any CPU
+		{017A7355-3CED-469E-8539-62E6DAC98054}.Release|x86.ActiveCfg = Release|Any CPU
+		{017A7355-3CED-469E-8539-62E6DAC98054}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -279,5 +293,6 @@ Global
 		{6E403A14-6D78-44A5-82F2-57EFF9AAC025} = {798B15BD-CF3B-4419-BFD4-52F0254194B0}
 		{C1D3F935-4573-4D04-BE41-A8A926001EC0} = {9661D15E-4A54-4852-866D-15727B4E4F29}
 		{8AA0E605-E6C4-4AAC-9465-1B76BE862B37} = {798B15BD-CF3B-4419-BFD4-52F0254194B0}
+		{017A7355-3CED-469E-8539-62E6DAC98054} = {798B15BD-CF3B-4419-BFD4-52F0254194B0}
 	EndGlobalSection
 EndGlobal

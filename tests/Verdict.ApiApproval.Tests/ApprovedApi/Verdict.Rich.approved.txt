@@ -1,0 +1,75 @@
+namespace Verdict.Rich
+{
+    public static class CustomErrorExtensions
+    {
+        public static Verdict.Rich.RichResult WithCustomError(this Verdict.Result result, Verdict.Rich.IErrorMetadata errorMetadata) { }
+        public static Verdict.Rich.RichResult<T> WithCustomError<T>(this Verdict.Result<T> result, Verdict.Rich.IErrorMetadata errorMetadata) { }
+    }
+    public interface IErrorMetadata
+    {
+        string GetErrorType();
+        System.Collections.Generic.Dictionary<string, object> GetMetadata();
+    }
+    public readonly struct RichResult
+    {
+        public Verdict.Error Error { get; }
+        public System.Collections.Generic.IReadOnlyDictionary<string, object> ErrorMetadata { get; }
+        public bool IsFailure { get; }
+        public bool IsSuccess { get; }
+        public System.Collections.Generic.IReadOnlyList<Verdict.Rich.SuccessInfo> Successes { get; }
+        public void Deconstruct(out bool isSuccess, out Verdict.Error error) { }
+        public override string ToString() { }
+        public Verdict.Rich.RichResult WithErrorMetadata(string key, object value) { }
+        public Verdict.Rich.RichResult WithSuccess(string message) { }
+        public Verdict.Rich.RichResult WithSuccess(Verdict.Rich.SuccessInfo success) { }
+        public static Verdict.Rich.RichResult Failure(Verdict.Error error) { }
+        public static Verdict.Rich.RichResult Failure(string code, string message) { }
+        public static Verdict.Rich.RichResult Success() { }
+        public static Verdict.Rich.RichResult op_Implicit(Verdict.Error error) { }
+        public static Verdict.Rich.RichResult op_Implicit(Verdict.Result result) { }
+        public static Verdict.Result op_Implicit(Verdict.Rich.RichResult richResult) { }
+    }
+    public static class RichResultExtensions
+    {
+        public static Verdict.Rich.RichResult AsRich(this Verdict.Result result) { }
+        public static Verdict.Rich.RichResult<T> AsRich<T>(this Verdict.Result<T> result) { }
+        public static Verdict.Rich.RichResult WithErrorMetadata(this Verdict.Result result, string key, object value) { }
+        public static Verdict.Rich.RichResult<T> WithErrorMetadata<T>(this Verdict.Result<T> result, string key, object value) { }
+        public static Verdict.Rich.RichResult WithSuccess(this Verdict.Result result, string message) { }
+        public static Verdict.Rich.RichResult WithSuccess(this Verdict.Result result, Verdict.Rich.SuccessInfo success) { }
+        public static Verdict.Rich.RichResult<T> WithSuccess<T>(this Verdict.Result<T> result, string message) { }
+        public static Verdict.Rich.RichResult<T> WithSuccess<T>(this Verdict.Result<T> result, Verdict.Rich.SuccessInfo success) { }
+    }
+    public readonly struct RichResult<T>
+    {
+        public Verdict.Error Error { get; }
+        public System.Collections.Generic.IReadOnlyDictionary<string, object> ErrorMetadata { get; }
+        public bool IsFailure { get; }
+        public bool IsSuccess { get; }
+        public System.Collections.Generic.IReadOnlyList<Verdict.Rich.SuccessInfo> Successes { get; }
+        public T Value { get; }
+        public T ValueOrDefault { get; }
+        public void Deconstruct(out bool isSuccess, out T? value, out Verdict.Error error) { }
+        public override string ToString() { }
+        public T ValueOr(System.Func<Verdict.Error, T> fallbackFactory) { }
+        public T ValueOr(T fallback) { }
+        public Verdict.Rich.RichResult<T> WithErrorMetadata(string key, object value) { }
+        public Verdict.Rich.RichResult<T> WithSuccess(string message) { }
+        public Verdict.Rich.RichResult<T> WithSuccess(Verdict.Rich.SuccessInfo success) { }
+        public static Verdict.Rich.RichResult<T> Failure(Verdict.Error error) { }
+        public static Verdict.Rich.RichResult<T> Failure(string code, string message) { }
+        public static Verdict.Rich.RichResult<T> Success(T value) { }
+        public static Verdict.Rich.RichResult<T> op_Implicit(T value) { }
+        public static Verdict.Rich.RichResult<T> op_Implicit(Verdict.Error error) { }
+        public static Verdict.Rich.RichResult<T> op_Implicit(Verdict.Result<T> result) { }
+        public static Verdict.Result<T> op_Implicit(Verdict.Rich.RichResult<T> richResult) { }
+    }
+    public readonly struct SuccessInfo
+    {
+        public SuccessInfo(string message) { }
+        public string Message { get; }
+        public System.Collections.Generic.IReadOnlyDictionary<string, object> Metadata { get; }
+        public override string ToString() { }
+        public Verdict.Rich.SuccessInfo WithMetadata(string key, object value) { }
+    }
+}

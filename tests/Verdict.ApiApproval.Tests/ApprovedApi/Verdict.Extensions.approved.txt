@@ -1,0 +1,104 @@
+namespace Verdict.Extensions
+{
+    public static class CombineExtensions
+    {
+        public static Verdict.Result<System.ValueTuple<T1, T2>> Combine<T1, T2>(Verdict.Result<T1> result1, Verdict.Result<T2> result2) { }
+        public static Verdict.Result<System.ValueTuple<T1, T2, T3>> Combine<T1, T2, T3>(Verdict.Result<T1> result1, Verdict.Result<T2> result2, Verdict.Result<T3> result3) { }
+        public static Verdict.Result<System.ValueTuple<T1, T2, T3, T4>> Combine<T1, T2, T3, T4>(Verdict.Result<T1> result1, Verdict.Result<T2> result2, Verdict.Result<T3> result3, Verdict.Result<T4> result4) { }
+        public static Verdict.Extensions.MultiResult<System.ValueTuple<T1, T2>> CombineAll<T1, T2>(Verdict.Result<T1> result1, Verdict.Result<T2> result2) { }
+        public static Verdict.Extensions.MultiResult<System.ValueTuple<T1, T2, T3>> CombineAll<T1, T2, T3>(Verdict.Result<T1> result1, Verdict.Result<T2> result2, Verdict.Result<T3> result3) { }
+        public static Verdict.Extensions.MultiResult Merge(params Verdict.Result[] results) { }
+        public static Verdict.Extensions.MultiResult<T> Merge<T>(params Verdict.Result<T>[] results) { }
+    }
+    public readonly struct ErrorCollection : System.IDisposable
+    {
+        public int Count { get; }
+        public bool HasErrors { get; }
+        public bool IsDisposed { get; }
+        public Verdict.Error this[int index] { get; }
+        public System.ReadOnlySpan<Verdict.Error> AsSpan() { }
+        public void Dispose() { }
+        public Verdict.Error First() { }
+        public Verdict.Error[] ToArray() { }
+        public override string ToString() { }
+        public static Verdict.Extensions.ErrorCollection Create(System.Collections.Generic.IEnumerable<Verdict.Error> errors) { }
+        public static Verdict.Extensions.ErrorCollection Create(Verdict.Error error) { }
+        public static Verdict.Extensions.ErrorCollection Create(params Verdict.Error[] errors) { }
+    }
+    public readonly struct MultiResult
+    {
+        public int ErrorCount { get; }
+        public System.ReadOnlySpan<Verdict.Error> Errors { get; }
+        public bool IsFailure { get; }
+        public bool IsSuccess { get; }
+        public void Deconstruct(out bool isSuccess, out System.ReadOnlySpan<Verdict.Error> errors) { }
+        public void DisposeErrors() { }
+        public Verdict.Result ToSingleResult() { }
+        public override string ToString() { }
+        public static Verdict.Extensions.MultiResult Failure(Verdict.Error error) { }
+        public static Verdict.Extensions.MultiResult Failure(params Verdict.Error[] errors) { }
+        public static Verdict.Extensions.MultiResult Failure(Verdict.Extensions.ErrorCollection errors) { }
+        public static Verdict.Extensions.MultiResult Failure(string code, string message) { }
+        public static Verdict.Extensions.MultiResult Success() { }
+        public static Verdict.Extensions.MultiResult op_Implicit(Verdict.Error error) { }
+        public static Verdict.Extensions.MultiResult op_Implicit(Verdict.Result result) { }
+    }
+    public static class MultiResultCombinators
+    {
+        public static Verdict.Extensions.MultiResult<TOut> Bind<T, TOut>(this Verdict.Extensions.MultiResult<T> result, System.Func<T, Verdict.Extensions.MultiResult<TOut>> binder) { }
+        public static System.Threading.Tasks.Task<Verdict.Extensions.MultiResult<TOut>> BindAsync<T, TOut>(this System.Threading.Tasks.Task<Verdict.Extensions.MultiResult<T>> resultTask, System.Func<T, System.Threading.Tasks.Task<Verdict.Extensions.MultiResult<TOut>>> binder) { }
+        public static Verdict.Extensions.MultiResult<TOut> Map<T, TOut>(this Verdict.Extensions.MultiResult<T> result, System.Func<T, TOut> mapper) { }
+        public static System.Threading.Tasks.Task<Verdict.Extensions.MultiResult<TOut>> MapAsync<T, TOut>(this System.Threading.Tasks.Task<Verdict.Extensions.MultiResult<T>> resultTask, System.Func<T, System.Threading.Tasks.Task<TOut>> mapper) { }
+        public static TOut Match<TOut>(this Verdict.Extensions.MultiResult result, System.Func<TOut> onSuccess, System.Func<Verdict.Extensions.ErrorCollection, TOut> onFailure) { }
+        public static TOut Match<T, TOut>(this Verdict.Extensions.MultiResult<T> result, System.Func<T, TOut> onSuccess, System.Func<Verdict.Extensions.ErrorCollection, TOut> onFailure) { }
+        public static Verdict.Extensions.MultiResult OnFailure(this Verdict.Extensions.MultiResult result, System.Action<Verdict.Extensions.ErrorCollection> action) { }
+        public static Verdict.Extensions.MultiResult<T> OnFailure<T>(this Verdict.Extensions.MultiResult<T> result, System.Action<Verdict.Extensions.ErrorCollection> action) { }
+        public static Verdict.Extensions.MultiResult OnSuccess(this Verdict.Extensions.MultiResult result, System.Action action) { }
+        public static Verdict.Extensions.MultiResult<T> OnSuccess<T>(this Verdict.Extensions.MultiResult<T> result, System.Action<T> action) { }
+        public static System.Threading.Tasks.Task<Verdict.Extensions.MultiResult<T>> OnSuccessAsync<T>(this System.Threading.Tasks.Task<Verdict.Extensions.MultiResult<T>> resultTask, System.Func<T, System.Threading.Tasks.Task> action) { }
+    }
+    public readonly struct MultiResult<T>
+    {
+        public int ErrorCount { get; }
+        public System.ReadOnlySpan<Verdict.Error> Errors { get; }
+        public bool IsFailure { get; }
+        public bool IsSuccess { get; }
+        public T Value { get; }
+        public T ValueOrDefault { get; }
+        public void Deconstruct(out bool isSuccess, out T? value, out System.ReadOnlySpan<Verdict.Error> errors) { }
+        public void DisposeErrors() { }
+        public Verdict.Result<T> ToSingleResult() { }
+        public override string ToString() { }
+        public static Verdict.Extensions.MultiResult<T> Failure(Verdict.Error error) { }
+        public static Verdict.Extensions.MultiResult<T> Failure(params Verdict.Error[] errors) { }
+        public static Verdict.Extensions.MultiResult<T> Failure(Verdict.Extensions.ErrorCollection errors) { }
+        public static Verdict.Extensions.MultiResult<T> Failure(string code, string message) { }
+        public static Verdict.Extensions.MultiResult<T> Success(T value) { }
+        public static Verdict.Extensions.MultiResult<T> op_Implicit(T value) { }
+        public static Verdict.Extensions.MultiResult<T> op_Implicit(Verdict.Error error) { }
+        public static Verdict.Extensions.MultiResult<T> op_Implicit(Verdict.Result<T> result) { }
+    }
+    public static class TryExtensions
+    {
+        public static Verdict.Result Try(System.Action action, System.Func<System.Exception, Verdict.Error>? errorFactory = null) { }
+        public static Verdict.Result<T> Try<T>(System.Func<T> action, System.Func<System.Exception, Verdict.Error>? errorFactory = null) { }
+        public static Verdict.Result TryResult(System.Func<Verdict.Result> action, System.Func<System.Exception, Verdict.Error>? errorFactory = null) { }
+        public static Verdict.Result<T> TryResult<T>(System.Func<Verdict.Result<T>> action, System.Func<System.Exception, Verdict.Error>? errorFactory = null) { }
+    }
+    public static class ValidationExtensions
+    {
+        public static Verdict.Extensions.MultiResult<T> Ensure<T>(this Verdict.Extensions.MultiResult<T> result, System.Func<T, bool> predicate, System.Func<T, Verdict.Error> errorFactory) { }
+        public static Verdict.Extensions.MultiResult<T> Ensure<T>(this Verdict.Extensions.MultiResult<T> result, System.Func<T, bool> predicate, Verdict.Error error) { }
+        public static Verdict.Result<T> Ensure<T>(this Verdict.Result<T> result, System.Func<T, bool> predicate, System.Func<T, Verdict.Error> errorFactory) { }
+        public static Verdict.Result<T> Ensure<T>(this Verdict.Result<T> result, System.Func<T, bool> predicate, Verdict.Error error) { }
+        public static Verdict.Extensions.MultiResult<T> Ensure<T>(this Verdict.Extensions.MultiResult<T> result, System.Func<T, bool> predicate, string code, string message) { }
+        public static Verdict.Result<T> Ensure<T>(this Verdict.Result<T> result, System.Func<T, bool> predicate, string code, string message) { }
+        public static Verdict.Extensions.MultiResult<T> EnsureAll<T>(this Verdict.Result<T> result, [System.Runtime.CompilerServices.TupleElementNames(new string?[]?[] {
+                "predicate",
+                "error"})] params System.ValueTuple<System.Func<T, bool>, Verdict.Error>[] validations) { }
+        public static Verdict.Extensions.MultiResult<T> ValidateAll<T>(T value, [System.Runtime.CompilerServices.TupleElementNames(new string[] {
+                "predicate",
+                "code",
+                "message"})] params System.ValueTuple<System.Func<T, bool>, string, string>[] validations) { }
+    }
+}

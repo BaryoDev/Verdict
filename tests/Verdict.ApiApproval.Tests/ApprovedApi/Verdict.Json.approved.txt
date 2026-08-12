@@ -1,0 +1,72 @@
+namespace Verdict.Json
+{
+    public class ErrorJsonConverter : System.Text.Json.Serialization.JsonConverter<Verdict.Error>
+    {
+        public ErrorJsonConverter() { }
+        public bool IncludeExceptionDetails { get; set; }
+        public override Verdict.Error Read(ref System.Text.Json.Utf8JsonReader reader, System.Type typeToConvert, System.Text.Json.JsonSerializerOptions options) { }
+        public override void Write(System.Text.Json.Utf8JsonWriter writer, Verdict.Error value, System.Text.Json.JsonSerializerOptions options) { }
+    }
+    [System.Diagnostics.CodeAnalysis.RequiresDynamicCode("The converter factory constructs ResultJsonConverter<T> with MakeGenericType. Und" +
+        "er Native AOT register concrete converters with JsonSerializerOptions.AddVerdict" +
+        "Converter<T>() instead.")]
+    public class ResultJsonConverterFactory : System.Text.Json.Serialization.JsonConverterFactory
+    {
+        public ResultJsonConverterFactory() { }
+        public ResultJsonConverterFactory(bool includeExceptionDetails) { }
+        public override bool CanConvert(System.Type typeToConvert) { }
+        public override System.Text.Json.Serialization.JsonConverter? CreateConverter(System.Type typeToConvert, System.Text.Json.JsonSerializerOptions options) { }
+    }
+    public class ResultJsonConverter<T> : System.Text.Json.Serialization.JsonConverter<Verdict.Result<T>>
+    {
+        public ResultJsonConverter() { }
+        public ResultJsonConverter(Verdict.Json.ErrorJsonConverter errorConverter) { }
+        public override Verdict.Result<T> Read(ref System.Text.Json.Utf8JsonReader reader, System.Type typeToConvert, System.Text.Json.JsonSerializerOptions options) { }
+        public override void Write(System.Text.Json.Utf8JsonWriter writer, Verdict.Result<T> value, System.Text.Json.JsonSerializerOptions options) { }
+    }
+    public class ResultNonGenericJsonConverter : System.Text.Json.Serialization.JsonConverter<Verdict.Result>
+    {
+        public ResultNonGenericJsonConverter() { }
+        public ResultNonGenericJsonConverter(Verdict.Json.ErrorJsonConverter errorConverter) { }
+        public override Verdict.Result Read(ref System.Text.Json.Utf8JsonReader reader, System.Type typeToConvert, System.Text.Json.JsonSerializerOptions options) { }
+        public override void Write(System.Text.Json.Utf8JsonWriter writer, Verdict.Result value, System.Text.Json.JsonSerializerOptions options) { }
+    }
+    public static class VerdictJsonAotExtensions
+    {
+        public static System.Text.Json.JsonSerializerOptions AddVerdictConverter<T>(this System.Text.Json.JsonSerializerOptions options) { }
+        public static System.Text.Json.JsonSerializerOptions AddVerdictResultConverter(this System.Text.Json.JsonSerializerOptions options) { }
+    }
+    public static class VerdictJsonExtensions
+    {
+        [System.Diagnostics.CodeAnalysis.RequiresDynamicCode("Registers a converter factory that uses MakeGenericType. Under Native AOT use Add" +
+            "VerdictConverter<T>() instead.")]
+        [System.Diagnostics.CodeAnalysis.RequiresUnreferencedCode("Registers a reflection-based converter factory. Under trimming use AddVerdictConv" +
+            "erter<T>() instead.")]
+        public static System.Text.Json.JsonSerializerOptions AddVerdictConverters(this System.Text.Json.JsonSerializerOptions options, bool includeExceptionDetails = false) { }
+        [System.Diagnostics.CodeAnalysis.RequiresDynamicCode("Registers a converter factory that uses MakeGenericType. Under Native AOT use Add" +
+            "VerdictConverter<T>() instead.")]
+        [System.Diagnostics.CodeAnalysis.RequiresUnreferencedCode("Registers a reflection-based converter factory. Under trimming use AddVerdictConv" +
+            "erter<T>() instead.")]
+        public static System.Text.Json.JsonSerializerOptions CreateVerdictJsonOptions(bool includeExceptionDetails = false) { }
+        [System.Diagnostics.CodeAnalysis.RequiresDynamicCode("Uses reflection-based System.Text.Json, which needs runtime code generation under" +
+            " Native AOT.")]
+        [System.Diagnostics.CodeAnalysis.RequiresUnreferencedCode("Uses reflection-based System.Text.Json. Supply a JsonSerializerContext or avoid t" +
+            "rimming this call path.")]
+        public static Verdict.Result<T> FromJson<T>(string json, System.Text.Json.JsonSerializerOptions? options = null) { }
+        [System.Diagnostics.CodeAnalysis.RequiresDynamicCode("Uses reflection-based System.Text.Json, which needs runtime code generation under" +
+            " Native AOT.")]
+        [System.Diagnostics.CodeAnalysis.RequiresUnreferencedCode("Uses reflection-based System.Text.Json. Supply a JsonSerializerContext or avoid t" +
+            "rimming this call path.")]
+        public static Verdict.Result ResultFromJson(string json, System.Text.Json.JsonSerializerOptions? options = null) { }
+        [System.Diagnostics.CodeAnalysis.RequiresDynamicCode("Uses reflection-based System.Text.Json, which needs runtime code generation under" +
+            " Native AOT.")]
+        [System.Diagnostics.CodeAnalysis.RequiresUnreferencedCode("Uses reflection-based System.Text.Json. Supply a JsonSerializerContext or avoid t" +
+            "rimming this call path.")]
+        public static string ToJson(this Verdict.Result result, System.Text.Json.JsonSerializerOptions? options = null) { }
+        [System.Diagnostics.CodeAnalysis.RequiresDynamicCode("Uses reflection-based System.Text.Json, which needs runtime code generation under" +
+            " Native AOT.")]
+        [System.Diagnostics.CodeAnalysis.RequiresUnreferencedCode("Uses reflection-based System.Text.Json. Supply a JsonSerializerContext or avoid t" +
+            "rimming this call path.")]
+        public static string ToJson<T>(this Verdict.Result<T> result, System.Text.Json.JsonSerializerOptions? options = null) { }
+    }
+}
