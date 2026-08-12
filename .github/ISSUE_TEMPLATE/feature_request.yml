@@ -1,0 +1,42 @@
+name: Feature request
+description: Something Verdict should be able to do and cannot.
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        One constraint decides most design questions here: the core package allocates nothing on
+        the success path, and a test enforces it. Features that cost allocations belong in an
+        extension package. Worth knowing before you write this up.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: What are you trying to do, and where does Verdict get in the way?
+    validations:
+      required: true
+
+  - type: textarea
+    id: shape
+    attributes:
+      label: What the API might look like
+      description: A sketch is fine. It does not have to be right.
+      render: csharp
+
+  - type: dropdown
+    id: placement
+    attributes:
+      label: Where do you think this belongs
+      options:
+        - Core (Verdict), only if it allocates nothing
+        - An existing extension package
+        - A new extension package
+        - Not sure
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: What you are doing instead today

@@ -1,0 +1,58 @@
+name: Bug report
+description: Something behaves differently from what the docs or the types promise.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        A reproduction is worth more than a description. If you can paste a failing test or a
+        small console program, that is usually enough to get this fixed quickly.
+
+  - type: input
+    id: version
+    attributes:
+      label: Verdict version
+      placeholder: "2.7.0"
+    validations:
+      required: true
+
+  - type: input
+    id: package
+    attributes:
+      label: Which package
+      placeholder: "Verdict, Verdict.Extensions, Verdict.AspNetCore, ..."
+    validations:
+      required: true
+
+  - type: input
+    id: tfm
+    attributes:
+      label: Target framework
+      placeholder: "net8.0, netstandard2.0, net9.0"
+    validations:
+      required: true
+
+  - type: textarea
+    id: repro
+    attributes:
+      label: Reproduction
+      description: A failing test or the smallest program that shows it. Code, not prose.
+      render: csharp
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected, and what happened instead
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: context
+    attributes:
+      label: Anything that applies
+      options:
+        - label: Running trimmed or Native AOT
+        - label: Using ErrorCollection or MultiResult, which pool buffers
+        - label: Only happens under concurrency
