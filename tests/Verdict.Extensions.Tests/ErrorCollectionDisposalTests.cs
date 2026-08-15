@@ -1,6 +1,8 @@
 using System;
 using System.Buffers;
+using System.Collections;
 using System.Collections.Generic;
+using System.Reflection;
 using Verdict.Extensions;
 using Xunit;
 
@@ -106,6 +108,46 @@ public class ErrorCollectionDisposalTests
     }
 
     [Fact]
+    public void Create_WhenCollectionEnumerationThrows_ReturnsClearedBufferToPool()
+    {
+        var pool = new TrackingArrayPool<Error>(4);
+        var errors = new MisreportingCollection(
+            reportedCount: 4,
+            throwAfterFirst: true,
+            new Error("SENSITIVE", "must be cleared"));
+
+        var createWithPool = typeof(ErrorCollection).GetMethod(
+            "CreateWithPool",
+            BindingFlags.NonPublic | BindingFlags.Static);
+
+        Assert.NotNull(createWithPool);
+        var invocation = Assert.Throws<TargetInvocationException>(() =>
+        {
+            createWithPool.Invoke(null, new object[] { errors, pool });
+        });
+        Assert.IsType<InvalidOperationException>(invocation.InnerException);
+
+        Assert.Equal(1, pool.RentCount);
+        Assert.Equal(1, pool.ReturnCount);
+        Assert.All(pool.Buffer, error => Assert.Equal(default, error));
+    }
+
+    [Fact]
+    public void Create_WhenCollectionYieldsFewerItems_UsesActualCount()
+    {
+        var errors = new MisreportingCollection(
+            reportedCount: 4,
+            throwAfterFirst: false,
+            new Error("A", "one"),
+            new Error("B", "two"));
+
+        using var collection = ErrorCollection.Create(errors);
+
+        Assert.Equal(2, collection.Count);
+        Assert.Equal(new[] { "A", "B" }, Array.ConvertAll(collection.ToArray(), error => error.Code));
+    }
+
+    [Fact]
     public void NonPooledCollection_RemainsUsableAfterDispose()
     {
         // Create(Error) and Create(params Error[]) allocate their own array and
@@ -140,5 +182,72 @@ public class ErrorCollectionDisposalTests
         }
 
         Assert.Throws<ObjectDisposedException>(() => escaped[0]);
+    }
+
+    private sealed class MisreportingCollection : ICollection<Error>
+    {
+        private readonly Error[] _errors;
+        private readonly bool _throwAfterFirst;
+
+        internal MisreportingCollection(int reportedCount, bool throwAfterFirst, params Error[] errors)
+        {
+            Count = reportedCount;
+            _throwAfterFirst = throwAfterFirst;
+            _errors = errors;
+        }
+
+        public int Count { get; }
+        public bool IsReadOnly => true;
+
+        public IEnumerator<Error> GetEnumerator()
+        {
+            foreach (var error in _errors)
+            {
+                yield return error;
+                if (_throwAfterFirst)
+                {
+                    throw new InvalidOperationException("enumeration failed");
+                }
+            }
+        }
+
+        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+        public void Add(Error item) => throw new NotSupportedException();
+        public void Clear() => throw new NotSupportedException();
+        public bool Contains(Error item) => Array.IndexOf(_errors, item) >= 0;
+        public void CopyTo(Error[] array, int arrayIndex) => _errors.CopyTo(array, arrayIndex);
+        public bool Remove(Error item) => throw new NotSupportedException();
+    }
+
+    private sealed class TrackingArrayPool<T> : ArrayPool<T>
+    {
+        internal TrackingArrayPool(int capacity)
+        {
+            Buffer = new T[capacity];
+        }
+
+        internal T[] Buffer { get; }
+        internal int RentCount { get; private set; }
+        internal int ReturnCount { get; private set; }
+
+        public override T[] Rent(int minimumLength)
+        {
+            if (minimumLength > Buffer.Length || RentCount != ReturnCount)
+                throw new InvalidOperationException("Tracking pool cannot satisfy the rental.");
+
+            RentCount++;
+            return Buffer;
+        }
+
+        public override void Return(T[] array, bool clearArray = false)
+        {
+            if (!ReferenceEquals(array, Buffer) || ReturnCount == RentCount)
+                throw new InvalidOperationException("Tracking pool received an unknown buffer.");
+
+            if (clearArray)
+                Array.Clear(array, 0, array.Length);
+
+            ReturnCount++;
+        }
     }
 }

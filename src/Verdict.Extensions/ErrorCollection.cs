@@ -106,10 +106,15 @@ public readonly struct ErrorCollection : IDisposable
     /// Creates an error collection from an enumerable of errors.
     /// Uses array pooling for better performance.
     /// </summary>
-    public static ErrorCollection Create(IEnumerable<Error> errors)
+    public static ErrorCollection Create(IEnumerable<Error> errors) =>
+        CreateWithPool(errors, ArrayPool<Error>.Shared);
+
+    private static ErrorCollection CreateWithPool(IEnumerable<Error> errors, ArrayPool<Error> pool)
     {
         if (errors == null)
             throw new ArgumentNullException(nameof(errors));
+        if (pool == null)
+            throw new ArgumentNullException(nameof(pool));
 
         // Fast path: if it's already an array, use the array overload
         if (errors is Error[] errorArray)
@@ -118,22 +123,38 @@ public readonly struct ErrorCollection : IDisposable
         // Fast path: if it's a collection, we can get the count without enumerating
         if (errors is ICollection<Error> collection)
         {
-            if (collection.Count == 0)
+            var expectedCount = collection.Count;
+            if (expectedCount == 0)
                 return default;
 
-            var array = ArrayPool<Error>.Shared.Rent(collection.Count);
-            int i = 0;
-            foreach (var error in collection)
+            var array = pool.Rent(expectedCount);
+            try
             {
-                array[i++] = error;
+                int actualCount = 0;
+                foreach (var error in collection)
+                {
+                    array[actualCount++] = error;
+                }
+
+                if (actualCount == 0)
+                {
+                    pool.Return(array, clearArray: true);
+                    return default;
+                }
+
+                return new ErrorCollection(array, actualCount, new RentalTracker(array, pool));
             }
-            return new ErrorCollection(array, collection.Count, new RentalTracker(array));
+            catch
+            {
+                pool.Return(array, clearArray: true);
+                throw;
+            }
         }
 
         // Slow path: unknown size, must enumerate
         // Use a small initial buffer and grow if needed
         const int initialCapacity = 4;
-        var buffer = ArrayPool<Error>.Shared.Rent(initialCapacity);
+        var buffer = pool.Rent(initialCapacity);
         int count = 0;
 
         try
@@ -143,9 +164,9 @@ public readonly struct ErrorCollection : IDisposable
                 if (count == buffer.Length)
                 {
                     // Grow the buffer
-                    var newBuffer = ArrayPool<Error>.Shared.Rent(buffer.Length * 2);
+                    var newBuffer = pool.Rent(buffer.Length * 2);
                     Array.Copy(buffer, newBuffer, count);
-                    ArrayPool<Error>.Shared.Return(buffer, clearArray: true);
+                    pool.Return(buffer, clearArray: true);
                     buffer = newBuffer;
                 }
                 buffer[count++] = error;
@@ -153,15 +174,15 @@ public readonly struct ErrorCollection : IDisposable
 
             if (count == 0)
             {
-                ArrayPool<Error>.Shared.Return(buffer, clearArray: true);
+                pool.Return(buffer, clearArray: true);
                 return default;
             }
 
-            return new ErrorCollection(buffer, count, new RentalTracker(buffer));
+            return new ErrorCollection(buffer, count, new RentalTracker(buffer, pool));
         }
         catch
         {
-            ArrayPool<Error>.Shared.Return(buffer, clearArray: true);
+            pool.Return(buffer, clearArray: true);
             throw;
         }
     }
@@ -232,10 +253,12 @@ public readonly struct ErrorCollection : IDisposable
     internal sealed class RentalTracker
     {
         private Error[]? _array;
+        private readonly ArrayPool<Error> _pool;
 
-        internal RentalTracker(Error[] array)
+        internal RentalTracker(Error[] array, ArrayPool<Error> pool)
         {
             _array = array;
+            _pool = pool;
         }
 
         internal bool IsDisposed => Volatile.Read(ref _array) is null;
@@ -245,7 +268,7 @@ public readonly struct ErrorCollection : IDisposable
             var array = Interlocked.Exchange(ref _array, null);
             if (array != null)
             {
-                ArrayPool<Error>.Shared.Return(array, clearArray: true);
+                _pool.Return(array, clearArray: true);
             }
         }
     }
