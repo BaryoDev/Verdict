@@ -1,0 +1,51 @@
+name: Flag solicitation
+
+# Labels comments that read like a price quote and tells the maintainer, so bulk
+# solicitation is noticed without anyone reading every thread. It never blocks and
+# never deletes. Matching on money is far too crude to act on automatically: a
+# sponsorship question, a bounty discussion and a genuine cost estimate all look the
+# same to a regex, and auto-blocking any of those is worse than the problem.
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  issues: write
+
+jobs:
+  flag:
+    if: github.event.issue.pull_request == null
+    runs-on: ubuntu-latest
+    steps:
+      - name: Look for a price offer
+        id: scan
+        env:
+          BODY: ${{ github.event.comment.body }}
+        run: |
+          # A currency amount, or the words people use when quoting for work.
+          if printf '%s' "$BODY" | grep -qiE '(\$|usd|eur|£|₱|inr|rs\.?)[[:space:]]*[0-9]|[0-9]+[[:space:]]*(usd|eur|dollars)|\b(estimate|quote|my rate|for a fee|paid work|i can do this for)\b'; then
+            echo "hit=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "hit=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Label and notify
+        if: steps.scan.outputs.hit == 'true' && github.event.comment.user.login != github.repository_owner
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          NUMBER: ${{ github.event.issue.number }}
+          AUTHOR: ${{ github.event.comment.user.login }}
+          URL: ${{ github.event.comment.html_url }}
+        run: |
+          gh label create solicitation \
+            --repo "$REPO" \
+            --color D93F0B \
+            --description "A comment on this issue reads like a price quote" 2>/dev/null || true
+
+          gh issue edit "$NUMBER" --repo "$REPO" --add-label solicitation
+
+          # Notifies the owner through the normal mention path rather than email.
+          gh issue comment "$NUMBER" --repo "$REPO" --body \
+            "@${{ github.repository_owner }} a comment here from \`$AUTHOR\` matched the price-quote pattern and has been labelled for review. Nothing has been blocked or removed. $URL"
