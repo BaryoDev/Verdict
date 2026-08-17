@@ -5,6 +5,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.8.0] - 2026-08-17
+
+### Added
+
+- **`net8.0` alongside `netstandard2.0` on every package.** Purely additive:
+  existing consumers resolve exactly as before, and .NET 8 consumers now get a
+  target the trimming and AOT analyzers can actually see, so a trim warning
+  surfaces at build time rather than as a missing method at run time.
+- **The zero-allocation promise is now enforced by a test, not asserted in the
+  README.** `AllocationTests` measures allocations directly on the success path.
+  Until now a contributor could break the reason to use this library without
+  breaking a single behavioural test: add a field that boxes, capture a variable
+  in a lambda, return an interface instead of the struct, and everything still
+  went green while the benchmark quietly regressed.
+- **The public API surface of all eight packages is pinned.** Any change to a
+  signature, an accessibility, a base type or a default parameter now fails a
+  test with a readable diff, and the failure message states the versioning rule
+  it implies.
+
+### Changed
+
+- Nothing behavioural. No API was added, removed or altered in this release; the
+  approval snapshots are unchanged from 2.7.0.
+
 ## [2.7.0] - 2026-08-07
 
 ### Fixed
