@@ -23,8 +23,11 @@ jobs:
         env:
           BODY: ${{ github.event.comment.body }}
         run: |
-          # A currency amount, or the words people use when quoting for work.
-          if printf '%s' "$BODY" | grep -qiE '(\$|usd|eur|£|₱|inr|rs\.?)[[:space:]]*[0-9]|[0-9]+[[:space:]]*(usd|eur|dollars)|\b(estimate|quote|my rate|for a fee|paid work|i can do this for)\b'; then
+          # A currency amount, or a phrase that only makes sense as an offer of paid work.
+          # Deliberately excludes bare "quote" and "estimate": both are ordinary words in a
+          # technical thread ("quote the exact error", "your estimate for the timeline"), and
+          # labelling a volunteer's comment as solicitation is worse than missing one.
+          if printf '%s' "$BODY" | grep -qiE '(\$|usd|eur|£|₱|inr|rs\.?)[[:space:]]*[0-9]|[0-9]+[[:space:]]*(usd|eur|dollars)|\b(my rate|for a fee|paid work|hire me|i can do this for|send payment|paypal|western union)\b'; then
             echo "hit=true" >> "$GITHUB_OUTPUT"
           else
             echo "hit=false" >> "$GITHUB_OUTPUT"
