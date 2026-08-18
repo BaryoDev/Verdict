@@ -5,7 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [2.8.0] - 2026-08-17
+## [2.8.0] - 2026-08-18
+
+### Fixed
+
+- **`ErrorCollection.Create` leaked its pooled buffer when enumeration threw.**
+  The `ICollection<Error>` fast path rented from `ArrayPool<Error>.Shared` with
+  no `try`/`catch`, so a throwing enumerator lost the buffer until GC collected
+  it, defeating the pooling the type exists for. It now returns the buffer on
+  the exception path, and uses the number of items actually yielded rather than
+  `Count`, so a collection whose `Count` overstates its enumeration no longer
+  exposes stale pooled slots. Thanks to @snowyukitty. (#24, #34)
+- **`ProblemDetailsFactory`'s process-wide defaults leaked between tests.** Four
+  test classes shared that static while xUnit ran them in parallel, so a class
+  mutating it could run alongside the class reading it. The suite was
+  order-dependent rather than flaky: it passed on an incremental build and
+  failed after a clean one. (#33, #36)
 
 ### Added
 
@@ -26,8 +41,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Nothing behavioural. No API was added, removed or altered in this release; the
-  approval snapshots are unchanged from 2.7.0.
+- No public API was added, removed or altered in this release; the approval
+  snapshots are unchanged from 2.7.0.
 
 ## [2.7.0] - 2026-08-07
 
