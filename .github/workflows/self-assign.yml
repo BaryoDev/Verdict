@@ -4,6 +4,11 @@
 # assigned" API returns 404 for everyone else, so assigning an outside contributor looks impossible
 # from the web interface. The REST API allows it once the person has commented on the issue, which
 # this workflow uses. That removes a round trip: nobody has to wait for a maintainer to be awake.
+#
+# The second job exists because the first one was silently useless to the people it was for. Four
+# contributors in a row asked to be assigned in ordinary English, the exact-command check ignored
+# every one, and they waited a day for a human. The command was fine. Nobody could discover it, and
+# the failure mode was silence.
 name: Self-assign
 
 on:
@@ -53,13 +58,13 @@ jobs:
               return;
             }
 
-            // Someone else is already on it. Say so rather than silently piling on, two people
+            // Someone else is already on it. Say so rather than silently piling on. Two people
             // discovering they duplicated a weekend's work is the outcome this is meant to prevent.
             if (current.length > 0) {
               await github.rest.issues.createComment({
                 owner, repo, issue_number,
                 body: `@${who} this one is already with @${current.join(', @')}. ` +
-                      `Worth checking in with them before starting, they may be glad of the help, ` +
+                      `Worth checking in with them before starting. They may be glad of the help, ` +
                       `or it may be further along than it looks. There are other issues going spare ` +
                       `under [help wanted](https://github.com/${owner}/${repo}/issues?q=is%3Aopen+label%3A%22help+wanted%22).`,
               });
@@ -69,17 +74,66 @@ jobs:
             await github.rest.issues.addAssignees({ owner, repo, issue_number, assignees: [who] });
             await github.rest.issues.createComment({
               owner, repo, issue_number,
-              body: `Assigned to @${who}, it's yours. 🎉\n\n` +
+              body: `Assigned to @${who}. It's yours. 🎉\n\n` +
                     `No deadline, and no hard feelings if you change your mind; just say so and ` +
                     `someone else can pick it up. A draft PR early is very welcome if you'd like ` +
                     `eyes on the direction before polishing it.\n\n` +
-                    `One thing to do now rather than later: sign the CLA at ` +
-                    `https://cla-assistant.io/${owner}/${repo}. It takes about thirty seconds, you ` +
-                    `keep copyright of your work, and it is one signature across all of these ` +
-                    `repositories rather than one per project.\n\n` +
-                    `Signing before you start matters because the agreement says what you are ` +
-                    `agreeing to: contributions here are voluntary and unpaid. These projects have ` +
-                    `no budget and do not commission work on issues. Better to know that now than ` +
-                    `after you have written the code.\n\n` +
-                    `Nothing is blocked while you wait. The signature only gates the merge.`,
+                    `CLA Assistant will ask you to sign on your first pull request. It takes about ` +
+                    `thirty seconds and you keep copyright of your work.`,
+            });
+
+  # Somebody asked for the issue in plain English. Tell them the command exists rather than leaving
+  # them waiting on a maintainer who may be asleep.
+  #
+  # A nudge rather than an assignment. Matching intent from prose is guesswork, and the negations
+  # are the problem: "I don't think I'd like to work on this" contains "like to work on this". A
+  # wrong assignment has to be noticed and undone by a human; a wrong hint costs one comment.
+  hint:
+    if: >
+      !github.event.issue.pull_request &&
+      !startsWith(github.event.comment.body, '/take') &&
+      !startsWith(github.event.comment.body, '.take')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@v9
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const issue_number = context.issue.number;
+            const who = context.payload.comment.user.login;
+            const body = context.payload.comment.body || '';
+
+            // Bots asking to be assigned is not a thing we need to answer.
+            if (context.payload.comment.user.type === 'Bot') return;
+
+            const asking = /(assign\s+(me|it|this|to\s+me)|can\s+(i|u|you)\s+(assign|work|take)|could\s+(i|you)\s+(assign|work|take)|(i|I)('d|\s+would)?\s*(like|want)\s+to\s+(work|take)|may\s+i\s+(work|take)|let\s+me\s+(work|take|handle)|i'?ll\s+take\s+(this|it)|i\s+can\s+take\s+(this|it)|please\s+assign|working\s+on\s+this\??$)/i;
+            if (!asking.test(body)) {
+              core.info('Not an assignment request; ignoring.');
+              return;
+            }
+
+            const { data: issue } = await github.rest.issues.get({ owner, repo, issue_number });
+            const current = issue.assignees.map(a => a.login);
+            if (current.length > 0) {
+              core.info(`Already assigned to ${current.join(', ')}; the take job handles that case.`);
+              return;
+            }
+
+            // Post once per issue. Without this, a thread where somebody keeps saying they want to
+            // work on it collects a hint under every message, and the hint becomes the noise it is
+            // meant to remove. The marker is an HTML comment so it does not render.
+            const MARKER = '<!-- self-assign-hint -->';
+            const comments = await github.paginate(github.rest.issues.listComments, {
+              owner, repo, issue_number, per_page: 100,
+            });
+            if (comments.some(c => (c.body || '').includes(MARKER))) {
+              core.info('Already hinted on this issue.');
+              return;
+            }
+
+            await github.rest.issues.createComment({
+              owner, repo, issue_number,
+              body: `${MARKER}@${who} you can claim this yourself, no need to wait for anyone. ` +
+                    `Comment \`/take\` on its own and it will be assigned to you within a minute.\n\n` +
+                    `Doing it that way means two people cannot start the same work without noticing.`,
             });
