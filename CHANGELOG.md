@@ -5,14 +5,44 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [2.8.0] - 2026-08-18
 
 ### Fixed
 
-- `ErrorCollection.Create(IEnumerable<Error>)` now returns its pooled buffer when
-  an `ICollection<Error>` enumerator throws and reports the number of items
-  actually yielded instead of exposing stale pooled slots when `Count`
-  overstates the sequence length.
+- **`ErrorCollection.Create` leaked its pooled buffer when enumeration threw.**
+  The `ICollection<Error>` fast path rented from `ArrayPool<Error>.Shared` with
+  no `try`/`catch`, so a throwing enumerator lost the buffer until GC collected
+  it, defeating the pooling the type exists for. It now returns the buffer on
+  the exception path, and uses the number of items actually yielded rather than
+  `Count`, so a collection whose `Count` overstates its enumeration no longer
+  exposes stale pooled slots. Thanks to @snowyukitty. (#24, #34)
+- **`ProblemDetailsFactory`'s process-wide defaults leaked between tests.** Four
+  test classes shared that static while xUnit ran them in parallel, so a class
+  mutating it could run alongside the class reading it. The suite was
+  order-dependent rather than flaky: it passed on an incremental build and
+  failed after a clean one. (#33, #36)
+
+### Added
+
+- **`net8.0` alongside `netstandard2.0` on every package.** Purely additive:
+  existing consumers resolve exactly as before, and .NET 8 consumers now get a
+  target the trimming and AOT analyzers can actually see, so a trim warning
+  surfaces at build time rather than as a missing method at run time.
+- **The zero-allocation promise is now enforced by a test, not asserted in the
+  README.** `AllocationTests` measures allocations directly on the success path.
+  Until now a contributor could break the reason to use this library without
+  breaking a single behavioural test: add a field that boxes, capture a variable
+  in a lambda, return an interface instead of the struct, and everything still
+  went green while the benchmark quietly regressed.
+- **The public API surface of all eight packages is pinned.** Any change to a
+  signature, an accessibility, a base type or a default parameter now fails a
+  test with a readable diff, and the failure message states the versioning rule
+  it implies.
+
+### Changed
+
+- No public API was added, removed or altered in this release; the approval
+  snapshots are unchanged from 2.7.0.
 
 ## [2.7.0] - 2026-08-07
 
