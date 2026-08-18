@@ -7,6 +7,7 @@ namespace Verdict.AspNetCore.Tests;
 /// <summary>
 /// Tests for VerdictProblemDetailsOptions configuration.
 /// </summary>
+[Collection(ProblemDetailsStaticCollection.Name)]
 public class VerdictProblemDetailsOptionsTests
 {
     [Fact]

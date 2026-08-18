@@ -15,8 +15,14 @@ namespace Verdict.AspNetCore.Tests;
 /// Production readiness tests for ASP.NET Core integration.
 /// Tests thread-safety, concurrent access, and edge cases.
 /// </summary>
-public class ProductionReadinessTests
+[Collection(ProblemDetailsStaticCollection.Name)]
+public class ProductionReadinessTests : IDisposable
 {
+    // Several tests here write ProblemDetailsFactory's process-wide default options. Restoring on
+    // teardown rather than in each test means a new test cannot forget: the leak in #33 came from
+    // exactly one test that mutated and did not restore.
+    public void Dispose() => ProblemDetailsFactory.ResetDefaultOptions();
+
     #region ErrorStatusCodeMapper Thread Safety
 
     [Fact]
@@ -141,6 +147,11 @@ public class ProductionReadinessTests
 
         await Task.WhenAll(writeTasks);
         var results = await Task.WhenAll(readTasks);
+
+        // Restored here as well as in Dispose. This test is the one that leaves a
+        // NON-DETERMINISTIC value behind, since which of the two option objects lands last is a
+        // race by design, so it should not rely on teardown ordering to clean up after itself.
+        ProblemDetailsFactory.ResetDefaultOptions();
 
         // Assert - no exceptions, all valid ProblemDetails
         results.Should().AllSatisfy(pd =>
