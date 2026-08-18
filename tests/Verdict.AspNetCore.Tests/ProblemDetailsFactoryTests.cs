@@ -8,6 +8,7 @@ using Verdict.Extensions;
 
 namespace Verdict.AspNetCore.Tests;
 
+[Collection(ProblemDetailsStaticCollection.Name)]
 public class ProblemDetailsFactoryTests
 {
     [Fact]

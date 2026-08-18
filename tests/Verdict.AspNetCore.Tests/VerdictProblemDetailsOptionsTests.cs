@@ -7,8 +7,15 @@ namespace Verdict.AspNetCore.Tests;
 /// <summary>
 /// Tests for VerdictProblemDetailsOptions configuration.
 /// </summary>
-public class VerdictProblemDetailsOptionsTests
+[Collection(ProblemDetailsStaticCollection.Name)]
+public class VerdictProblemDetailsOptionsTests : IDisposable
 {
+    // Teardown rather than an inline cleanup line. An inline restore only runs when the
+    // assertions above it pass, so a failing test used to leave the custom defaults behind.
+    // That mattered less while classes raced; now that this collection serialises them, leaked
+    // state reaches the next class in the collection deterministically.
+    public void Dispose() => ProblemDetailsFactory.ResetDefaultOptions();
+
     [Fact]
     public void CreateFromError_WithDefaultOptions_ShouldIncludeErrorCode()
     {
@@ -174,7 +181,6 @@ public class VerdictProblemDetailsOptionsTests
         // Assert
         problemDetails.Extensions.Should().NotContainKey("errorCode");
 
-        // Cleanup - Reset to default
-        ProblemDetailsFactory.SetDefaultOptions(new VerdictProblemDetailsOptions());
+        // No inline cleanup: Dispose restores the static whether or not this assertion holds.
     }
 }

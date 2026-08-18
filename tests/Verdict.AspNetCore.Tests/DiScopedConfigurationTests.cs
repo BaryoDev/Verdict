@@ -11,6 +11,7 @@ namespace Verdict.AspNetCore.Tests;
 /// mutated a process-wide static. Two hosts in one process therefore shared one
 /// configuration and the last registration won. These pin the DI behaviour.
 /// </summary>
+[Collection(ProblemDetailsStaticCollection.Name)]
 public class DiScopedConfigurationTests : IDisposable
 {
     // AddVerdictProblemDetails also assigns the process-wide default so the
