@@ -49,7 +49,7 @@ public class VerdictProblemDetailsOptionsTests : IDisposable
     {
         // Arrange
         var exception = new InvalidOperationException("Test exception");
-        var error = Error.FromException(exception);
+        var error = Error.FromException(exception, sanitize: false);
         var options = new VerdictProblemDetailsOptions { IncludeExceptionDetails = false };
 
         // Act
@@ -65,7 +65,7 @@ public class VerdictProblemDetailsOptionsTests : IDisposable
     {
         // Arrange
         var exception = new InvalidOperationException("Test exception");
-        var error = Error.FromException(exception);
+        var error = Error.FromException(exception, sanitize: false);
         var options = new VerdictProblemDetailsOptions { IncludeExceptionDetails = true };
 
         // Act
@@ -89,7 +89,7 @@ public class VerdictProblemDetailsOptionsTests : IDisposable
         {
             exception = ex;
         }
-        var error = Error.FromException(exception);
+        var error = Error.FromException(exception, sanitize: false);
         var options = new VerdictProblemDetailsOptions 
         { 
             IncludeExceptionDetails = true, 

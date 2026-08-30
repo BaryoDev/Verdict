@@ -87,7 +87,7 @@ public class ErrorTests
         var exception = new InvalidOperationException("Test exception");
 
         // Act
-        var error = Error.FromException(exception);
+        var error = Error.FromException(exception, sanitize: false);
 
         // Assert
         error.Code.Should().Be(Error.UnhandledExceptionCode);

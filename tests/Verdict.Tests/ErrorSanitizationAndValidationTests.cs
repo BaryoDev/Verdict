@@ -60,7 +60,7 @@ public class ErrorSanitizationAndValidationTests
         var exception = new InvalidOperationException("Error message");
 
         // Act
-        var error = Error.FromException(exception, "DATABASE_ERROR");
+        var error = Error.FromException(exception, "DATABASE_ERROR", sanitize: false);
 
         // Assert
         error.Code.Should().Be("DATABASE_ERROR");
@@ -190,4 +190,24 @@ public class ErrorSanitizationAndValidationTests
     }
 
     #endregion
+
+    [Fact]
+    public void TheObsoleteOverloadsStillBehaveLikeSanitizeFalse()
+    {
+        // Everything else moved to the explicit overload, so this is the only
+        // place left that exercises the obsolete ones. They are still shipped,
+        // so they are still checked.
+        var cause = new InvalidOperationException("the raw detail");
+
+#pragma warning disable CS0618
+        var withDefaultCode = Error.FromException(cause);
+        var withChosenCode = Error.FromException(cause, "DB_ERROR");
+#pragma warning restore CS0618
+
+        withDefaultCode.Message.Should().Be("the raw detail");
+        withDefaultCode.Code.Should().Be(Error.UnhandledExceptionCode);
+
+        withChosenCode.Message.Should().Be("the raw detail");
+        withChosenCode.Code.Should().Be("DB_ERROR");
+    }
 }

@@ -141,7 +141,7 @@ public class SecurityEdgeCaseTests
         var exception = new ArgumentException("Invalid argument provided");
 
         // Act
-        var error = Error.FromException(exception);
+        var error = Error.FromException(exception, sanitize: false);
 
         // Assert
         error.Code.Should().Be(Error.UnhandledExceptionCode);
