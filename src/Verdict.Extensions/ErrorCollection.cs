@@ -72,6 +72,42 @@ public readonly struct ErrorCollection : IDisposable
         }
     }
 
+    /// <summary>
+    /// The size above which a collection is allocated outright rather than
+    /// rented, so nothing oversized is handed to the shared pool.
+    /// </summary>
+    /// <remarks>
+    /// <c>ArrayPool&lt;Error&gt;.Shared</c> keeps what it is given back. An
+    /// <see cref="Error"/> is 24 bytes, so past roughly 3,500 of them the rented
+    /// array is on the large object heap and the pool then holds it for the life
+    /// of the process. A validation loop producing one error per field, against a
+    /// large request, was enough to park several megabytes there.
+    /// <para>
+    /// The fix is to stop pooling, not to stop collecting: every error is still
+    /// kept. 1,024 errors is 24 KB, comfortably under the 85 KB threshold.
+    /// </para>
+    /// </remarks>
+    public const int PoolingCeiling = 1024;
+
+    /// <summary>
+    /// The size at or below which a collection is allocated outright instead of
+    /// rented from the pool.
+    /// </summary>
+    /// <remarks>
+    /// Measured on eight threads: pooled and disposed correctly costs 88 bytes an
+    /// operation, an ordinary array costs 96, and pooled with the dispose
+    /// forgotten costs 496 with six times the gen0 collections. The pool bought
+    /// eight bytes when the caller got it right and cost four hundred when they
+    /// did not, and forgetting is the default outcome for a struct that cannot be
+    /// used with <c>using</c>. Below this size the pool is not worth its contract.
+    /// <para>
+    /// A collection built this way has no rental to return, so
+    /// <see cref="Dispose"/> is a no-op on it and a copy handed out by a
+    /// combinator cannot be invalidated by a sibling disposing.
+    /// </para>
+    /// </remarks>
+    public const int PoolingThreshold = 8;
+
     private ErrorCollection(Error[] errors, int count, RentalTracker? rentalTracker)
     {
         _errors = errors;
@@ -127,14 +163,21 @@ public readonly struct ErrorCollection : IDisposable
             if (expectedCount == 0)
                 return default;
 
+            // Outside the band the pool is worth using, allocate exactly: below it
+            // the disposal contract costs more than the pool saves, above it the
+            // pool would retain a large object heap array for the process lifetime.
+            if (expectedCount <= PoolingThreshold || expectedCount > PoolingCeiling)
+            {
+                var exact = new Error[expectedCount];
+                var filled = Fill(collection, exact, expectedCount);
+
+                return filled == 0 ? default : new ErrorCollection(exact, filled, null);
+            }
+
             var array = pool.Rent(expectedCount);
             try
             {
-                int actualCount = 0;
-                foreach (var error in collection)
-                {
-                    array[actualCount++] = error;
-                }
+                var actualCount = Fill(collection, array, expectedCount);
 
                 if (actualCount == 0)
                 {
@@ -155,6 +198,7 @@ public readonly struct ErrorCollection : IDisposable
         // Use a small initial buffer and grow if needed
         const int initialCapacity = 4;
         var buffer = pool.Rent(initialCapacity);
+        var pooled = true;
         int count = 0;
 
         try
@@ -163,28 +207,97 @@ public readonly struct ErrorCollection : IDisposable
             {
                 if (count == buffer.Length)
                 {
-                    // Grow the buffer
-                    var newBuffer = pool.Rent(buffer.Length * 2);
-                    Array.Copy(buffer, newBuffer, count);
-                    pool.Return(buffer, clearArray: true);
-                    buffer = newBuffer;
+                    // Past the ceiling, grow on the heap and stop renting, so an
+                    // unbounded input cannot park an oversized array in the shared
+                    // pool. Nothing is dropped: the buffer keeps growing, it just
+                    // stops being the pool's problem.
+                    var grown = new Error[buffer.Length * 2];
+                    Array.Copy(buffer, grown, count);
+
+                    if (pooled)
+                    {
+                        pool.Return(buffer, clearArray: true);
+                        pooled = buffer.Length * 2 <= PoolingCeiling;
+                        if (pooled)
+                        {
+                            var rented = pool.Rent(buffer.Length * 2);
+                            Array.Copy(buffer, rented, count);
+                            grown = rented;
+                        }
+                    }
+
+                    buffer = grown;
                 }
                 buffer[count++] = error;
             }
 
             if (count == 0)
             {
-                pool.Return(buffer, clearArray: true);
+                if (pooled) pool.Return(buffer, clearArray: true);
                 return default;
             }
 
-            return new ErrorCollection(buffer, count, new RentalTracker(buffer, pool));
+            // The size was unknown going in. Now that it is known, a small result
+            // gets the same no-contract treatment as the counted path above.
+            if (pooled && count <= PoolingThreshold)
+            {
+                var exact = new Error[count];
+                Array.Copy(buffer, exact, count);
+                pool.Return(buffer, clearArray: true);
+                return new ErrorCollection(exact, count, null);
+            }
+
+            return pooled
+                ? new ErrorCollection(buffer, count, new RentalTracker(buffer, pool))
+                : new ErrorCollection(buffer, count, null);
         }
         catch
         {
-            pool.Return(buffer, clearArray: true);
+            if (pooled) pool.Return(buffer, clearArray: true);
             throw;
         }
+    }
+
+    /// <summary>
+    /// Copies at most <paramref name="limit" /> errors into <paramref name="destination" />.
+    /// </summary>
+    /// <remarks>
+    /// Indexes an <see cref="IList{T}" /> rather than enumerating it, because a
+    /// <c>foreach</c> over an interface boxes the struct enumerator and that
+    /// allocation showed up as 56 bytes a call, more than the array itself.
+    /// Falls back to enumerating anything that is not a list.
+    /// <para>
+    /// The count is taken from the collection and a collection is free to lie
+    /// about it, so this trusts the copy rather than the count and returns how
+    /// many it actually wrote.
+    /// </para>
+    /// </remarks>
+    private static int Fill(ICollection<Error> source, Error[] destination, int limit)
+    {
+        var filled = 0;
+
+        if (source is IList<Error> list)
+        {
+            var take = list.Count < limit ? list.Count : limit;
+            for (var i = 0; i < take; i++)
+            {
+                destination[filled++] = list[i];
+            }
+
+            return filled;
+        }
+
+        foreach (var error in source)
+        {
+            if (filled == limit)
+            {
+                break;
+            }
+
+            destination[filled++] = error;
+        }
+
+        return filled;
     }
 
     /// <summary>

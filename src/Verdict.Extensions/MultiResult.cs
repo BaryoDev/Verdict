@@ -150,10 +150,17 @@ public readonly struct MultiResult<T>
     /// <summary>
     /// Returns a string representation of the result.
     /// </summary>
+    /// <remarks>
+    /// Reads <see cref="ErrorsDisposed"/> before the count, because reading a
+    /// released collection throws. A ToString that throws breaks the debugger and
+    /// the log line in exactly the situation you are trying to understand.
+    /// </remarks>
     public override string ToString() =>
         _isSuccess
             ? $"Success({_value})"
-            : $"Failure({_errors.Count} error(s))";
+            : _errors.IsDisposed
+                ? "Failure(errors released)"
+                : $"Failure({_errors.Count} error(s))";
 
     /// <summary>
     /// Deconstructs the result into its components for pattern matching.
@@ -295,10 +302,17 @@ public readonly struct MultiResult
     /// <summary>
     /// Returns a string representation of the result.
     /// </summary>
+    /// <remarks>
+    /// Reads <see cref="ErrorsDisposed"/> before the count, because reading a
+    /// released collection throws. A ToString that throws breaks the debugger and
+    /// the log line in exactly the situation you are trying to understand.
+    /// </remarks>
     public override string ToString() =>
         _isSuccess
             ? "Success"
-            : $"Failure({_errors.Count} error(s))";
+            : _errors.IsDisposed
+                ? "Failure(errors released)"
+                : $"Failure({_errors.Count} error(s))";
 
     /// <summary>
     /// Deconstructs the result into its components for pattern matching.

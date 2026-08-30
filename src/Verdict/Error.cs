@@ -32,8 +32,79 @@ public readonly record struct Error
     public Error(string code, string message, Exception? exception = null)
     {
         Code = code ?? string.Empty;
-        Message = message ?? string.Empty;
+        Message = Normalize(message);
         Exception = exception;
+    }
+
+    /// <summary>
+    /// The longest message an <see cref="Error"/> will carry. Anything longer is
+    /// truncated at construction.
+    /// </summary>
+    /// <remarks>
+    /// A message is read by a person. Nothing needs four kilobytes, and without a
+    /// bound a request value interpolated into an error carried whatever size the
+    /// caller sent, all the way into the log and the response body.
+    /// </remarks>
+    public const int MaxMessageLength = 4096;
+
+    /// <summary>
+    /// The marker left in place of the text removed by truncation.
+    /// </summary>
+    public const string TruncationMarker = "... [truncated]";
+
+    /// <summary>
+    /// Removes control characters and bounds the length.
+    /// </summary>
+    /// <remarks>
+    /// This runs on every error, including the hot failure path, so it allocates
+    /// nothing unless it actually has to change something: a clean message is
+    /// scanned and returned as it arrived.
+    /// <para>
+    /// Control characters are removed rather than rejected. A carriage return in
+    /// a message forges a line in any plain-text log sink, and throwing instead
+    /// would turn a logging concern into a crash at the worst possible moment.
+    /// The error code still throws on bad input, because a code is chosen by the
+    /// programmer and a message usually is not.
+    /// </para>
+    /// </remarks>
+    private static string Normalize(string? message)
+    {
+        if (string.IsNullOrEmpty(message))
+        {
+            return string.Empty;
+        }
+
+        var needsStrip = false;
+        for (var i = 0; i < message!.Length; i++)
+        {
+            var c = message[i];
+            if (c != '\t' && (c < ' ' || c == '\u007f'))
+            {
+                needsStrip = true;
+                break;
+            }
+        }
+
+        if (!needsStrip && message.Length <= MaxMessageLength)
+        {
+            return message;
+        }
+
+        var limit = message.Length <= MaxMessageLength ? message.Length : MaxMessageLength;
+        var builder = new System.Text.StringBuilder(limit + TruncationMarker.Length);
+
+        for (var i = 0; i < limit; i++)
+        {
+            var c = message[i];
+            builder.Append(c != '\t' && (c < ' ' || c == '\u007f') ? ' ' : c);
+        }
+
+        if (message.Length > MaxMessageLength)
+        {
+            builder.Append(TruncationMarker);
+        }
+
+        return builder.ToString();
     }
 
     /// <summary>

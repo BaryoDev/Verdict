@@ -97,18 +97,20 @@ public class ProductionReadinessTests
     }
 
     [Fact]
-    public void Serialize_WithNewlines_ShouldHandle()
+    public void Serialize_WithNewlines_ShouldRoundTripTheNeutralisedMessage()
     {
-        // Arrange
+        // Changed in 3.0. Newlines are replaced at construction, because a
+        // carriage return in a message forges a line in any plain-text log sink.
+        // What matters here is that whatever the error holds survives the round
+        // trip, and it does.
         var result = Result<string>.Failure("ERROR", "Line1\nLine2\r\nLine3");
 
-        // Act
         var json = JsonSerializer.Serialize(result, _options);
         var restored = JsonSerializer.Deserialize<Result<string>>(json, _options);
 
-        // Assert
         restored.IsFailure.Should().BeTrue();
-        restored.Error.Message.Should().Be("Line1\nLine2\r\nLine3");
+        restored.Error.Message.Should().Be("Line1 Line2  Line3");
+        restored.Error.Message.Should().Be(result.Error.Message);
     }
 
     #endregion
@@ -144,7 +146,9 @@ public class ProductionReadinessTests
 
         // Assert
         restored.IsFailure.Should().BeTrue();
-        restored.Error.Message.Should().HaveLength(50_000);
+        // Changed in 3.0. The message is bounded at construction, so the round
+        // trip carries the bounded message rather than the original length.
+        restored.Error.Message.Should().HaveLength(Error.MaxMessageLength + Error.TruncationMarker.Length);
     }
 
     #endregion

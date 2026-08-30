@@ -12,6 +12,8 @@ namespace Verdict.Extensions
     }
     public readonly struct ErrorCollection : System.IDisposable
     {
+        public const int PoolingCeiling = 1024;
+        public const int PoolingThreshold = 8;
         public int Count { get; }
         public bool HasErrors { get; }
         public bool IsDisposed { get; }

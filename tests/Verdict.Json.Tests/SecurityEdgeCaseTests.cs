@@ -122,7 +122,9 @@ public class SecurityEdgeCaseTests
 
         // Assert
         deserialized.IsFailure.Should().BeTrue();
-        deserialized.Error.Message.Should().HaveLength(500_000);
+        // Changed in 3.0. The message is bounded at construction, so the round
+        // trip carries the bounded message rather than the original length.
+        deserialized.Error.Message.Should().HaveLength(Error.MaxMessageLength + Error.TruncationMarker.Length);
     }
 
     [Fact]
