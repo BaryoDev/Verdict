@@ -64,6 +64,73 @@ public static class AsyncResultExtensions
             : Result<K>.Failure(result.Error);
     }
 
+    // ==================== MatchAsync ====================
+
+    /// <summary>
+    /// Unwraps the result into a single value.
+    /// </summary>
+    /// <remarks>
+    /// The terminal operation the async API was missing. Without it a pipeline
+    /// had to be awaited into a local and matched in synchronous code, which is
+    /// the shape the fluent API exists to avoid.
+    /// <para>
+    /// The <see cref="ValueTaskResultExtensions" /> overload of this is free when
+    /// the antecedent has already completed. This one is not, because an
+    /// <c>async Task</c> method allocates whether it waits or not.
+    /// </para>
+    /// </remarks>
+    public static async Task<TOut> MatchAsync<T, TOut>(
+        this Task<Result<T>> resultTask,
+        Func<T, TOut> onSuccess,
+        Func<Error, TOut> onFailure)
+    {
+        if (onSuccess == null) throw new ArgumentNullException(nameof(onSuccess));
+        if (onFailure == null) throw new ArgumentNullException(nameof(onFailure));
+
+        var result = await resultTask.ConfigureAwait(false);
+        return result.IsSuccess ? onSuccess(result.Value) : onFailure(result.Error);
+    }
+
+    /// <summary>
+    /// Unwraps the result into a single value with asynchronous handlers.
+    /// </summary>
+    public static async Task<TOut> MatchAsync<T, TOut>(
+        this Task<Result<T>> resultTask,
+        Func<T, Task<TOut>> onSuccess,
+        Func<Error, Task<TOut>> onFailure)
+    {
+        if (onSuccess == null) throw new ArgumentNullException(nameof(onSuccess));
+        if (onFailure == null) throw new ArgumentNullException(nameof(onFailure));
+
+        var result = await resultTask.ConfigureAwait(false);
+        return result.IsSuccess
+            ? await onSuccess(result.Value).ConfigureAwait(false)
+            : await onFailure(result.Error).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Unwraps the result into a single value, honouring cancellation.
+    /// </summary>
+    public static async Task<TOut> MatchAsync<T, TOut>(
+        this Task<Result<T>> resultTask,
+        Func<T, CancellationToken, Task<TOut>> onSuccess,
+        Func<Error, CancellationToken, Task<TOut>> onFailure,
+        CancellationToken cancellationToken)
+    {
+        if (onSuccess == null) throw new ArgumentNullException(nameof(onSuccess));
+        if (onFailure == null) throw new ArgumentNullException(nameof(onFailure));
+
+        cancellationToken.ThrowIfCancellationRequested();
+
+        var result = await resultTask.ConfigureAwait(false);
+
+        cancellationToken.ThrowIfCancellationRequested();
+
+        return result.IsSuccess
+            ? await onSuccess(result.Value, cancellationToken).ConfigureAwait(false)
+            : await onFailure(result.Error, cancellationToken).ConfigureAwait(false);
+    }
+
     // ==================== BindAsync ====================
 
     /// <summary>

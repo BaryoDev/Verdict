@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Text.Json;
+using System.Threading.Tasks;
+using Verdict.Async;
 using Verdict.Extensions;
 using Verdict.Json;
 using Verdict.Rich;
@@ -57,7 +59,16 @@ public class AllocationBudgetTests
         // ---- Verdict.Json ----
         { "JsonSerializer.Serialize(Result<int>)", 96, static () => { AllocationHarness.Sink = JsonSerializer.Serialize(OkInt, JsonOptions); } },
         { "JsonSerializer.Deserialize<Result<int>>", 128, static () => { var r = JsonSerializer.Deserialize<Result<int>>(SerializedOk, JsonOptions); Keep(r.IsSuccess); } },
+
+        // ---- Verdict.Async, the Task API ----
+        // Kept as a budget rather than fixed, because an async Task method
+        // allocates whether it waits or not. This row is also what makes the
+        // ValueTask rows in ZeroAllocationTests meaningful: the same four steps
+        // over Task cost this much, and over ValueTask they cost nothing.
+        { "Task four-step chain, completed antecedent", 512, static () => { var t = Task.FromResult(OkInt).Map(Double).Map(Double).Map(Double).Map(Double); Keep(t.Result.IsSuccess); } },
     };
+
+    private static readonly Func<int, int> Double = static x => x * 2;
 
     private static void Keep(bool value) => AllocationHarness.Sink = value ? null : AllocationHarness.Sink;
 

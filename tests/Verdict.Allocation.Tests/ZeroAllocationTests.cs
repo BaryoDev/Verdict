@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Verdict.Extensions;
+using Verdict.Async;
 using Verdict.Fluent;
 using Verdict.Rich;
 using Xunit;
@@ -82,6 +83,18 @@ public class ZeroAllocationTests
 
         // ---- Verdict.Rich ----
         { "result.AsRich", static () => { var r = OkInt.AsRich(); Keep(r.IsSuccess); } },
+
+        // ---- Verdict.Async, the ValueTask fast path ----
+        // Read through .Result rather than awaited, because these are completed
+        // and the fast path is synchronous. Awaiting them in the harness would
+        // measure the harness's own state machine instead of the library.
+        { "ValueTask Map, completed antecedent", static () => { var r = OkInt.AsValueTask().Map(Double); Keep(r.Result.IsSuccess); } },
+        { "ValueTask Bind, completed antecedent", static () => { var r = OkInt.AsValueTask().Bind(Bind); Keep(r.Result.IsSuccess); } },
+        { "ValueTask Tap, completed antecedent", static () => { var r = OkInt.AsValueTask().Tap(NoOp); Keep(r.Result.IsSuccess); } },
+        { "ValueTask Ensure, completed antecedent", static () => { var r = OkInt.AsValueTask().Ensure(IsPositive, Err); Keep(r.Result.IsSuccess); } },
+        { "ValueTask Match, completed antecedent", static () => { var r = OkInt.AsValueTask().Match(Double, OnError); Keep(r.Result == 0); } },
+        { "ValueTask Map on a failure, completed", static () => { var r = FailInt.AsValueTask().Map(Double); Keep(r.Result.IsFailure); } },
+        { "ValueTask four-step chain, completed", static () => { var r = OkInt.AsValueTask().Map(Double).Map(Double).Map(Double).Map(Double); Keep(r.Result.IsSuccess); } },
     };
 
     private static bool OkIntErrorCode() => FailInt.Error.Code is null;

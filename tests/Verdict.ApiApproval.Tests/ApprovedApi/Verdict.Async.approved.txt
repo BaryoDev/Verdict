@@ -18,6 +18,9 @@ namespace Verdict.Async
         public static System.Threading.Tasks.Task<Verdict.Result<K>> Map<T, K>(this System.Threading.Tasks.Task<Verdict.Result<T>> resultTask, System.Func<T, K> mapper) { }
         public static System.Threading.Tasks.Task<Verdict.Result<K>> MapAsync<T, K>(this System.Threading.Tasks.Task<Verdict.Result<T>> resultTask, System.Func<T, System.Threading.Tasks.Task<K>> mapper) { }
         public static System.Threading.Tasks.Task<Verdict.Result<K>> MapAsync<T, K>(this System.Threading.Tasks.Task<Verdict.Result<T>> resultTask, System.Func<T, System.Threading.CancellationToken, System.Threading.Tasks.Task<K>> mapper, System.Threading.CancellationToken cancellationToken) { }
+        public static System.Threading.Tasks.Task<TOut> MatchAsync<T, TOut>(this System.Threading.Tasks.Task<Verdict.Result<T>> resultTask, System.Func<T, System.Threading.Tasks.Task<TOut>> onSuccess, System.Func<Verdict.Error, System.Threading.Tasks.Task<TOut>> onFailure) { }
+        public static System.Threading.Tasks.Task<TOut> MatchAsync<T, TOut>(this System.Threading.Tasks.Task<Verdict.Result<T>> resultTask, System.Func<T, TOut> onSuccess, System.Func<Verdict.Error, TOut> onFailure) { }
+        public static System.Threading.Tasks.Task<TOut> MatchAsync<T, TOut>(this System.Threading.Tasks.Task<Verdict.Result<T>> resultTask, System.Func<T, System.Threading.CancellationToken, System.Threading.Tasks.Task<TOut>> onSuccess, System.Func<Verdict.Error, System.Threading.CancellationToken, System.Threading.Tasks.Task<TOut>> onFailure, System.Threading.CancellationToken cancellationToken) { }
         public static System.Threading.Tasks.Task<Verdict.Result<T>> Tap<T>(this System.Threading.Tasks.Task<Verdict.Result<T>> resultTask, System.Action<T> action) { }
         public static System.Threading.Tasks.Task<Verdict.Result> TapAsync(this System.Threading.Tasks.Task<Verdict.Result> resultTask, System.Func<System.Threading.Tasks.Task> action) { }
         public static System.Threading.Tasks.Task<Verdict.Result> TapAsync(this System.Threading.Tasks.Task<Verdict.Result> resultTask, System.Func<System.Threading.CancellationToken, System.Threading.Tasks.Task> action, System.Threading.CancellationToken cancellationToken) { }
@@ -29,5 +32,21 @@ namespace Verdict.Async
         public static System.Threading.Tasks.Task<Verdict.Result<T>> WithTimeout<T>(this System.Threading.Tasks.Task<Verdict.Result<T>> resultTask, System.TimeSpan timeout, Verdict.Error timeoutError) { }
         public static System.Threading.Tasks.Task<Verdict.Result<T>> WithTimeout<T>(this System.Threading.Tasks.Task<Verdict.Result<T>> resultTask, System.TimeSpan timeout, string code, string message) { }
         public static System.Threading.Tasks.Task<Verdict.Result<T>> WithTimeout<T>(this System.Threading.Tasks.Task<Verdict.Result<T>> resultTask, System.TimeSpan timeout, Verdict.Error timeoutError, System.Threading.CancellationToken cancellationToken) { }
+    }
+    public static class ValueTaskResultExtensions
+    {
+        public static System.Threading.Tasks.ValueTask<Verdict.Result<T>> AsValueTask<T>(this System.Threading.Tasks.Task<Verdict.Result<T>> resultTask) { }
+        public static System.Threading.Tasks.ValueTask<Verdict.Result<T>> AsValueTask<T>(this Verdict.Result<T> result) { }
+        public static System.Threading.Tasks.ValueTask<Verdict.Result<K>> Bind<T, K>(this System.Threading.Tasks.ValueTask<Verdict.Result<T>> resultTask, System.Func<T, Verdict.Result<K>> binder) { }
+        public static System.Threading.Tasks.ValueTask<Verdict.Result<K>> BindAsync<T, K>(this System.Threading.Tasks.ValueTask<Verdict.Result<T>> resultTask, System.Func<T, System.Threading.Tasks.ValueTask<Verdict.Result<K>>> binder) { }
+        public static System.Threading.Tasks.ValueTask<Verdict.Result<T>> Ensure<T>(this System.Threading.Tasks.ValueTask<Verdict.Result<T>> resultTask, System.Func<T, bool> predicate, Verdict.Error error) { }
+        public static System.Threading.Tasks.ValueTask<Verdict.Result<K>> Map<T, K>(this System.Threading.Tasks.ValueTask<Verdict.Result<T>> resultTask, System.Func<T, K> mapper) { }
+        public static System.Threading.Tasks.ValueTask<Verdict.Result<K>> MapAsync<T, K>(this System.Threading.Tasks.ValueTask<Verdict.Result<T>> resultTask, System.Func<T, System.Threading.Tasks.ValueTask<K>> mapper) { }
+        public static System.Threading.Tasks.ValueTask<Verdict.Result<K>> MapAsync<T, K>(this System.Threading.Tasks.ValueTask<Verdict.Result<T>> resultTask, System.Func<T, System.Threading.CancellationToken, System.Threading.Tasks.ValueTask<K>> mapper, System.Threading.CancellationToken cancellationToken) { }
+        public static System.Threading.Tasks.ValueTask<TOut> Match<T, TOut>(this System.Threading.Tasks.ValueTask<Verdict.Result<T>> resultTask, System.Func<T, TOut> onSuccess, System.Func<Verdict.Error, TOut> onFailure) { }
+        public static System.Threading.Tasks.ValueTask<TOut> MatchAsync<T, TOut>(this System.Threading.Tasks.ValueTask<Verdict.Result<T>> resultTask, System.Func<T, System.Threading.Tasks.ValueTask<TOut>> onSuccess, System.Func<Verdict.Error, System.Threading.Tasks.ValueTask<TOut>> onFailure) { }
+        public static System.Threading.Tasks.ValueTask<Verdict.Result<T>> Tap<T>(this System.Threading.Tasks.ValueTask<Verdict.Result<T>> resultTask, System.Action<T> action) { }
+        public static System.Threading.Tasks.ValueTask<Verdict.Result<T>> TapAsync<T>(this System.Threading.Tasks.ValueTask<Verdict.Result<T>> resultTask, System.Func<T, System.Threading.Tasks.ValueTask> action) { }
+        public static System.Threading.Tasks.ValueTask<Verdict.Result<T>> TapErrorAsync<T>(this System.Threading.Tasks.ValueTask<Verdict.Result<T>> resultTask, System.Func<Verdict.Error, System.Threading.Tasks.ValueTask> action) { }
     }
 }
