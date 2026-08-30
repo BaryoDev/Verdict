@@ -6,6 +6,7 @@ namespace Verdict
         public string Code { get; }
         public System.Exception? Exception { get; }
         public string Message { get; }
+        public override string ToString() { }
         public Verdict.Error WithException(System.Exception exception) { }
         public static Verdict.Error Create(string code, string message) { }
         public static Verdict.Error Create(string code, string message, System.Exception exception) { }

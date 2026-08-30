@@ -144,6 +144,30 @@ public readonly record struct Error
     }
 
     /// <summary>
+    /// Returns a short description of the error: <c>[CODE] message</c>, with the
+    /// exception type name appended when one is attached.
+    /// </summary>
+    /// <remarks>
+    /// Written by hand rather than left to the compiler. A record struct's
+    /// generated <c>ToString</c> renders every property, including
+    /// <see cref="Exception"/>, and an exception renders as its own message and
+    /// stack. That defeated <see cref="FromException(Exception, bool, string?)"/>
+    /// with <c>sanitize: true</c> entirely, because the original message came
+    /// back out beside the sanitised one the moment anything logged the error.
+    /// It was also the most expensive operation in the package, at 1,544 bytes
+    /// per call with an exception attached against 176 here.
+    /// <para>
+    /// The exception type name is kept because it is useful in a log and is not
+    /// the message. Callers who need the exception itself have
+    /// <see cref="Exception"/>.
+    /// </para>
+    /// </remarks>
+    public override string ToString() =>
+        Exception is null
+            ? $"[{Code}] {Message}"
+            : $"[{Code}] {Message} (+{Exception.GetType().Name})";
+
+    /// <summary>
     /// Validates that an error code contains only valid characters (alphanumeric and underscores).
     /// </summary>
     /// <param name="code">The error code to validate.</param>

@@ -49,6 +49,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "examples", "examples", "{B3
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Examples", "examples\Examples.csproj", "{6CAB79A2-DD14-496B-8654-6239B47C30F7}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Verdict.Allocation.Tests", "tests\Verdict.Allocation.Tests\Verdict.Allocation.Tests.csproj", "{3520D24D-639A-4993-82AD-C1105A607AFF}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -287,6 +289,18 @@ Global
 		{6CAB79A2-DD14-496B-8654-6239B47C30F7}.Release|x64.Build.0 = Release|Any CPU
 		{6CAB79A2-DD14-496B-8654-6239B47C30F7}.Release|x86.ActiveCfg = Release|Any CPU
 		{6CAB79A2-DD14-496B-8654-6239B47C30F7}.Release|x86.Build.0 = Release|Any CPU
+		{3520D24D-639A-4993-82AD-C1105A607AFF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3520D24D-639A-4993-82AD-C1105A607AFF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3520D24D-639A-4993-82AD-C1105A607AFF}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{3520D24D-639A-4993-82AD-C1105A607AFF}.Debug|x64.Build.0 = Debug|Any CPU
+		{3520D24D-639A-4993-82AD-C1105A607AFF}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{3520D24D-639A-4993-82AD-C1105A607AFF}.Debug|x86.Build.0 = Debug|Any CPU
+		{3520D24D-639A-4993-82AD-C1105A607AFF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3520D24D-639A-4993-82AD-C1105A607AFF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3520D24D-639A-4993-82AD-C1105A607AFF}.Release|x64.ActiveCfg = Release|Any CPU
+		{3520D24D-639A-4993-82AD-C1105A607AFF}.Release|x64.Build.0 = Release|Any CPU
+		{3520D24D-639A-4993-82AD-C1105A607AFF}.Release|x86.ActiveCfg = Release|Any CPU
+		{3520D24D-639A-4993-82AD-C1105A607AFF}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -311,5 +325,6 @@ Global
 		{8AA0E605-E6C4-4AAC-9465-1B76BE862B37} = {798B15BD-CF3B-4419-BFD4-52F0254194B0}
 		{017A7355-3CED-469E-8539-62E6DAC98054} = {798B15BD-CF3B-4419-BFD4-52F0254194B0}
 		{6CAB79A2-DD14-496B-8654-6239B47C30F7} = {B36A84DF-456D-A817-6EDD-3EC3E7F6E11F}
+		{3520D24D-639A-4993-82AD-C1105A607AFF} = {798B15BD-CF3B-4419-BFD4-52F0254194B0}
 	EndGlobalSection
 EndGlobal
