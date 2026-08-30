@@ -125,7 +125,7 @@ public class VerdictProblemDetailsOptionsTests : IDisposable
         var options = new VerdictProblemDetailsOptions 
         { 
             IncludeErrorMessage = false,
-            GenericServerErrorMessage = "A server error occurred. Please try again later."
+            GenericErrorMessage = "A server error occurred. Please try again later."
         };
 
         // Act
@@ -151,6 +151,22 @@ public class VerdictProblemDetailsOptionsTests : IDisposable
     }
 
     [Fact]
+    public void GenericServerErrorMessage_StillForwardsToTheNewName()
+    {
+        // Renamed in 3.0 because it now applies to any suppressed message rather
+        // than only 5xx. The old name keeps working so an upgrade is not a
+        // compile break, and this is what says so.
+        var options = new VerdictProblemDetailsOptions();
+
+#pragma warning disable CS0618
+        options.GenericServerErrorMessage = "hidden";
+
+        options.GenericErrorMessage.Should().Be("hidden");
+        options.GenericServerErrorMessage.Should().Be("hidden");
+#pragma warning restore CS0618
+    }
+
+    [Fact]
     public void VerdictProblemDetailsOptions_DefaultValues_ShouldBeSecure()
     {
         // Arrange & Act
@@ -161,7 +177,7 @@ public class VerdictProblemDetailsOptionsTests : IDisposable
         options.IncludeStackTrace.Should().BeFalse();
         options.IncludeErrorCode.Should().BeTrue();
         options.IncludeErrorMessage.Should().BeTrue();
-        options.GenericServerErrorMessage.Should().Be("An unexpected error occurred.");
+        options.GenericErrorMessage.Should().Be("An unexpected error occurred.");
     }
 
     [Fact]
@@ -171,7 +187,7 @@ public class VerdictProblemDetailsOptionsTests : IDisposable
         var customOptions = new VerdictProblemDetailsOptions
         {
             IncludeErrorCode = false,
-            GenericServerErrorMessage = "Custom error"
+            GenericErrorMessage = "Custom error"
         };
 
         // Act

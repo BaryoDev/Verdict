@@ -1,0 +1,34 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+    <RootNamespace>Verdict.NetStandard.Tests</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.8.0" />
+    <PackageReference Include="xUnit" Version="2.6.6" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.5.6" />
+    <PackageReference Include="coverlet.collector" Version="6.0.0" />
+  </ItemGroup>
+
+  <!-- Loads the netstandard2.0 assets rather than the net8.0 ones. Seven projects
+       ship a netstandard2.0 build that no test had ever loaded, so the code that
+       exists only for that target, notably the hand-written GetHashCode and the
+       #if blocks in Verdict.Json, was never executed before it shipped.
+
+       SetTargetFramework picks the asset; the test host is still .NET 8, which is
+       both what a netstandard2.0 consumer's code does inside a modern app and the
+       only way to run this on the Linux runner. Running on .NET Framework as well
+       would need a Windows leg, and is a separate question from whether the
+       assets work at all. -->
+  <ItemGroup>
+    <ProjectReference Include="../../src/Verdict/Verdict.csproj" SetTargetFramework="TargetFramework=netstandard2.0" />
+    <ProjectReference Include="../../src/Verdict.Fluent/Verdict.Fluent.csproj" SetTargetFramework="TargetFramework=netstandard2.0" />
+    <ProjectReference Include="../../src/Verdict.Extensions/Verdict.Extensions.csproj" SetTargetFramework="TargetFramework=netstandard2.0" />
+    <ProjectReference Include="../../src/Verdict.Json/Verdict.Json.csproj" SetTargetFramework="TargetFramework=netstandard2.0" />
+  </ItemGroup>
+
+</Project>

@@ -172,7 +172,7 @@ public class ProductionReadinessTests : IDisposable
         var options = new VerdictProblemDetailsOptions
         {
             IncludeErrorMessage = false,
-            GenericServerErrorMessage = "Internal server error"
+            GenericErrorMessage = "Internal server error"
         };
         var error = new Error("DB_ERROR", "Connection string: server=prod;password=secret");
 

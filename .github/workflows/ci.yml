@@ -57,6 +57,25 @@ jobs:
         if: matrix.dotnet == '8.0.x'
         run: python3 build/coverage-gate.py ./TestResults 75
 
+      # The AOT claim, re-proved on every push. Library annotations do not prove
+      # that the ILC compiler accepts the packages, and they do not prove the
+      # binary behaves. Publishing it and running it does both.
+      - name: Native AOT publish and run
+        if: matrix.dotnet == '8.0.x'
+        run: |
+          dotnet publish tests/Verdict.Aot.Smoke -c Release -r linux-x64 --nologo
+          BINARY=tests/Verdict.Aot.Smoke/bin/Release/net8.0/linux-x64/native/Verdict.Aot.Smoke
+          ls -l "$BINARY"
+          SIZE=$(stat -c%s "$BINARY")
+          echo "Native binary: $SIZE bytes"
+          # A tripwire rather than a precise claim. The point is to notice if
+          # something drags a large dependency into the graph.
+          if [ "$SIZE" -gt 8000000 ]; then
+            echo "::error::Native binary is $SIZE bytes, over the 8 MB ceiling."
+            exit 1
+          fi
+          "$BINARY"
+
       - name: Upload coverage reports to Codecov
         if: matrix.dotnet == '8.0.x'
         uses: codecov/codecov-action@v4
