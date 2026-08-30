@@ -7,540 +7,246 @@
 
 [![License: MPL 2.0](https://img.shields.io/badge/License-MPL_2.0-brightgreen.svg)](https://opensource.org/licenses/MPL-2.0)
 [![NuGet](https://img.shields.io/nuget/v/Verdict.svg)](https://www.nuget.org/packages/Verdict/)
-[![Build](https://img.shields.io/badge/build-passing-brightgreen.svg)](https://github.com/BaryoDev/Verdict/actions)
-[![Security](https://img.shields.io/badge/security-audited-brightgreen.svg)](https://github.com/BaryoDev/Verdict/blob/main/SECURITY.md)
-[![Test Coverage](https://img.shields.io/badge/coverage-98.4%25-brightgreen.svg)](https://github.com/BaryoDev/Verdict/blob/main/docs/test_coverage_report.md)
+[![Build](https://github.com/BaryoDev/Verdict/actions/workflows/ci.yml/badge.svg)](https://github.com/BaryoDev/Verdict/actions/workflows/ci.yml)
 
-> **"FluentResults' features with 189x better performance. Best of both worlds."**
-
-## The 30-Second Pitch for Architects
-
-**Problem:** Exception-based error handling kills performance (20,000x slower). FluentResults is feature-rich but allocates 176-368KB per 1000 operations.
-
-**Solution:** Verdict delivers **zero-allocation** error handling with **72-189x better performance** than FluentResults, while providing the same enterprise features through opt-in packages.
-
-**ROI:** FluentResults allocates roughly 180-380 bytes per operation. At 100k req/sec that is about 18-38 MB/sec of GC pressure that Verdict removes entirely.
-
-**Risk:** Zero. Drop-in replacement. Start with core (zero allocation), add features as needed. No vendor lock-in (MPL-2.0).
-
----
-
-## Upgrading to 2.5.0
-
-**Breaking:** `ErrorCollection` accessors now throw `ObjectDisposedException`
-after `Dispose()` instead of silently reading a buffer that has been returned to
-the pool. Read before disposing, or copy out with `ToArray()`. `ErrorCollection`
-is a struct, so disposing any copy invalidates them all. See the
-[changelog](CHANGELOG.md) for the migration snippet.
-
-## Thread Safety
-
-A `Result<T>` is **immutable once created** and safe to read from any number of
-threads. That is the guarantee.
-
-It is **not** safe to reassign a shared `Result<T>` field from one thread while
-another reads it. `Result<T>` is 32-48 bytes depending on `T`, and the CLR only
-guarantees atomic writes up to pointer size, so a concurrent reader can observe
-a half-written struct: `IsSuccess` from one write and the value from another.
+Error handling as a return value instead of an exception, for .NET. The core
+allocates nothing, and the build fails if that stops being true.
 
 ```csharp
-// Safe: published once, read by many.
-private readonly Result<Config> _config = LoadConfig();
+Result<Order> Load(int id) =>
+    _orders.TryGetValue(id, out var order)
+        ? order
+        : new Error("NOT_FOUND", $"no order {id}");
 
-// Not safe: concurrent reassignment can tear.
-private Result<Config> _current;          // written by a refresh thread
+var response = Load(id)
+    .Map(order => order.Total)
+    .Match(total => Results.Ok(total), error => error.ToProblem());
 ```
 
-If you need a mutable shared slot, guard it with a lock or wrap it in a
-reference type and swap atomically:
+## The promise, and exactly where it applies
 
-```csharp
-private volatile ResultBox<Config> _current;   // class, so the write is atomic
-sealed class ResultBox<T>(Result<T> value) { public Result<T> Value { get; } = value; }
-```
+**`Verdict` and `Verdict.Fluent` allocate nothing.** Every operation, on value
+types and reference types alike, including composed chains. Measured with
+`GC.GetAllocatedBytesForCurrentThread` over 10,000 iterations in Release on
+net8.0, and asserted by `tests/Verdict.Allocation.Tests`, so a regression fails a
+build rather than a benchmark nobody reads.
 
-## Trimming and Native AOT
+| Operation | Bytes |
+|---|---:|
+| `Success`, `Failure`, `Value`, `Error`, `ValueOr`, `ValueOrDefault` | 0 |
+| `Equals`, `GetHashCode`, both implicit conversions | 0 |
+| `Bind`, `Tap`, `TapError`, `ToNonGeneric`, `ToGeneric` | 0 |
+| `Map`, `Match`, `OnSuccess`, `OnFailure` | 0 |
+| `Map` then `Bind` then `Match`, chained | 0 |
+| `new Error(code, message)` | 0 |
 
-`Verdict`, `Verdict.Extensions`, `Verdict.Fluent`, `Verdict.Rich`,
-`Verdict.Logging` and `Verdict.AspNetCore` are annotated `IsTrimmable` and
-`IsAotCompatible` and publish clean under `PublishAot`.
+Under sustained load, which is the number that matters if you are sizing a
+service: **1,600,000 composed operations across eight threads with server GC, and
+zero collections at gen0, gen1 and gen2.**
 
-`Verdict.Json` works under AOT, but you must register converters explicitly.
-The convenience factory uses `MakeGenericType`, which needs runtime code
-generation, so it is annotated `[RequiresDynamicCode]`:
+**The other packages allocate, on purpose.** They are opt-in because they buy
+something that costs something. `MultiResult<T>.Failure` is 48 bytes,
+`RichResult.WithSuccess` is 80, JSON round-tripping is about 100. Every one has a
+named budget in the same gate.
 
-```csharp
-// Native AOT: register the closed generic for each type you serialize.
-var options = new JsonSerializerOptions { TypeInfoResolver = AppJsonContext.Default }
-    .AddVerdictConverter<Order>()
-    .AddVerdictResultConverter();
+**`Verdict.Async` has two APIs and only one of them is free.** An `async Task`
+method allocates whether or not it waits, so the `Task` overloads cost roughly 96
+bytes a step. The `ValueTask` overloads check whether the antecedent has already
+completed, which in a request handler it usually has:
 
-// Reflection-based apps can keep using the factory.
-var options = VerdictJsonExtensions.CreateVerdictJsonOptions();
-```
+| Four steps chained on completed antecedents | Bytes |
+|---|---:|
+| `Task` API | 480 |
+| `ValueTask` API | **0** |
 
-Verified: a `PublishAot` console app using `Result<T>`, JSON round-trips and
-`HashSet<Result<T>>` compiles and runs as a 3.3 MB native binary.
+## Install
 
-**Known limitation.** `Error.Exception` is a public property, so if System.Text.Json's
-source generator walks `Error` it descends into `System.Exception` and emits two
-`IL2026` warnings for `Exception.TargetSite`. Harmless at runtime, and the
-supplied `ErrorJsonConverter` never serializes the exception. Removing the
-property in favour of a method is planned for the next major version.
-
-## Why Architects Choose Verdict
-
-### 1. **Proven Performance** (Verified Benchmarks)
-- ✅ **189x faster** than FluentResults on success path
-- ✅ **146x faster** than FluentResults on failure path  
-- ✅ **26,890x faster** than exceptions
-- ✅ **Zero allocation** (0 bytes vs 176-368KB)
-
-### 2. **Enterprise-Ready** (100% FluentResults Feature Parity)
-- ✅ Multi-error validation (form validation, batch processing)
-- ✅ Success/error metadata (audit trails, debugging)
-- ✅ Async/await fluent API (modern .NET)
-- ✅ ASP.NET Core integration (automatic conversion)
-- ✅ Logging integration (Microsoft.Extensions.Logging)
-
-### 3. **Zero Risk Migration**
-- ✅ Start with core (zero allocation)
-- ✅ Add features via opt-in packages
-- ✅ No breaking changes to existing code
-- ✅ Works alongside FluentResults during migration
-
-### 4. **Production-Proven**
-- ✅ Zero external dependencies (core)
-- ✅ Security audited (zero vulnerabilities)
-- ✅ Immutable, thread-safe design
-- ✅ 525 tests with comprehensive coverage
-
----
-
-## Installation
-
-### Core Package (Zero Dependencies)
 ```bash
-dotnet add package Verdict
+dotnet add package Verdict            # core, zero dependencies
+dotnet add package Verdict.Fluent     # Map, Match, OnSuccess, OnFailure
 ```
 
-### Extension Packages (Opt-In Features)
-```bash
-# Multi-error support, validation, combine operations
-dotnet add package Verdict.Extensions
+Then whatever you actually need:
 
-# Async/await fluent API with CancellationToken & timeout support
-dotnet add package Verdict.Async
+| Package | For | Guide |
+|---|---|---|
+| `Verdict.Extensions` | multiple errors, combination, validation | [extensions.md](docs/packages/extensions.md) |
+| `Verdict.Async` | async composition | [async.md](docs/packages/async.md) |
+| `Verdict.Rich` | success messages and error metadata | [rich.md](docs/packages/rich.md) |
+| `Verdict.Logging` | `Microsoft.Extensions.Logging` | [logging.md](docs/packages/logging.md) |
+| `Verdict.AspNetCore` | ProblemDetails and status codes | [aspnetcore.md](docs/packages/aspnetcore.md) |
+| `Verdict.Json` | `System.Text.Json` converters | [json.md](docs/packages/json.md) |
 
-# Success/error metadata, global factories
-dotnet add package Verdict.Rich
-
-# Auto-logging integration
-dotnet add package Verdict.Logging
-
-# ASP.NET Core integration with ProblemDetails
-dotnet add package Verdict.AspNetCore
-
-# JSON serialization (System.Text.Json)
-dotnet add package Verdict.Json
-
-# Original fluent extensions
-dotnet add package Verdict.Fluent
-```
-
-## Package Ecosystem
-
-| Package               | Purpose                    | Dependencies          | Allocation       |
-| --------------------- | -------------------------- | --------------------- | ---------------- |
-| **Verdict**            | Core Result types          | Zero                  | 0 bytes          |
-| **Verdict.Extensions** | Multi-error, validation    | System.Memory         | ~200 bytes (pooled) |
-| **Verdict.Async**      | Async API, cancellation    | Zero                  | Task only        |
-| **Verdict.Rich**       | Success/error metadata     | Zero                  | ~160-350 bytes   |
-| **Verdict.Logging**    | Auto-logging               | MS.Extensions.Logging | Logging overhead |
-| **Verdict.AspNetCore** | Web integration            | ASP.NET Core          | HTTP overhead    |
-| **Verdict.Json**       | JSON serialization         | System.Text.Json      | JSON overhead    |
-| **Verdict.Fluent**     | Original fluent API        | Zero                  | 0 bytes          |
-
-**Design Philosophy:** Start with zero-allocation core. Scale to enterprise features through opt-in packages. Never compromise on speed.
-
-
-## Quick Start
-
-### Basic Usage
-
-```csharp
-using Verdict;
-
-// Success case
-Result<int> Divide(int numerator, int denominator)
-{
-    if (denominator == 0)
-        return Result<int>.Failure("DIVIDE_BY_ZERO", "Cannot divide by zero");
-    
-    return Result<int>.Success(numerator / denominator);
-}
-
-// Using the result
-var result = Divide(10, 2);
-if (result.IsSuccess)
-{
-    Console.WriteLine($"Result: {result.Value}");
-}
-else
-{
-    Console.WriteLine($"Error: [{result.Error.Code}] {result.Error.Message}");
-}
-```
-
-### Implicit Conversions
-
-```csharp
-using Verdict;
-
-Result<int> GetValue()
-{
-    // Implicit conversion from T to Result<T>
-    return 42;
-}
-
-Result<string> GetError()
-{
-    // Implicit conversion from Error to Result<T>
-    return new Error("NOT_FOUND", "Value not found");
-}
-```
-
-### Fluent Extensions
+## Quick start
 
 ```csharp
 using Verdict;
 using Verdict.Fluent;
 
-var result = Divide(10, 2)
-    .Map(x => x * 2)                    // Transform success value
-    .OnSuccess(x => Console.WriteLine($"Success: {x}"))
-    .OnFailure(e => Console.WriteLine($"Error: {e.Message}"));
+// Implicit both ways, so a method body reads like ordinary code.
+Result<int> Parse(string raw) =>
+    int.TryParse(raw, out var value) ? value : new Error("INVALID", "not a number");
 
-// Pattern matching
-var message = result.Match(
-    onSuccess: value => $"Result is {value}",
-    onFailure: error => $"Error: {error.Message}"
-);
+// Compose without unwrapping.
+var doubled = Parse("21").Map(x => x * 2);          // Result<int>
+
+// Unwrap once, at the edge.
+var text = doubled.Match(x => $"got {x}", e => $"failed: {e.Code}");
 ```
 
-### Async with CancellationToken & Timeout
+Async, with the fast path:
 
 ```csharp
-using Verdict;
 using Verdict.Async;
 
-// CancellationToken support throughout async chains
-var result = await GetUserAsync()
-    .MapAsync(async (user, ct) => await FetchOrdersAsync(user.Id, ct), cancellationToken)
-    .BindAsync(async (orders, ct) => await ProcessOrdersAsync(orders, ct), cancellationToken);
-
-// Timeout support
-var timedResult = await LongRunningOperationAsync()
-    .WithTimeout(TimeSpan.FromSeconds(30), "TIMEOUT", "Operation timed out");
+return await LoadAsync(id)
+    .AsValueTask()
+    .Ensure(order => order.IsOpen, new Error("CLOSED", "the order is closed"))
+    .Map(order => order.Total)
+    .Match(total => Results.Ok(total), error => error.ToProblem());
 ```
 
-### JSON Serialization
+ASP.NET Core:
 
 ```csharp
-using Verdict;
-using Verdict.Json;
+builder.Services.AddVerdictProblemDetails();
 
-// Serialize Result to JSON
-var result = Result<int>.Success(42);
-var json = result.ToJson();  // {"isSuccess":true,"value":42}
-
-// Deserialize JSON to Result
-var restored = VerdictJsonExtensions.FromJson<int>(json);
-
-// Configure for ASP.NET Core
-services.AddControllers()
-    .AddJsonOptions(opts => opts.JsonSerializerOptions.AddVerdictConverters());
-
-// ASP.NET Core ProblemDetails with environment-aware defaults
-builder.Services.AddVerdictProblemDetails(builder.Environment);
+app.MapGet("/orders/{id}", (int id, HttpContext context) =>
+    Load(id).ToHttpResult(context));
 ```
 
-### ASP.NET Core Integration
+Pass the `HttpContext`. The overloads without one read process-wide statics,
+which is wrong if more than one application shares a process.
+
+## The security model
+
+A `Result` is not an internal value. It is built from exceptions and request
+bodies, and read into logs and HTTP responses, so it sits on the path between
+untrusted input and two sinks that leak. Three defaults follow from that:
+
+**An error carrying an exception is treated as internal.** Its message and its
+code are both withheld from an HTTP response unless you turn
+`IncludeExceptionDetails` on, and it maps to 500 rather than 400 when nothing
+else claims its code. `Error.FromException` uses a constant code rather than the
+exception's type name, because the type name identifies your data access stack.
+
+**Messages are neutralised and bounded at construction.** Control characters
+become spaces and anything past 4 KB is truncated with a marker, because a
+message is where request data gets interpolated and a carriage return in one
+forges a line in a plain-text log sink. A clean message is returned by reference,
+so this costs nothing on the common path.
+
+**Deserialisation rejects rather than guesses.** A JSON success carrying no
+`value` property throws instead of producing a success holding `default(T)`.
+
+Full threat model and what remains your responsibility: [SECURITY.md](SECURITY.md).
+
+## Where Verdict sits
+
+Measured on net8.0 with the same harness, against the libraries people actually
+choose between:
+
+| Library | success | failure | chain |
+|---|---:|---:|---:|
+| **Verdict** | 0 B | **0 B** | 0 B |
+| CSharpFunctionalExtensions 3.7.0 | 0 B | **0 B** | 0 B |
+| ErrorOr 2.1.1 | 0 B | 88 B | 0 B |
+| LightResults 10.0.4 | 0 B | 56 B | 0 B |
+| FluentResults 4.0.0 | 232 B | 576 B | 400 B |
+
+**Zero allocation on the success path is table stakes, not a differentiator.**
+Four of these five have it. Beating FluentResults measures the gap between a
+struct and a class, and every modern competitor closed that gap already. If you
+are choosing between Verdict and ErrorOr, that comparison tells you nothing.
+
+Two things do separate them:
+
+**A single-error failure is free here.** `Result<T>` holds one `Error` struct
+inline, so a failure is a field assignment. A library holding a list allocates it
+even for one error. The failure path is not the rare path: a service under partial
+outage runs it on every request, which is when GC pressure is least welcome.
+
+**Nothing else in the field has a completed-antecedent fast path.** Every one of
+them allocates on every async composition step, 304 bytes for
+CSharpFunctionalExtensions and 912 for ErrorOr across four steps. The `ValueTask`
+API here costs nothing.
+
+Against exceptions the case is the ordinary one and does not need a benchmark: a
+thrown exception costs microseconds and unwinds the stack, a returned failure
+costs nothing and is visible in the signature.
+
+`benchmarks/Verdict.Benchmarks` runs all of this. Timing numbers come from
+BenchmarkDotNet on a schedule rather than from a pull request gate, because
+timing on a shared runner is noisy enough to fail an innocent change. Allocation
+is deterministic, so that is gated on every push instead.
+
+## Runtime support
+
+| Target | Built | Tested |
+|---|---|---|
+| net8.0 | yes | yes, the whole suite |
+| netstandard2.0 | yes | yes, via `tests/Verdict.NetStandard.Tests` |
+| .NET 10 runtime | via the net8.0 assets | yes, second CI leg |
+
+Native AOT and trimming: every package is annotated `IsTrimmable` and
+`IsAotCompatible`, and `tests/Verdict.Aot.Smoke` is a `PublishAot` console app
+that CI publishes and runs on every push. `Verdict.Json` needs its converters
+registered explicitly under AOT, through the `JsonTypeInfo` overload rather than
+the options one. See [json.md](docs/packages/json.md).
+
+## Thread safety
+
+A `Result<T>` is immutable once created and safe to read from any number of
+threads. That is the guarantee.
+
+It is **not** safe to reassign a shared `Result<T>` field while another thread
+reads it. The struct exceeds pointer size and the CLR only guarantees atomic
+writes up to that, so a reader can observe `IsSuccess` from one write and the
+value from another.
 
 ```csharp
-using Verdict;
-using Verdict.AspNetCore;
-
-// Minimal API - returns RFC 7807 ProblemDetails on failure
-app.MapGet("/users/{id}", async (int id) =>
-{
-    var result = await userService.GetUserAsync(id);
-    return result.ToHttpResult();
-});
-
-// MVC Controller - with location URI for 201 Created
-[HttpPost]
-public ActionResult<User> Create(CreateUserRequest request)
-{
-    var result = userService.CreateUser(request);
-    return result.ToActionResult(
-        successStatusCode: 201,
-        locationUri: $"/api/users/{result.ValueOrDefault?.Id}");
-}
+private readonly Result<Config> _config = LoadConfig();   // safe: published once
+private Result<Config> _current;                          // not safe to reassign concurrently
 ```
 
-### Security Defaults
+Guard a mutable shared slot with a lock, or swap a reference type atomically.
 
-- **Sanitize exceptions by default** in production: use `Error.FromException(ex, sanitize: true)` to avoid leaking sensitive details.
-- **ProblemDetails options**: `IncludeExceptionDetails`/`IncludeStackTrace` off by default; enable only in development via `AddVerdictProblemDetails(environment)`.
-- **RFC 7807 compliant**: ProblemDetails responses include proper `application/problem+json` content type.
-- **Validate error codes**: `Error.CreateValidated` / `Error.ValidateErrorCode` enforce alphanumeric + underscore codes (safe for logs/headers).
-
-### Running JSON Benchmarks
-
-```bash
-dotnet run -c Release --project benchmarks/Verdict.Benchmarks -- --json
-```
-
-### Security Features
-
-```csharp
-using Verdict;
-
-// Sanitize exception messages for production (prevent info leakage)
-var prodError = Error.FromException(ex, sanitize: true);
-var customError = Error.FromException(ex, sanitize: true, 
-    sanitizedMessage: "A database error occurred");
-
-// Validate error codes (alphanumeric + underscore only)
-var error = Error.CreateValidated("VALID_CODE", "Message");
-bool isValid = Error.IsValidErrorCode("NOT_FOUND"); // true
-bool isInvalid = Error.IsValidErrorCode("invalid-code"); // false
-```
-
-### Dynamic Error Messages
-
-```csharp
-using Verdict;
-using Verdict.Extensions;
-
-// Include value information in error messages
-var result = Result<int>.Success(15)
-    .Ensure(
-        age => age >= 18,
-        age => new Error("AGE_RESTRICTION", $"User is {age} years old, must be at least 18"));
-// Error: "User is 15 years old, must be at least 18"
-```
-
-## The Elevator Pitch
-
-> **"We're replacing Exceptions for logic flow and FluentResults for object wrappers."**
->
-> If you're building a generic business app, use FluentResults.  
-> But if you're building a **High-Performance System** (like a Headless CMS, API Gateway, or microservice) where every millisecond and every byte of memory counts, you use **Verdict**.
-
-## Why Verdict? The "Kill List"
-
-Verdict replaces three categories of "Standard Practice" that are either **Too Slow**, **Too Heavy**, or **Too Complex** for modern, high-performance microservices.
-
-### 1. The Native Enemy: **Exceptions** (try/catch)
-
-**What it is:** The default C# way to handle errors (`throw new UserNotFoundException()`).
-
-**Why we replace it:** **Performance.**
-- Throwing an exception forces the runtime to halt, capture the stack trace (expensive), and unwind the stack.
-- In a high-throughput API (e.g., 10k requests/sec), throwing exceptions for "expected" errors (like validation failures) kills your CPU.
-
-**The Verdict Win:** Verdict returns a struct. It's just a value return. It's **~50,000x faster** than throwing an exception.
-
-### 2. The Heavyweight Champion: **FluentResults**
-
-**What it is:** The most popular Result pattern library on NuGet (millions of downloads).
-
-**Why we replace it:** **Memory Allocation (GC Pressure).**
-- FluentResults is **class-based**. Every time you return `Result.Ok()`, it allocates memory on the heap.
-- It creates linked lists for errors and reasons. It's feature-rich but "heavy."
-
-**The Verdict Win:** Verdict uses a `readonly struct`.
-- **Success Path:** 0 bytes allocated
-- **Failure Path:** 0 bytes allocated
-- Your library creates **zero garbage** for the Garbage Collector to clean up.
-
-### 3. The "Lifestyle" Framework: **LanguageExt**
-
-**What it is:** A massive library that tries to turn C# into Haskell. It has `Either<L, R>`, `Option<T>`, etc.
-
-**Why we replace it:** **Cognitive Load.**
-- To use LanguageExt, your team has to learn functional programming concepts (Monads, Functors). It changes how you write C#.
-
-**The Verdict Win:** Verdict is **C# idiomatic**.
-- It doesn't force you to learn Monads.
-- It just gives you `.IsSuccess` and `.Error`.
-- Junior developers understand it instantly.
-
-## Competitive Benchmarks (Verified Results)
-
-Comprehensive benchmarks comparing Verdict against Exceptions, FluentResults, and LanguageExt on Apple M1:
-
-### Success Path (Happy Path)
-
-| Library       | Mean       | Allocated | vs Verdict            |
-| ------------- | ---------- | --------- | -------------------- |
-| **Verdict**    | **335 ns** | **0 B**   | **1.00x (baseline)** |
-| Exceptions    | 336 ns     | 0 B       | 1.00x                |
-| LanguageExt   | 1,326 ns   | 0 B       | 3.96x slower         |
-| FluentResults | 63,303 ns  | 176,000 B | **189x slower** ⚠️    |
-
-**Key Finding:** Verdict is **189x faster** than FluentResults with **zero allocations** vs 176KB per 1000 operations.
-
-### Failure Path (Error Handling)
-
-| Library       | Mean          | Allocated | vs Verdict            |
-| ------------- | ------------- | --------- | -------------------- |
-| **Verdict**    | **626 ns**    | **0 B**   | **1.00x (baseline)** |
-| LanguageExt   | 2,160 ns      | 96 B      | 3.45x slower         |
-| FluentResults | 91,343 ns     | 368,000 B | **146x slower** ⚠️    |
-| Exceptions    | 16,836,328 ns | 344,023 B | **26,890x slower** ⚠️ |
-
-**Key Finding:** Verdict is **146x faster** than FluentResults and **26,890x faster** than exceptions with **zero allocations**.
-
-### Mixed Workload (90% success, 10% failure)
-
-| Library       | Mean         | Allocated | vs Verdict            |
-| ------------- | ------------ | --------- | -------------------- |
-| **Verdict**    | **1,276 ns** | **0 B**   | **1.00x (baseline)** |
-| LanguageExt   | 1,975 ns     | 0 B       | 1.55x slower         |
-| FluentResults | 92,422 ns    | 245,600 B | **72x slower** ⚠️     |
-| Exceptions    | 1,626,148 ns | 22,401 B  | **1,274x slower** ⚠️  |
-
-**Key Finding:** Verdict is **72x faster** than FluentResults in realistic workloads with **zero allocations** vs 245KB.
-
-### Summary
-
-✅ **Verdict vs FluentResults:**
-- Success: **189x faster**, 0 B vs 176 KB
-- Failure: **146x faster**, 0 B vs 368 KB  
-- Mixed: **72x faster**, 0 B vs 245 KB
-
-✅ **Verdict vs Exceptions:**
-- Failure: **26,890x faster**, 0 B vs 344 KB
-- Mixed: **1,274x faster**, 0 B vs 22 KB
-
-
-## Comparison Table
-
-| Feature                | Verdict (Baryo.Dev)    | FluentResults | Exceptions | LanguageExt       |
-| ---------------------- | --------------------- | ------------- | ---------- | ----------------- |
-| **Philosophy**         | Digital Essentialism  | Feature Rich  | Native     | Functional Purity |
-| **Memory**             | Stack (Struct)        | Heap (Class)  | Expensive  | Heap/Mixed        |
-| **GC Pressure**        | **Zero** (on success) | Low/Medium    | High       | Medium            |
-| **Speed**              | **Instant**           | Fast          | Slow       | Fast              |
-| **Learning Curve**     | **Low**               | Low           | Low        | High              |
-| **Dependencies**       | **0**                 | 0             | 0          | Many              |
-| **Success Allocation** | **0 B**               | 176 KB        | 0 B        | 0 B               |
-| **Failure Allocation** | **0 B**               | 368 KB        | 344 KB     | 96 B              |
-
-*Run the benchmarks yourself:*
-
-```bash
-dotnet run -c Release --project benchmarks/Verdict.Benchmarks
-```
-
-## Architecture
-
-Verdict follows a clean separation of concerns:
-
-### Core (`Verdict`)
-Pure data structures with zero dependencies:
-- `Result<T>`: The core result type
-- `Error`: Lightweight error representation
-
-### Fluent (`Verdict.Fluent`)
-Optional functional extensions:
-- `Match<T, TOut>`: Pattern matching
-- `Map<T, K>`: Functor mapping
-- `OnSuccess`: Side-effect on success
-- `OnFailure`: Side-effect on failure
-
-### Benchmarks (`Verdict.Benchmarks`)
-Performance validation using BenchmarkDotNet.
-
-## Releasing
-
-Publishing uses **NuGet Trusted Publishing**. No API key is stored in this
-repository; the workflow exchanges a short-lived GitHub OIDC token for a NuGet
-key that expires after an hour.
-
-The version comes from `<VersionPrefix>` in `Directory.Build.props`, so the
-released version is always recorded in git.
-
-```bash
-# bump VersionPrefix, update CHANGELOG, then:
-git tag v2.6.0 && git push origin v2.6.0
-```
-
-The workflow verifies manifests, runs the tests, builds, checks the tag matches
-the version in source, then publishes. Run it manually from the Actions tab with
-**dry run** checked to build and pack without publishing.
-
-### The trusted publishing policy
-
-Configured once on nuget.org under **Account → Trusted Publishing**. It is
-per-owner, so one policy covers every package:
-
-| Field | Value |
-| --- | --- |
-| Repository Owner | `BaryoDev` |
-| Repository | `Verdict` |
-| Workflow File | `publish-nuget.yml` (filename only, no path) |
-| Environment | leave empty |
-
-Renaming the workflow file breaks publishing until the policy is updated.
+`ErrorCollection` and `MultiResult` have their own rules, because a pooled
+collection can be released by code holding a copy. See
+[extensions.md](docs/packages/extensions.md).
 
 ## Documentation
 
-### For Architects & Decision Makers
-- 📊 **[Architect's Decision Guide](docs/architects_decision_guide.md)** - ROI calculations, migration strategy, risk assessment
-- 🎯 **[How Verdict Does It Better](docs/how_verdict_does_it_better.md)** - Feature-by-feature comparison with FluentResults
-- 🔒 **[Security Audit](docs/internal/security_audit.md)** - Comprehensive security assessment (zero vulnerabilities)
-
-### For Developers
-- 🚀 **[Quick Reference Guide](docs/developer_quick_reference.md)** - Common patterns, best practices, cheat sheet
-- 📖 **[API Documentation](docs/)** - Detailed API reference (coming soon)
-
-### Key Highlights
-- **189x faster** than FluentResults on success path
-- **Zero allocation** (0 bytes vs 176-368KB)
-- **100% feature parity** with FluentResults
-- **$10-50k/year** cloud cost savings (depending on scale)
-
-## Design Decisions
-
-### Why `readonly struct`?
-- **Zero-allocation**: Structs live on the stack (when possible)
-- **Thread-safe**: Immutability guarantees thread-safety
-- **Performance**: No heap allocations, no GC pressure
-
-### Why separate Fluent extensions?
-- **Minimalism**: Core library stays pure and minimal
-- **Choice**: Developers can opt-in to functional style
-- **Dependency-free**: Core has zero dependencies
-
-## License
-
-This project is licensed under the [Mozilla Public License 2.0 (MPL-2.0)](LICENSE).
+- [Package guides](docs/README.md), one per package, with what each costs
+- [Design decisions](docs/design-decisions.md), including two optimisations that
+  were measured and rejected
+- [Architect's decision guide](docs/architects_decision_guide.md)
+- [Developer quick reference](docs/developer_quick_reference.md)
+- [CHANGELOG.md](CHANGELOG.md)
 
 ## Contributing
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+Read [CONTRIBUTING.md](CONTRIBUTING.md). Comment `/take` on an issue to claim it.
 
-## Credits
+The one thing to know before opening a pull request: the allocation gate is not
+advisory. If a change makes a zero-allocation operation allocate, the build fails
+and the message names the likely cause. If it changes a budgeted number, change
+the budget in the same commit so the cost is visible in review.
 
-**Created by:** [Baryo.Dev](https://baryo.dev)  
-**Lead Developer:** [Arnel Isiderio Robles](https://github.com/arnelirobles)
+## Releasing
 
-Built with ❤️ for high-performance .NET applications.
+Bump `<VersionPrefix>` in `Directory.Build.props`, update the changelog, then
+push a tag that matches:
 
----
+```bash
+git tag v3.0.0 && git push origin v3.0.0
+```
 
-**The Verdict:** FluentResults' features with 189x better performance. Best of both worlds.
+The workflow refuses to publish from anything that is not a matching tag. The
+version comes from source rather than a hand-typed input, so what shipped is
+recorded in git. Publishing uses NuGet trusted publishing over OIDC, so there is
+no long-lived API key.
+
+## Licence
+
+MPL-2.0. See [LICENSE](LICENSE).
