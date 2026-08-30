@@ -111,3 +111,83 @@ public class PoolingThresholdTests
         }
     }
 }
+
+/// <summary>
+/// Ownership after a combinator: a derived result owns its own errors.
+/// </summary>
+/// <remarks>
+/// The combinators used to pass the collection straight through, so
+/// <c>a.DisposeErrors()</c> left the result of <c>a.Map(f)</c> unreadable. Two
+/// documents in the package disagreed about whether that was safe.
+/// </remarks>
+public class MultiResultOwnershipTests
+{
+    private static MultiResult<int> PooledFailure()
+    {
+        var errors = Enumerable.Range(0, ErrorCollection.PoolingThreshold + 4)
+            .Select(i => new Error($"E{i}", $"message {i}"))
+            .ToList();
+
+        return MultiResult<int>.Failure(ErrorCollection.Create((IEnumerable<Error>)errors));
+    }
+
+    [Fact]
+    public void MapSurvivesTheSourceBeingDisposed()
+    {
+        var source = PooledFailure();
+        var derived = source.Map(x => x.ToString());
+
+        source.DisposeErrors();
+
+        Assert.Equal(ErrorCollection.PoolingThreshold + 4, derived.ErrorCount);
+        Assert.Equal("E0", derived.Errors[0].Code);
+    }
+
+    [Fact]
+    public void BindSurvivesTheSourceBeingDisposed()
+    {
+        var source = PooledFailure();
+        var derived = source.Bind(x => MultiResult<string>.Success(x.ToString()));
+
+        source.DisposeErrors();
+
+        Assert.Equal(ErrorCollection.PoolingThreshold + 4, derived.ErrorCount);
+    }
+
+    [Fact]
+    public void DisposingTheDerivedResultDoesNotBreakTheSource()
+    {
+        var source = PooledFailure();
+        var derived = source.Map(x => x.ToString());
+
+        derived.DisposeErrors();
+
+        Assert.Equal(ErrorCollection.PoolingThreshold + 4, source.ErrorCount);
+    }
+
+    [Fact]
+    public void ASmallFailureIsCarriedThroughWithoutCopying()
+    {
+        // Nothing to alias below the pooling threshold, so Detach returns the
+        // same collection and the common case stays free.
+        var source = MultiResult<int>.Failure(new Error("A", "a"), new Error("B", "b"));
+        var derived = source.Map(x => x.ToString());
+
+        source.DisposeErrors();
+
+        Assert.Equal(2, derived.ErrorCount);
+        Assert.False(derived.ErrorsDisposed);
+    }
+
+    [Fact]
+    public void ErrorsDisposedReportsHonestlyOnBothSides()
+    {
+        var source = PooledFailure();
+        var derived = source.Map(x => x.ToString());
+
+        source.DisposeErrors();
+
+        Assert.True(source.ErrorsDisposed);
+        Assert.False(derived.ErrorsDisposed);
+    }
+}

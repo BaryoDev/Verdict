@@ -327,6 +327,42 @@ public readonly struct ErrorCollection : IDisposable
     }
 
     /// <summary>
+    /// Returns a collection that owns its own storage, so disposing this one
+    /// cannot invalidate it.
+    /// </summary>
+    /// <remarks>
+    /// A combinator hands out a second result carrying the first one's errors.
+    /// Passing the collection straight through made the two share a rented array,
+    /// so <c>a.DisposeErrors()</c> left <c>b.ErrorCount</c> throwing, and the user
+    /// who followed the guidance to dispose got a broken object they never copied
+    /// by hand.
+    /// <para>
+    /// Copies only when there is something to alias. A collection that was never
+    /// pooled has no rental to return, so disposing it is already a no-op and it
+    /// is returned unchanged. That covers everything up to
+    /// <see cref="PoolingThreshold" /> errors, which is nearly every failure.
+    /// </para>
+    /// </remarks>
+    public ErrorCollection Detach()
+    {
+        if (_rentalTracker is null)
+        {
+            return this;
+        }
+
+        ThrowIfDisposed();
+
+        if (_count == 0)
+        {
+            return default;
+        }
+
+        var copy = new Error[_count];
+        Array.Copy(_errors, copy, _count);
+        return new ErrorCollection(copy, _count, null);
+    }
+
+    /// <summary>
     /// Converts the collection to an array.
     /// </summary>
     public Error[] ToArray()
