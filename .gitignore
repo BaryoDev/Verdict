@@ -51,3 +51,6 @@ vendor/
 # Coverage output from the local gate check
 TestResults/
 nupkgs/
+
+# API approval writes these beside the approved files on every run
+tests/Verdict.ApiApproval.Tests/ApprovedApi/*.received.txt

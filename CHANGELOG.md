@@ -5,6 +5,114 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+## [3.0.0] - 2026-08-31
+
+The release where the zero-allocation claim became something the build enforces
+rather than something the README asserts, and where the defaults that leak stopped
+leaking.
+
+### Breaking
+
+- **`Error.FromException` no longer sets `Code` to the exception's type name.** It
+  uses `Error.UnhandledExceptionCode`. The type name identifies the data access
+  stack and often the vendor, and it reached clients through the ProblemDetails
+  `errorCode` extension, which is on by default, while the option that exists to
+  hide exception detail is off by default. The type is still on
+  `error.Exception`. (#46)
+- **`Error.ToString()` no longer renders the exception.** It prints
+  `[CODE] message`, with the exception's type name appended when one is attached.
+  The generated record-struct `ToString` printed every property, so a sanitised
+  error handed the original message back the moment anything logged it, and cost
+  1,544 bytes doing it. (#19)
+- **Error messages are neutralised and bounded at construction.** Control
+  characters become spaces, and anything past `Error.MaxMessageLength` (4096) is
+  truncated with `Error.TruncationMarker`. A clean message is returned by
+  reference, so the hot path still allocates nothing. (#47, #48)
+- **`IncludeErrorMessage = false` now suppresses at any status code**, not only
+  5xx, and an error carrying an exception has both its message and its code
+  withheld unless `IncludeExceptionDetails` is on. (#45, #46)
+- **An error carrying an exception maps to 500** rather than 400 when nothing
+  else claims its code. Server failures used to leave as client errors and never
+  reach 5xx alerting. (#45)
+- **`VerdictProblemDetailsOptions.GenericServerErrorMessage` is renamed
+  `GenericErrorMessage`.** The old name still works and forwards. (#45)
+- **A JSON success carrying no `value` property is rejected** instead of becoming
+  a success holding `default(T)`. An explicit `"value":null` is still accepted.
+  (#27)
+- **A `MultiResult` derived from another owns its own errors.** Combinators used
+  to pass the collection through, so disposing either broke the other. (#28)
+
+### Added
+
+- **`ValueTask` overloads throughout `Verdict.Async`,** with a synchronous fast
+  path when the antecedent has already completed. A four-step chain over
+  completed antecedents goes from 480 bytes to 0. A `ValueTask` may be awaited
+  only once; `AsTask()` and `AsValueTask()` bridge the two. (#32, #42)
+- **`MatchAsync` on both async APIs.** A pipeline previously had to be awaited
+  into a local and matched in synchronous code. (#43)
+- **`ToHttpResult` and `ToActionResult` overloads taking an `HttpContext`,** which
+  resolve the configuration registered by `AddVerdictProblemDetails`. The
+  interfaces were registered in 2.7.0 and nothing ever resolved them. (#26)
+- **`MultiResult.ErrorsDisposed` and `ErrorCollection.Detach`.** (#28)
+- **`tests/Verdict.Allocation.Tests`**, covering every package: 41 operations
+  that must allocate nothing, 15 with a named byte budget, and sustained
+  concurrent use asserting no collection at any generation. (#25, #52)
+- **`tests/Verdict.Aot.Smoke`**, a `PublishAot` console app that CI publishes and
+  runs on every push. (#29)
+- **`tests/Verdict.NetStandard.Tests`**, which loads the netstandard2.0 assets
+  that shipped untested for eight releases. (#30)
+- **`tests/Verdict.Docs.Tests`**, which checks the claims the documentation makes.
+  (#54)
+- **Secure-defaults and untrusted-payload tests**, asserting what a
+  default-configured pipeline does rather than what it can be configured to do.
+  (#53)
+- **Eight package guides** under `docs/packages/`, which the docs index had
+  linked to since before they existed, and `docs/design-decisions.md`. (#31, #57)
+
+### Fixed
+
+- **`LogError` and the custom-level `Log` dropped `Error.Exception`,** so the
+  stack trace never reached the sink. `ResultLogger` always passed it. (#20)
+- **`MultiResult.ToString()` threw after `DisposeErrors()`.** (#21)
+- **`ErrorCollection` pooled where pooling lost.** It now pools only between 8 and
+  1024 errors: below that the disposal contract cost more than the pool saved,
+  above it `ArrayPool.Shared` retained a large object heap array for the life of
+  the process. Forgetting to dispose went from 496 bytes an operation to 96.
+  Nothing is dropped at any size. (#44, #48)
+- **A publish could ship any branch to NuGet.** The tag check was guarded by the
+  ref being a tag while the push was guarded only by `dry_run`, so a manual
+  dispatch with `dry_run=false` skipped it. (#41)
+- **`ProblemDetailsFactory.CreateFromMultiResult` threw on a released
+  collection,** from inside the code building the error response. (#49)
+- **The benchmark runner discarded its arguments,** so the scheduled workflow's
+  `--filter` and `--exporters` did nothing and the JSON benchmarks never ran.
+  (#22)
+
+### Changed
+
+- **CI runs the suite on .NET 10 as well as .NET 8**, installing only the matrix
+  SDK so the net8.0 assets genuinely roll forward rather than silently re-running
+  on 8.0. (#38)
+- **Coverage has a floor.** The nine Cobertura reports are merged first, because
+  each lists every package and a naive sum lands nowhere near the truth. Measured
+  76%, not the 98.4% the badge claimed. (#40)
+- **Dependency advisories fail the build**, at any severity, including transitive
+  packages. (#51)
+- **The examples project is in the solution**, so CI compiles it. (#39)
+- **All eight packages carry an icon.** (#56)
+- **Benchmarks measure ErrorOr and CSharpFunctionalExtensions**, not only
+  FluentResults. All four allocate nothing on the success path, so that is table
+  stakes rather than a differentiator. (#58)
+- **README rewritten**, 546 lines to 252. It recommended
+  `FromException(ex, sanitize: true)` as the way to avoid leaking details, which
+  this release had to fix; it claimed 525 tests against a suite of 601; and it
+  omitted the sustained-load result, which is the best evidence the project has.
+  (#23, #55, #59)
+- **SECURITY.md** lists the supported versions and states the trust boundary.
+  (#50)
+
 ## [2.8.0] - 2026-08-18
 
 ### Fixed
