@@ -195,17 +195,18 @@ public class ProductionReadinessTests
     }
 
     [Fact]
-    public void Deserialize_SuccessWithoutValue_ShouldUseDefault()
+    public void Deserialize_SuccessWithoutValue_ShouldThrow()
     {
-        // Arrange - success but no value field (for value types this should work)
+        // Changed in 3.0. This used to assert that a success with no value
+        // silently became default(T), which for Result<Uri> meant a success
+        // carrying null travelling on instead of being rejected at the edge.
+        // The test directly below has always required an error on the failure
+        // branch; the two are symmetric now.
         var json = "{\"isSuccess\":true}";
 
-        // Act
-        var result = JsonSerializer.Deserialize<Result<int>>(json, _options);
+        var act = () => JsonSerializer.Deserialize<Result<int>>(json, _options);
 
-        // Assert
-        result.IsSuccess.Should().BeTrue();
-        result.Value.Should().Be(0); // default(int)
+        act.Should().Throw<JsonException>();
     }
 
     [Fact]
