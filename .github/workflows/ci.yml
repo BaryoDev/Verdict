@@ -10,6 +10,23 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
+    strategy:
+      fail-fast: false
+      matrix:
+        # The libraries target net8.0 and netstandard2.0. Running the suite on
+        # the .NET 10 runtime as well proves the shipped net8.0 assets keep
+        # working there, which is what a consumer on the current LTS actually does.
+        dotnet: ["8.0.x", "10.0.x"]
+
+    name: build (${{ matrix.dotnet }})
+
+    env:
+      # Only the matrix SDK is installed, so on the 10.0.x leg the net8.0 test
+      # assemblies have no 8.0 runtime to load and roll forward to 10 instead.
+      # Installing both runtimes would make that leg silently re-run on 8.0,
+      # which is a gate that cannot fail.
+      DOTNET_ROLL_FORWARD: LatestMajor
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -17,7 +34,10 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: "8.0.x"
+          dotnet-version: ${{ matrix.dotnet }}
+
+      - name: Show the runtime the tests will actually use
+        run: dotnet --info | sed -n '1,12p;/Runtimes/,$p'
 
       - name: Restore dependencies
         run: dotnet restore
@@ -26,13 +46,23 @@ jobs:
         run: dotnet build --configuration Release --no-restore
 
       - name: Test
-        run: dotnet test --configuration Release --no-build --verbosity normal --collect:"XPlat Code Coverage"
+        run: >
+          dotnet test --configuration Release --no-build --verbosity normal
+          --collect:"XPlat Code Coverage" --results-directory ./TestResults
+
+      # The suite is split over nine projects and each writes its own report
+      # listing every package, so this merges them before checking. Without the
+      # merge the number is meaningless and no threshold could be trusted.
+      - name: Coverage floor
+        if: matrix.dotnet == '8.0.x'
+        run: python3 build/coverage-gate.py ./TestResults 75
 
       - name: Upload coverage reports to Codecov
+        if: matrix.dotnet == '8.0.x'
         uses: codecov/codecov-action@v4
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          directory: ./tests
+          directory: ./TestResults
           flags: unittests
           name: codecov-umbrella
           fail_ci_if_error: false

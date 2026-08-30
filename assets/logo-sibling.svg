@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128" role="img" aria-label="verdict">
+  <defs>
+    <linearGradient id="mallet" gradientUnits="userSpaceOnUse" x1="22" y1="65" x2="96" y2="16">
+      <stop offset="0" stop-color="#0B6E7C"/>
+      <stop offset="1" stop-color="#7FDDEB"/>
+    </linearGradient>
+  </defs>
+  <rect x="26" y="94" width="76" height="15" rx="7.5" fill="#FFC53D"/>
+  <path d="M62.26 40.87 L80.26 76.87 L67.74 83.13 L49.74 47.13 Z" fill="#C89B6C"/>
+  <circle cx="74" cy="80" r="7" fill="#C89B6C"/>
+  <path d="M39.37 63.73 L89.37 38.73 L78.63 17.27 L28.63 42.27 Z" fill="url(#mallet)"/>
+  <circle cx="34" cy="53" r="12" fill="url(#mallet)"/>
+  <circle cx="84" cy="28" r="12" fill="url(#mallet)"/>
+</svg>

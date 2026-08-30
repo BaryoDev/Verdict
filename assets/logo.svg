@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128" role="img" aria-label="verdict-slate">
+  <rect x="2" y="2" width="124" height="124" rx="28" fill="#4A5C6B"/>
+  <path d="M39.37 63.73 L89.37 38.73 L78.63 17.27 L28.63 42.27 Z" fill="#FFFFFF"/>
+  <circle cx="34" cy="53" r="12" fill="#FFFFFF"/>
+  <circle cx="84" cy="28" r="12" fill="#FFFFFF"/>
+  <path d="M62.26 40.87 L80.26 76.87 L67.74 83.13 L49.74 47.13 Z" fill="#FFFFFF"/>
+  <circle cx="74" cy="80" r="7" fill="#FFFFFF"/>
+  <rect x="26" y="94" width="76" height="15" rx="7.5" fill="#FFC53D"/>
+</svg>

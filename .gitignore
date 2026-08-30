@@ -47,3 +47,7 @@ secrets.json
 node_modules/
 vendor/
 .claude/settings.local.json
+
+# Coverage output from the local gate check
+TestResults/
+nupkgs/
