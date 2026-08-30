@@ -136,17 +136,18 @@ public class VerdictProblemDetailsOptionsTests : IDisposable
     }
 
     [Fact]
-    public void CreateFromError_ClientError_WithIncludeErrorMessageFalse_ShouldStillIncludeMessage()
+    public void CreateFromError_ClientError_WithIncludeErrorMessageFalse_ShouldSuppressMessage()
     {
-        // Arrange - Client errors (4xx) should still show the message even when IncludeErrorMessage is false
+        // Changed in 3.0. Suppression used to key on statusCode >= 500, so a 4xx
+        // kept its message whatever this option said. An error built from an
+        // exception maps to 400 unless someone maps it, so the option could never
+        // suppress the messages it existed for.
         var error = new Error("VALIDATION_ERROR", "Email is required");
         var options = new VerdictProblemDetailsOptions { IncludeErrorMessage = false };
 
-        // Act
         var problemDetails = ProblemDetailsFactory.CreateFromError(error, 400, options);
 
-        // Assert
-        problemDetails.Detail.Should().Be("Email is required");
+        problemDetails.Detail.Should().Be("An unexpected error occurred.");
     }
 
     [Fact]

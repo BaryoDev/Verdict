@@ -29,6 +29,7 @@ namespace Verdict.Extensions
     {
         public int ErrorCount { get; }
         public System.ReadOnlySpan<Verdict.Error> Errors { get; }
+        public bool ErrorsDisposed { get; }
         public bool IsFailure { get; }
         public bool IsSuccess { get; }
         public void Deconstruct(out bool isSuccess, out System.ReadOnlySpan<Verdict.Error> errors) { }
@@ -61,6 +62,7 @@ namespace Verdict.Extensions
     {
         public int ErrorCount { get; }
         public System.ReadOnlySpan<Verdict.Error> Errors { get; }
+        public bool ErrorsDisposed { get; }
         public bool IsFailure { get; }
         public bool IsSuccess { get; }
         public T Value { get; }

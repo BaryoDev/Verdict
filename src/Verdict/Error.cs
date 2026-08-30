@@ -37,6 +37,20 @@ public readonly record struct Error
     }
 
     /// <summary>
+    /// The code carried by an error built from an exception when the caller did
+    /// not choose one.
+    /// </summary>
+    /// <remarks>
+    /// A constant rather than the exception's type name. The type name identifies
+    /// the data access stack and often the vendor, and it used to reach clients
+    /// through the ProblemDetails <c>errorCode</c> extension, which is on by
+    /// default, while the option that exists to hide exception detail is off by
+    /// default. One field was smuggling another. Callers who want the type still
+    /// have <see cref="Exception"/>.
+    /// </remarks>
+    public const string UnhandledExceptionCode = "UNHANDLED_EXCEPTION";
+
+    /// <summary>
     /// Creates a new error with the specified code and message.
     /// </summary>
     public static Error Create(string code, string message) => new(code, message);
@@ -54,7 +68,7 @@ public readonly record struct Error
     /// </summary>
     [Obsolete("This method exposes raw exception messages. Use FromException(exception, sanitize: true) in production to prevent information leakage.")]
     public static Error FromException(Exception exception) =>
-        new(exception.GetType().Name, exception.Message, exception);
+        new(UnhandledExceptionCode, exception.Message, exception);
 
     /// <summary>
     /// Creates a new error from an exception with optional sanitization.
@@ -73,7 +87,7 @@ public readonly record struct Error
             ? sanitizedMessage ?? "An error occurred."
             : exception.Message;
 
-        return new(exception.GetType().Name, message, exception);
+        return new(UnhandledExceptionCode, message, exception);
     }
 
     /// <summary>

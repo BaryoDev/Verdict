@@ -21,7 +21,7 @@ public class ErrorSanitizationAndValidationTests
         var error = Error.FromException(exception, sanitize: true);
 
         // Assert
-        error.Code.Should().Be("InvalidOperationException");
+        error.Code.Should().Be(Error.UnhandledExceptionCode);
         error.Message.Should().Be("An error occurred.");
         error.Exception.Should().BeSameAs(exception);
     }

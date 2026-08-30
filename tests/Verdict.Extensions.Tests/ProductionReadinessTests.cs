@@ -362,7 +362,7 @@ public class ProductionReadinessTests
 
         // Assert
         result.IsFailure.Should().BeTrue();
-        result.Error.Code.Should().Be("InvalidOperationException");
+        result.Error.Code.Should().Be(Error.UnhandledExceptionCode);
         result.Error.Message.Should().Be("An error occurred."); // Sanitized by default
     }
 

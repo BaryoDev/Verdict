@@ -59,6 +59,17 @@ public readonly struct MultiResult<T>
     internal ErrorCollection ErrorCollection => _errors;
 
     /// <summary>
+    /// Gets whether the errors have already been returned to the pool, in which
+    /// case reading <see cref="Errors"/> or <see cref="ErrorCount"/> throws.
+    /// </summary>
+    /// <remarks>
+    /// Public because a combinator hands out results that share one collection,
+    /// so a caller can hold a result whose errors were released by code it never
+    /// wrote. Anything rendering a failure needs to be able to ask before it reads.
+    /// </remarks>
+    public bool ErrorsDisposed => _errors.IsDisposed;
+
+    /// <summary>
     /// Gets the value if successful, or default(T) if failed.
     /// </summary>
     public T? ValueOrDefault => _isSuccess ? _value : default;
@@ -203,6 +214,17 @@ public readonly struct MultiResult
     /// Use DisposeErrors() to return pooled arrays to the pool when done.
     /// </summary>
     internal ErrorCollection ErrorCollection => _errors;
+
+    /// <summary>
+    /// Gets whether the errors have already been returned to the pool, in which
+    /// case reading <see cref="Errors"/> or <see cref="ErrorCount"/> throws.
+    /// </summary>
+    /// <remarks>
+    /// Public because a combinator hands out results that share one collection,
+    /// so a caller can hold a result whose errors were released by code it never
+    /// wrote. Anything rendering a failure needs to be able to ask before it reads.
+    /// </remarks>
+    public bool ErrorsDisposed => _errors.IsDisposed;
 
     private MultiResult(bool isSuccess)
     {

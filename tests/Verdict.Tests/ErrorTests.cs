@@ -90,7 +90,7 @@ public class ErrorTests
         var error = Error.FromException(exception);
 
         // Assert
-        error.Code.Should().Be("InvalidOperationException");
+        error.Code.Should().Be(Error.UnhandledExceptionCode);
         error.Message.Should().Be("Test exception");
         error.Exception.Should().BeSameAs(exception);
     }

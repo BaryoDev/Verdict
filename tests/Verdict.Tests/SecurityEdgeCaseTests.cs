@@ -143,7 +143,7 @@ public class SecurityEdgeCaseTests
         var error = Error.FromException(exception);
 
         // Assert
-        error.Code.Should().Be("ArgumentException");
+        error.Code.Should().Be(Error.UnhandledExceptionCode);
         error.Message.Should().Be("Invalid argument provided");
         error.Exception.Should().BeSameAs(exception);
     }

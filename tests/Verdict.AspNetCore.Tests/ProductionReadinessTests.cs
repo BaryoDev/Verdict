@@ -185,20 +185,22 @@ public class ProductionReadinessTests : IDisposable
     }
 
     [Fact]
-    public void ProblemDetailsFactory_WithClientError_ShouldIncludeMessage()
+    public void ProblemDetailsFactory_WithClientError_AndMessagesOff_ShouldSuppressMessage()
     {
-        // Arrange
+        // Changed in 3.0. This used to assert that a 4xx kept its message even
+        // with IncludeErrorMessage off, because suppression keyed on
+        // statusCode >= 500. That is what made the option unable to suppress an
+        // exception-derived error, which maps to 400 unless someone maps it.
+        // The option now means what its name says, at any status code.
         var options = new VerdictProblemDetailsOptions
         {
-            IncludeErrorMessage = false // But client errors should still show
+            IncludeErrorMessage = false
         };
         var error = new Error("VALIDATION", "Email is invalid");
 
-        // Act
         var problemDetails = ProblemDetailsFactory.CreateFromError(error, 400, options);
 
-        // Assert
-        problemDetails.Detail.Should().Be("Email is invalid");
+        problemDetails.Detail.Should().Be("An unexpected error occurred.");
     }
 
     [Fact]
