@@ -36,8 +36,16 @@ jobs:
         with:
           dotnet-version: ${{ matrix.dotnet }}
 
-      - name: Show the runtime the tests will actually use
-        run: dotnet --info | sed -n '1,12p;/Runtimes/,$p'
+      # The evidence that the 10.0.x leg is not quietly re-running on 8.0. If an
+      # 8.0 runtime appears in this list, roll-forward never happened and this
+      # leg is testing the same thing as the other one.
+      - name: Show the runtimes the tests can load
+        run: |
+          dotnet --list-runtimes
+          if [ "${{ matrix.dotnet }}" != "8.0.x" ] && dotnet --list-runtimes | grep -q "Microsoft.NETCore.App 8\."; then
+            echo "::error::A .NET 8 runtime is installed on the ${{ matrix.dotnet }} leg, so the net8.0 assets will load there instead of rolling forward."
+            exit 1
+          fi
 
       - name: Restore dependencies
         run: dotnet restore
