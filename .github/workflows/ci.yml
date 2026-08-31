@@ -44,6 +44,15 @@ jobs:
 
       - name: Confirm both runtimes were exercised
         run: |
+          # Say what was actually read before drawing a conclusion from it. An
+          # earlier version of this reported 0 and 0 twice without ever showing
+          # whether the file it was grepping had anything in it.
+          ls -l test-output.txt || echo "test-output.txt is missing"
+          echo "lines captured: $(wc -l < test-output.txt 2>/dev/null || echo 0)"
+          echo "--- first lines ---"
+          head -5 test-output.txt 2>/dev/null || true
+          echo "-------------------"
+
           # "Test run for ... (.NETCoreApp,Version=v8.0)" is what dotnet test
           # prints per assembly. The per-project summary line uses a different
           # form depending on verbosity, so match the one that is always there.
