@@ -15,7 +15,8 @@ dotnet add package Verdict
 | [Architect's decision guide](architects_decision_guide.md) | You are deciding whether to adopt Verdict |
 | [Design decisions](design-decisions.md) | You want to know why it is shaped this way, including what was tried and rejected |
 | [How Verdict does it better](how_verdict_does_it_better.md) | You are comparing against FluentResults or similar |
-| [Migrating to 2.5](migration-2.4-to-2.5.md) | You are on 2.4 or earlier. **Contains a breaking change** |
+| [Migrating to 3.0](migration-2.x-to-3.0.md) | You are on any 2.x. **Two changes need an edit** |
+| [Migrating to 2.5](migration-2.4-to-2.5.md) | You are on 2.4 or earlier |
 | [Thread safety](../README.md#thread-safety) | You share a `Result` between threads |
 | [Runtime support](../README.md#runtime-support) | You publish with `PublishAot`, trimming, or on .NET 10 |
 

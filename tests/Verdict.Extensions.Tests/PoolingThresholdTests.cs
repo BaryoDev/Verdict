@@ -88,27 +88,42 @@ public class PoolingThresholdTests
         }
     }
 
-    [Fact]
-    public void AnUnknownSizedSequenceIsAlsoKeptWhole()
+    [Theory]
+    [InlineData(1)]
+    [InlineData(3)]
+    [InlineData(9)]
+    [InlineData(17)]
+    [InlineData(33)]
+    [InlineData(100)]
+    [InlineData(2000)]
+    public void AnUnknownSizedSequenceIsKeptWholeAtEveryIndex(int count)
     {
         // The growth path, where the count is not known before enumerating.
-        static IEnumerable<Error> Stream(int count)
+        //
+        // Every index is checked, not just the first and the last. An earlier
+        // version of this test asserted Count and the final element only, and
+        // passed while the buffer growth copied out of an array the pool had
+        // already cleared: for 17 errors, 16 came back blank and the last one
+        // was written after the loss, so nothing noticed. The sizes below
+        // straddle each doubling of the rented buffer.
+        static IEnumerable<Error> Stream(int total)
         {
-            for (var i = 0; i < count; i++)
+            for (var i = 0; i < total; i++)
             {
                 yield return new Error($"E{i}", $"message {i}");
             }
         }
 
-        foreach (var count in new[] { 3, 9, 2000 })
+        var collection = ErrorCollection.Create(Stream(count));
+
+        Assert.Equal(count, collection.Count);
+        for (var i = 0; i < count; i++)
         {
-            var collection = ErrorCollection.Create(Stream(count));
-
-            Assert.Equal(count, collection.Count);
-            Assert.Equal($"E{count - 1}", collection[count - 1].Code);
-
-            collection.Dispose();
+            Assert.Equal($"E{i}", collection[i].Code);
+            Assert.Equal($"message {i}", collection[i].Message);
         }
+
+        collection.Dispose();
     }
 }
 

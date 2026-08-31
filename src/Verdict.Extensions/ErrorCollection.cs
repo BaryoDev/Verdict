@@ -208,25 +208,24 @@ public readonly struct ErrorCollection : IDisposable
                 if (count == buffer.Length)
                 {
                     // Past the ceiling, grow on the heap and stop renting, so an
-                    // unbounded input cannot park an oversized array in the shared
-                    // pool. Nothing is dropped: the buffer keeps growing, it just
-                    // stops being the pool's problem.
-                    var grown = new Error[buffer.Length * 2];
+                    // unbounded input cannot park a large object heap array in the
+                    // shared pool. Nothing is dropped either way: the buffer keeps
+                    // growing, it just stops being the pool's problem.
+                    var grownLength = buffer.Length * 2;
+                    var stillPooled = pooled && grownLength <= PoolingCeiling;
+                    var grown = stillPooled ? pool.Rent(grownLength) : new Error[grownLength];
+
+                    // Copy before returning. Return clears the array, so reading
+                    // from it afterwards yields nothing but zeroed entries.
                     Array.Copy(buffer, grown, count);
 
                     if (pooled)
                     {
                         pool.Return(buffer, clearArray: true);
-                        pooled = buffer.Length * 2 <= PoolingCeiling;
-                        if (pooled)
-                        {
-                            var rented = pool.Rent(buffer.Length * 2);
-                            Array.Copy(buffer, rented, count);
-                            grown = rented;
-                        }
                     }
 
                     buffer = grown;
+                    pooled = stillPooled;
                 }
                 buffer[count++] = error;
             }

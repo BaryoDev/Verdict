@@ -42,7 +42,15 @@ leaking.
   a success holding `default(T)`. An explicit `"value":null` is still accepted.
   (#27)
 - **A `MultiResult` derived from another owns its own errors.** Combinators used
-  to pass the collection through, so disposing either broke the other. (#28)
+  to pass the collection through, so disposing either broke the other. A
+  combinator called on a result whose errors were already released now throws
+  `ObjectDisposedException` rather than quietly producing a broken result. (#28)
+- **MVC `ActionResult` responses now carry `application/problem+json`.** The
+  minimal API paths always did, so the same error reached a client differently
+  depending on which conversion produced it.
+
+See [docs/migration-2.x-to-3.0.md](docs/migration-2.x-to-3.0.md). Two of these
+need an edit; the rest do not.
 
 ### Added
 

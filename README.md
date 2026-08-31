@@ -217,6 +217,7 @@ collection can be released by code holding a copy. See
 
 ## Documentation
 
+- [Migrating from 2.x to 3.0](docs/migration-2.x-to-3.0.md), start here if you are upgrading
 - [Package guides](docs/README.md), one per package, with what each costs
 - [Design decisions](docs/design-decisions.md), including two optimisations that
   were measured and rejected

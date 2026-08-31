@@ -131,7 +131,12 @@ public static class ResultExtensions
         }
 
         var (statusCode, problemDetails) = Describe(context, result.Error);
-        return new ObjectResult(problemDetails) { StatusCode = statusCode };
+        // RFC 7807 says a problem document is application/problem+json. The
+        // minimal API paths have always set it; these three did not, so the same
+        // error reached a client differently depending on which one produced it.
+        var payload = new ObjectResult(problemDetails) { StatusCode = statusCode };
+        payload.ContentTypes.Add("application/problem+json");
+        return payload;
     }
 
     /// <summary>
@@ -206,7 +211,12 @@ public static class ResultExtensions
             ?? ErrorStatusCodeMapper.GetStatusCode(result.Error);
 
         var problemDetails = ProblemDetailsFactory.CreateFromError(result.Error, statusCode);
-        return new ObjectResult(problemDetails) { StatusCode = statusCode };
+        // RFC 7807 says a problem document is application/problem+json. The
+        // minimal API paths have always set it; these three did not, so the same
+        // error reached a client differently depending on which one produced it.
+        var payload = new ObjectResult(problemDetails) { StatusCode = statusCode };
+        payload.ContentTypes.Add("application/problem+json");
+        return payload;
     }
 
     /// <summary>
@@ -240,6 +250,11 @@ public static class ResultExtensions
 
         var statusCode = ErrorStatusCodeMapper.GetStatusCode(result.Error);
         var problemDetails = ProblemDetailsFactory.CreateFromError(result.Error, statusCode);
-        return new ObjectResult(problemDetails) { StatusCode = statusCode };
+        // RFC 7807 says a problem document is application/problem+json. The
+        // minimal API paths have always set it; these three did not, so the same
+        // error reached a client differently depending on which one produced it.
+        var payload = new ObjectResult(problemDetails) { StatusCode = statusCode };
+        payload.ContentTypes.Add("application/problem+json");
+        return payload;
     }
 }
