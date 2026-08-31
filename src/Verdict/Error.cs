@@ -37,8 +37,8 @@ public readonly record struct Error
     }
 
     /// <summary>
-    /// The longest message an <see cref="Error"/> will carry. Anything longer is
-    /// truncated at construction.
+    /// The longest message an <see cref="Error"/> will carry, including the
+    /// truncation marker. Anything longer is truncated at construction.
     /// </summary>
     /// <remarks>
     /// A message is read by a person. Nothing needs four kilobytes, and without a
@@ -139,7 +139,11 @@ public readonly record struct Error
             return text;
         }
 
-        var limit = text.Length <= MaxMessageLength ? text.Length : MaxMessageLength;
+        // Room for the marker, so the result stays inside MaxMessageLength. A
+        // bound that the truncation itself overshoots is not a bound.
+        var limit = text.Length <= MaxMessageLength
+            ? text.Length
+            : MaxMessageLength - TruncationMarker.Length;
         var builder = new System.Text.StringBuilder(limit + TruncationMarker.Length);
 
         for (var i = 0; i < limit; i++)

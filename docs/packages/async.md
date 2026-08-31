@@ -28,6 +28,14 @@ validation that short-circuits, a repository returning from memory.
 Both numbers are asserted by `tests/Verdict.Allocation.Tests` in the same
 harness, so the comparison cannot quietly stop being true.
 
+**The zero is for antecedents that have already completed.** When a step genuinely
+has to wait, it hands off to a local `async` function and the state machine is
+boxed like any other, so it costs what an `async` method costs. That is the right
+trade: work that actually waits on I/O has already paid for far more than a state
+machine, and the point of the fast path is the case where nothing is waiting.
+`AsValueTask(Task<Result<T>>)` adds nothing itself, because the task it adapts was
+allocated by whoever produced it.
+
 ## The rule that comes with ValueTask
 
 **A `ValueTask` may be awaited once, and never concurrently.** That is a real

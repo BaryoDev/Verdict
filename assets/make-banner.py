@@ -1,9 +1,39 @@
 #!/usr/bin/env python3
 """Render the Verdict README banner to PNG at 2x, light and dark, transparent background."""
-import subprocess, sys, tempfile
+import os, shutil, subprocess, sys, tempfile
 from pathlib import Path
 
-CHROME = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+def find_chrome() -> str:
+    """Locate a Chrome or Chromium to rasterise with.
+
+    A single hardcoded macOS path meant this raised before writing either PNG on
+    any other host. Set CHROME to override.
+    """
+    candidates = [
+        os.environ.get("CHROME"),
+        "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+        "/Applications/Chromium.app/Contents/MacOS/Chromium",
+        "google-chrome",
+        "chromium",
+        "chromium-browser",
+    ]
+
+    for candidate in candidates:
+        if not candidate:
+            continue
+        if Path(candidate).exists():
+            return candidate
+        found = shutil.which(candidate)
+        if found:
+            return found
+
+    raise SystemExit(
+        "No Chrome or Chromium found. Install one, or point the CHROME "
+        "environment variable at it."
+    )
+
+
+CHROME = find_chrome()
 W, H, SCALE = 566, 158, 2
 
 MARK = '''

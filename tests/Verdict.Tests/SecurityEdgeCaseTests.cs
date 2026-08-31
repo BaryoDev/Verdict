@@ -60,7 +60,7 @@ public class SecurityEdgeCaseTests
         var error = new Error(longCode, longMessage);
 
         error.Code.Should().HaveLength(10000);
-        error.Message.Should().HaveLength(Error.MaxMessageLength + Error.TruncationMarker.Length);
+        error.Message.Should().HaveLength(Error.MaxMessageLength);
         error.Message.Should().EndWith(Error.TruncationMarker);
     }
 

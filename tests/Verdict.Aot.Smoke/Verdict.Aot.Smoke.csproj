@@ -16,9 +16,13 @@
     <!-- Error.Exception is a public property, so any consumer's source-generated
          JSON context emits an Exception serializer, and that touches
          Exception.TargetSite. Two IL2026 warnings follow from a design decision
-         in the library rather than from anything this project does, and the repo
-         treats warnings as errors. Suppressed here deliberately and narrowly. -->
-    <NoWarn>$(NoWarn);IL2026</NoWarn>
+         in the library rather than from anything this project does.
+
+         Downgraded rather than silenced. NoWarn would hide any other IL2026 that
+         appeared later, including one this project did cause, and the point of
+         publishing this app is to find out what the trim analyser says. The
+         count is asserted in CI, so a third warning fails the build. -->
+    <WarningsNotAsErrors>$(WarningsNotAsErrors);IL2026</WarningsNotAsErrors>
   </PropertyGroup>
 
   <ItemGroup>

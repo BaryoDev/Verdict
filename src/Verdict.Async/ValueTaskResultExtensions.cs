@@ -107,7 +107,14 @@ public static class ValueTaskResultExtensions
 
         cancellationToken.ThrowIfCancellationRequested();
 
-        return MapAsync(resultTask, value => mapper(value, cancellationToken));
+        // Checked again inside, after the antecedent completes. A token cancelled
+        // while the antecedent was still pending would otherwise still run the
+        // mapper, because the check above happened before any waiting did.
+        return MapAsync(resultTask, value =>
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            return mapper(value, cancellationToken);
+        });
     }
 
     // ==================== Bind ====================

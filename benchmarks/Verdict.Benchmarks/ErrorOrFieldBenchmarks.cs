@@ -67,18 +67,18 @@ public class ErrorOrFieldBenchmarks
     }
 
     [Benchmark(Description = "ErrorOr async, four steps")]
-    public async Task<int> AsyncChain()
+    public int AsyncChain()
     {
         var total = 0;
         for (var i = 0; i < AsyncIterations; i++)
         {
             ErrorOr<int> start = i;
-            var result = await Task.FromResult(start)
+            var pending = Task.FromResult(start)
                 .ThenAsync(x => Task.FromResult(Double(x)))
                 .ThenAsync(x => Task.FromResult(Double(x)))
                 .ThenAsync(x => Task.FromResult(Double(x)))
                 .ThenAsync(x => Task.FromResult(Double(x)));
-            total += result.IsError ? 0 : 1;
+            total += pending.Result is var result && !result.IsError ? 1 : 0;
         }
         return total;
     }

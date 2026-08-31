@@ -79,7 +79,21 @@ jobs:
       # binary behaves. Publishing it and running it does both.
       - name: Native AOT publish and run
         run: |
-          dotnet publish tests/Verdict.Aot.Smoke -c Release -r linux-x64 --nologo
+          set -o pipefail
+          dotnet publish tests/Verdict.Aot.Smoke -c Release -r linux-x64 --nologo \
+            2>&1 | tee aot-output.txt
+
+          # Exactly two IL2026 warnings are expected, both from the generated
+          # Exception serializer that Error.Exception forces into a consumer's
+          # JSON context. A third is something this project caused.
+          IL=$(grep -c "warning IL2026" aot-output.txt || true)
+          echo "IL2026 warnings: $IL"
+          if [ "$IL" -gt 2 ]; then
+            echo "::error::$IL IL2026 warnings, expected at most 2. Something new is not trim safe."
+            grep "warning IL2026" aot-output.txt || true
+            exit 1
+          fi
+
           BINARY=tests/Verdict.Aot.Smoke/bin/Release/net8.0/linux-x64/native/Verdict.Aot.Smoke
           SIZE=$(stat -c%s "$BINARY")
           echo "Native binary: $SIZE bytes"

@@ -112,29 +112,32 @@ public class AsyncFieldBenchmarks
 
     private static int Double(int x) => x * 2;
 
+    // Returns int rather than Task<int>. An outer async Task wrapper allocates
+    // per operation, which is the thing these benchmarks exist to measure, and it
+    // would have shown up in every row including the one meant to be free.
     [Benchmark(Baseline = true, Description = "Verdict ValueTask, four steps")]
-    public async Task<int> Verdict_ValueTask()
+    public int Verdict_ValueTask()
     {
         var total = 0;
         for (var i = 0; i < Iterations; i++)
         {
-            var result = await Result<int>.Success(i)
+            var result = Result<int>.Success(i)
                 .AsValueTask()
                 .Map(Double).Map(Double).Map(Double).Map(Double);
-            total += result.IsSuccess ? 1 : 0;
+            total += result.Result.IsSuccess ? 1 : 0;
         }
         return total;
     }
 
     [Benchmark(Description = "Verdict Task, four steps")]
-    public async Task<int> Verdict_Task()
+    public int Verdict_Task()
     {
         var total = 0;
         for (var i = 0; i < Iterations; i++)
         {
-            var result = await Task.FromResult(Result<int>.Success(i))
+            var pending = Task.FromResult(Result<int>.Success(i))
                 .Map(Double).Map(Double).Map(Double).Map(Double);
-            total += result.IsSuccess ? 1 : 0;
+            total += pending.Result is var result && result.IsSuccess ? 1 : 0;
         }
         return total;
     }

@@ -25,8 +25,8 @@ carries one error, and carrying several needs somewhere to put them.
 | Size | Storage | Disposal |
 |---|---|---|
 | 8 or fewer | an exact array | nothing to dispose, `Dispose` is a no-op |
-| 9 to 1024 | pooled | **call `DisposeErrors()`** |
-| over 1024 | an exact array | nothing to dispose |
+| 9 to 1024 | pooled | **read first, then call `DisposeErrors()`** |
+| more than 1024 | an exact array | nothing to dispose |
 
 Below the threshold the pool saved eight bytes when the caller got disposal right
 and cost four hundred when they did not, and forgetting is the default outcome
@@ -54,10 +54,13 @@ finally
 `ErrorCollection` is a struct, so `using` disposes a copy and not the original.
 That is why the method is `DisposeErrors()` and not `Dispose()`.
 
-A combinator such as `Map` or `Bind` passes the collection through rather than
-copying it, so a derived result shares the original's storage. Disposing either
-invalidates both. `ErrorsDisposed` says whether that has happened, and anything
-rendering a failure should ask before it reads.
+A combinator such as `Map` or `Bind` gives the derived result its own storage
+when the source was pooled, so disposing one cannot invalidate the other. Each
+result owns what it holds, and you dispose the one you created.
+
+Calling a combinator on a result whose errors you already released throws
+`ObjectDisposedException`, which is the same rule as reading them. `ErrorsDisposed`
+answers that without throwing, and anything rendering a failure can ask first.
 
 ## What it costs
 

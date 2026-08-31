@@ -49,7 +49,9 @@ producing a plausible-looking result.
 - **Use the `HttpContext` overloads** of `ToHttpResult` and `ToActionResult` if
   more than one application shares a process. The overloads without one read
   process-wide statics.
-- **Dispose pooled error collections before reading is finished, not after.** See
+- **Read a pooled error collection before you dispose it, never after.**
+  `DisposeErrors()` returns the buffer, and reading it afterwards throws. Only
+  collections of more than eight errors are pooled at all. See
   [docs/packages/extensions.md](docs/packages/extensions.md).
 
 ## Reporting a vulnerability

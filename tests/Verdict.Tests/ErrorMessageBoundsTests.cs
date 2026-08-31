@@ -48,12 +48,19 @@ public class ErrorMessageBoundsTests
         Assert.Equal("column\tvalue", error.Message);
     }
 
-    [Fact]
-    public void AnOversizedMessageIsTruncatedAndSaysSo()
+    [Theory]
+    [InlineData(4097)]
+    [InlineData(10_000)]
+    [InlineData(5_000_000)]
+    public void AnOversizedMessageIsTruncatedAndSaysSo(int length)
     {
-        var error = new Error("E", new string('A', 5_000_000));
+        var error = new Error("E", new string('A', length));
 
-        Assert.Equal(Error.MaxMessageLength + Error.TruncationMarker.Length, error.Message.Length);
+        // Inside the bound, marker included. Truncating to MaxMessageLength and
+        // then appending the marker overshot it by the marker's length, which
+        // makes the constant a suggestion rather than a limit.
+        Assert.Equal(Error.MaxMessageLength, error.Message.Length);
+        Assert.True(error.Message.Length <= Error.MaxMessageLength);
         Assert.EndsWith(Error.TruncationMarker, error.Message, StringComparison.Ordinal);
     }
 

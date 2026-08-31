@@ -151,16 +151,19 @@ public readonly struct MultiResult<T>
     /// Returns a string representation of the result.
     /// </summary>
     /// <remarks>
-    /// Reads <see cref="ErrorsDisposed"/> before the count, because reading a
-    /// released collection throws. A ToString that throws breaks the debugger and
-    /// the log line in exactly the situation you are trying to understand.
+    /// Reads the disposed flag first and then a count that cannot throw. Reading
+    /// <see cref="ErrorCount"/> instead left a window: another struct copy
+    /// calling <c>DisposeErrors</c> between the two reads made this throw, which
+    /// is the thing it exists to prevent. A ToString that throws breaks the
+    /// debugger and the log line in exactly the situation you are trying to
+    /// understand.
     /// </remarks>
     public override string ToString() =>
         _isSuccess
             ? $"Success({_value})"
             : _errors.IsDisposed
                 ? "Failure(errors released)"
-                : $"Failure({_errors.Count} error(s))";
+                : $"Failure({_errors.RawCount} error(s))";
 
     /// <summary>
     /// Deconstructs the result into its components for pattern matching.
@@ -303,16 +306,19 @@ public readonly struct MultiResult
     /// Returns a string representation of the result.
     /// </summary>
     /// <remarks>
-    /// Reads <see cref="ErrorsDisposed"/> before the count, because reading a
-    /// released collection throws. A ToString that throws breaks the debugger and
-    /// the log line in exactly the situation you are trying to understand.
+    /// Reads the disposed flag first and then a count that cannot throw. Reading
+    /// <see cref="ErrorCount"/> instead left a window: another struct copy
+    /// calling <c>DisposeErrors</c> between the two reads made this throw, which
+    /// is the thing it exists to prevent. A ToString that throws breaks the
+    /// debugger and the log line in exactly the situation you are trying to
+    /// understand.
     /// </remarks>
     public override string ToString() =>
         _isSuccess
             ? "Success"
             : _errors.IsDisposed
                 ? "Failure(errors released)"
-                : $"Failure({_errors.Count} error(s))";
+                : $"Failure({_errors.RawCount} error(s))";
 
     /// <summary>
     /// Deconstructs the result into its components for pattern matching.

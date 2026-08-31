@@ -47,9 +47,11 @@ when they did not, and forgetting is the default outcome: `ErrorCollection` is a
 struct so `using` does not work, the method is `DisposeErrors()` on an object that
 usually arrives from a combinator, and nothing failed when it was skipped.
 
-So it pools between 8 and 1024 errors. Below that an exact array is cheaper in
-practice and has no disposal contract at all. Above it the rented array is on the
-large object heap and `ArrayPool.Shared` keeps it for the life of the process.
+So it pools only for **9 to 1024 errors**. At **8 or fewer**, and at **more than
+1024**, the collection owns an exact array: there is no rental, `Dispose` is a
+no-op, and a copy cannot be invalidated by a sibling. The count is what decides
+whether `DisposeErrors()` is required, which is why both bounds are public
+constants rather than implementation details.
 
 ## Two optimisations that were measured and rejected
 

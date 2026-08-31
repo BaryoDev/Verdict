@@ -148,7 +148,7 @@ public class ProductionReadinessTests
         restored.IsFailure.Should().BeTrue();
         // Changed in 3.0. The message is bounded at construction, so the round
         // trip carries the bounded message rather than the original length.
-        restored.Error.Message.Should().HaveLength(Error.MaxMessageLength + Error.TruncationMarker.Length);
+        restored.Error.Message.Should().HaveLength(Error.MaxMessageLength);
     }
 
     #endregion

@@ -63,14 +63,14 @@ public class CfeFieldBenchmarks
     }
 
     [Benchmark(Description = "CSharpFunctionalExtensions async, four steps")]
-    public async Task<int> AsyncChain()
+    public int AsyncChain()
     {
         var total = 0;
         for (var i = 0; i < AsyncIterations; i++)
         {
-            var result = await Task.FromResult(Result.Success<int>(i))
+            var pending = Task.FromResult(Result.Success<int>(i))
                 .Map(Double).Map(Double).Map(Double).Map(Double);
-            total += result.IsSuccess ? 1 : 0;
+            total += pending.Result is var result && result.IsSuccess ? 1 : 0;
         }
         return total;
     }

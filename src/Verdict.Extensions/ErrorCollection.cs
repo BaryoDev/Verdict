@@ -52,6 +52,18 @@ public readonly struct ErrorCollection : IDisposable
     }
 
     /// <summary>
+    /// The number of errors, readable whether or not the buffer was released.
+    /// </summary>
+    /// <remarks>
+    /// The count lives in the struct, not in the rented array, so reading it can
+    /// never surface another renter's data and never needs the disposed check.
+    /// <see cref="Count"/> keeps that check because it is the accessor a caller
+    /// reaches for before reading the errors themselves. This one exists for
+    /// <c>ToString</c>, where throwing is worse than a stale number.
+    /// </remarks>
+    internal int RawCount => _count;
+
+    /// <summary>
     /// Gets whether this collection's pooled buffer has been returned.
     /// Always false for collections that do not use the pool.
     /// </summary>

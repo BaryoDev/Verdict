@@ -1,7 +1,9 @@
 # Verdict
 
-The core package. Zero dependencies, and the only package where the
-zero-allocation promise is unconditional.
+The core package. Zero dependencies, and the only package where every operation
+that does not build a string allocates nothing. Formatting is the exception, for
+the obvious reason: `ToString` returns a string, and a string is an allocation.
+The table below gives both.
 
 ## What is in it
 
