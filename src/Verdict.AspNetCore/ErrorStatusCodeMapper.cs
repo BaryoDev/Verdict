@@ -75,6 +75,15 @@ public static class ErrorStatusCodeMapper
             return defaultCode;
         }
 
+        // An error carrying an exception is a failure inside this process, not a
+        // caller mistake. Reporting it as 400 kept it out of 5xx alerting and,
+        // because the message guard in ProblemDetailsFactory keyed on the status
+        // code, also meant IncludeErrorMessage=false could never suppress it.
+        if (error.Exception is not null)
+        {
+            return 500;
+        }
+
         // Default to 400 for unknown errors
         return 400;
     }

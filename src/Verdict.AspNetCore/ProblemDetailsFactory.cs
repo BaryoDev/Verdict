@@ -66,10 +66,15 @@ public static class ProblemDetailsFactory
     {
         options ??= _defaultOptions;
 
-        var isServerError = statusCode >= 500;
-        var detail = options.IncludeErrorMessage || !isServerError
-            ? error.Message
-            : options.GenericServerErrorMessage;
+        // A message that came from an exception was written for an operator, not
+        // for a client, so IncludeExceptionDetails governs it. Suppression used to
+        // key on statusCode >= 500, and an exception-derived error mapped to 400,
+        // so IncludeErrorMessage=false could not suppress the one thing it existed for.
+        var carriesException = error.Exception is not null;
+        var suppressMessage = !options.IncludeErrorMessage
+            || (carriesException && !options.IncludeExceptionDetails);
+
+        var detail = suppressMessage ? options.GenericErrorMessage : error.Message;
 
         var problemDetails = new ProblemDetails
         {
@@ -79,8 +84,10 @@ public static class ProblemDetailsFactory
             Detail = detail
         };
 
-        // Add error code as extension
-        if (options.IncludeErrorCode)
+        // Add error code as extension. Withheld along with the message when the
+        // error carries an exception and exception detail is off, because a code
+        // chosen by the caller for an exception path can still name internals.
+        if (options.IncludeErrorCode && !(carriesException && !options.IncludeExceptionDetails))
         {
             problemDetails.Extensions["errorCode"] = error.Code;
         }
@@ -107,6 +114,22 @@ public static class ProblemDetailsFactory
     /// <returns>RFC 7807 compliant ValidationProblemDetails.</returns>
     public static ValidationProblemDetails CreateFromMultiResult<T>(Verdict.Extensions.MultiResult<T> result)
     {
+        // Reading a disposed collection throws, and this runs while the handler is
+        // already building an error response, so throwing here turns a reported
+        // validation failure into an unhandled 500 and loses the errors entirely.
+        // Report what is knowable instead.
+        if (result.ErrorsDisposed)
+        {
+            return new ValidationProblemDetails(new Dictionary<string, string[]>(0))
+            {
+                Type = "https://tools.ietf.org/html/rfc7231#section-6.5.1",
+                Title = "One or more validation errors occurred.",
+                Status = 400,
+                Detail = "The validation errors were released before the response was built. "
+                    + "Build the response before calling DisposeErrors.",
+            };
+        }
+
         // Pre-allocate array with exact size to avoid List resizing
         var errorCount = result.ErrorCount;
         var errorMessages = new string[errorCount];

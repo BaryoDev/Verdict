@@ -1,0 +1,208 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using Verdict.Extensions;
+using Xunit;
+
+namespace Verdict.Extensions.Tests;
+
+/// <summary>
+/// The pool only earns its keep in a band, and outside that band it costs more
+/// than it saves.
+/// </summary>
+/// <remarks>
+/// Measured on eight threads before this changed: pooled and disposed correctly
+/// cost 88 bytes an operation, an ordinary array cost 96, and pooled with the
+/// dispose forgotten cost 496 with six times the gen0 collections. Forgetting is
+/// the default outcome, because the type is a struct that cannot be used with
+/// <c>using</c> and usually arrives from a combinator rather than from the caller.
+/// </remarks>
+public class PoolingThresholdTests
+{
+    private static List<Error> Errors(int count) =>
+        Enumerable.Range(0, count).Select(i => new Error($"E{i}", $"message {i}")).ToList();
+
+    [Fact]
+    public void ASmallCollectionIsNotPooled()
+    {
+        var collection = ErrorCollection.Create((IEnumerable<Error>)Errors(ErrorCollection.PoolingThreshold));
+
+        collection.Dispose();
+
+        // No rental means nothing to return, so disposing cannot invalidate it.
+        Assert.False(collection.IsDisposed);
+        Assert.Equal(ErrorCollection.PoolingThreshold, collection.Count);
+    }
+
+    [Fact]
+    public void ASmallCollectionSurvivesASiblingBeingDisposed()
+    {
+        // The shape that made a derived MultiResult unreadable: a combinator hands
+        // out a second result sharing the first one's collection.
+        var original = ErrorCollection.Create((IEnumerable<Error>)Errors(3));
+        var copy = original;
+
+        copy.Dispose();
+
+        Assert.Equal(3, original.Count);
+        Assert.Equal("E0", original.First().Code);
+    }
+
+    [Fact]
+    public void ACollectionJustOverTheThresholdIsPooled()
+    {
+        var collection = ErrorCollection.Create((IEnumerable<Error>)Errors(ErrorCollection.PoolingThreshold + 1));
+
+        collection.Dispose();
+
+        Assert.True(collection.IsDisposed);
+    }
+
+    [Fact]
+    public void ACollectionOverTheCeilingIsNotPooledEither()
+    {
+        // ArrayPool.Shared keeps what it is given back, and past roughly 3,500
+        // errors that array is on the large object heap and stays there.
+        var count = ErrorCollection.PoolingCeiling + 1;
+        var collection = ErrorCollection.Create((IEnumerable<Error>)Errors(count));
+
+        collection.Dispose();
+
+        Assert.False(collection.IsDisposed);
+        Assert.Equal(count, collection.Count);
+    }
+
+    [Fact]
+    public void NothingIsDroppedAtAnySize()
+    {
+        // The bound is on what goes into the pool, not on what the caller gets.
+        foreach (var count in new[] { 1, 8, 9, 1024, 1025, 10_000 })
+        {
+            var collection = ErrorCollection.Create((IEnumerable<Error>)Errors(count));
+
+            Assert.Equal(count, collection.Count);
+            Assert.Equal("E0", collection.First().Code);
+            Assert.Equal($"E{count - 1}", collection[count - 1].Code);
+
+            collection.Dispose();
+        }
+    }
+
+    [Theory]
+    [InlineData(1)]
+    [InlineData(3)]
+    [InlineData(9)]
+    [InlineData(17)]
+    [InlineData(33)]
+    [InlineData(100)]
+    [InlineData(2000)]
+    public void AnUnknownSizedSequenceIsKeptWholeAtEveryIndex(int count)
+    {
+        // The growth path, where the count is not known before enumerating.
+        //
+        // Every index is checked, not just the first and the last. An earlier
+        // version of this test asserted Count and the final element only, and
+        // passed while the buffer growth copied out of an array the pool had
+        // already cleared: for 17 errors, 16 came back blank and the last one
+        // was written after the loss, so nothing noticed. The sizes below
+        // straddle each doubling of the rented buffer.
+        static IEnumerable<Error> Stream(int total)
+        {
+            for (var i = 0; i < total; i++)
+            {
+                yield return new Error($"E{i}", $"message {i}");
+            }
+        }
+
+        var collection = ErrorCollection.Create(Stream(count));
+
+        Assert.Equal(count, collection.Count);
+        for (var i = 0; i < count; i++)
+        {
+            Assert.Equal($"E{i}", collection[i].Code);
+            Assert.Equal($"message {i}", collection[i].Message);
+        }
+
+        collection.Dispose();
+    }
+}
+
+/// <summary>
+/// Ownership after a combinator: a derived result owns its own errors.
+/// </summary>
+/// <remarks>
+/// The combinators used to pass the collection straight through, so
+/// <c>a.DisposeErrors()</c> left the result of <c>a.Map(f)</c> unreadable. Two
+/// documents in the package disagreed about whether that was safe.
+/// </remarks>
+public class MultiResultOwnershipTests
+{
+    private static MultiResult<int> PooledFailure()
+    {
+        var errors = Enumerable.Range(0, ErrorCollection.PoolingThreshold + 4)
+            .Select(i => new Error($"E{i}", $"message {i}"))
+            .ToList();
+
+        return MultiResult<int>.Failure(ErrorCollection.Create((IEnumerable<Error>)errors));
+    }
+
+    [Fact]
+    public void MapSurvivesTheSourceBeingDisposed()
+    {
+        var source = PooledFailure();
+        var derived = source.Map(x => x.ToString());
+
+        source.DisposeErrors();
+
+        Assert.Equal(ErrorCollection.PoolingThreshold + 4, derived.ErrorCount);
+        Assert.Equal("E0", derived.Errors[0].Code);
+    }
+
+    [Fact]
+    public void BindSurvivesTheSourceBeingDisposed()
+    {
+        var source = PooledFailure();
+        var derived = source.Bind(x => MultiResult<string>.Success(x.ToString()));
+
+        source.DisposeErrors();
+
+        Assert.Equal(ErrorCollection.PoolingThreshold + 4, derived.ErrorCount);
+    }
+
+    [Fact]
+    public void DisposingTheDerivedResultDoesNotBreakTheSource()
+    {
+        var source = PooledFailure();
+        var derived = source.Map(x => x.ToString());
+
+        derived.DisposeErrors();
+
+        Assert.Equal(ErrorCollection.PoolingThreshold + 4, source.ErrorCount);
+    }
+
+    [Fact]
+    public void ASmallFailureIsCarriedThroughWithoutCopying()
+    {
+        // Nothing to alias below the pooling threshold, so Detach returns the
+        // same collection and the common case stays free.
+        var source = MultiResult<int>.Failure(new Error("A", "a"), new Error("B", "b"));
+        var derived = source.Map(x => x.ToString());
+
+        source.DisposeErrors();
+
+        Assert.Equal(2, derived.ErrorCount);
+        Assert.False(derived.ErrorsDisposed);
+    }
+
+    [Fact]
+    public void ErrorsDisposedReportsHonestlyOnBothSides()
+    {
+        var source = PooledFailure();
+        var derived = source.Map(x => x.ToString());
+
+        source.DisposeErrors();
+
+        Assert.True(source.ErrorsDisposed);
+        Assert.False(derived.ErrorsDisposed);
+    }
+}

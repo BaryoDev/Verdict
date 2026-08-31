@@ -36,10 +36,25 @@ public class VerdictProblemDetailsOptions
     public bool IncludeErrorMessage { get; set; } = true;
 
     /// <summary>
-    /// Gets or sets the generic message to use for server errors when IncludeErrorMessage is false.
+    /// Gets or sets the message sent in place of a suppressed one.
     /// Default is "An unexpected error occurred."
     /// </summary>
-    public string GenericServerErrorMessage { get; set; } = "An unexpected error occurred.";
+    /// <remarks>
+    /// Applies whenever the real message is withheld, which is now any status
+    /// code rather than only 5xx. Before, suppression keyed on the status, so an
+    /// exception-derived error that mapped to 400 was never suppressed at all.
+    /// </remarks>
+    public string GenericErrorMessage { get; set; } = "An unexpected error occurred.";
+
+    /// <summary>
+    /// Gets or sets the message sent in place of a suppressed one.
+    /// </summary>
+    [System.Obsolete("Renamed to GenericErrorMessage, because it now applies to any suppressed message rather than only server errors.")]
+    public string GenericServerErrorMessage
+    {
+        get => GenericErrorMessage;
+        set => GenericErrorMessage = value;
+    }
 
     /// <summary>
     /// Gets or sets whether to include stack trace information for exceptions.

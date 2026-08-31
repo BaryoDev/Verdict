@@ -2,10 +2,14 @@ namespace Verdict
 {
     public readonly struct Error : System.IEquatable<Verdict.Error>
     {
+        public const int MaxMessageLength = 4096;
+        public const string TruncationMarker = "... [truncated]";
+        public const string UnhandledExceptionCode = "UNHANDLED_EXCEPTION";
         public Error(string code, string message, System.Exception? exception = null) { }
         public string Code { get; }
         public System.Exception? Exception { get; }
         public string Message { get; }
+        public override string ToString() { }
         public Verdict.Error WithException(System.Exception exception) { }
         public static Verdict.Error Create(string code, string message) { }
         public static Verdict.Error Create(string code, string message, System.Exception exception) { }

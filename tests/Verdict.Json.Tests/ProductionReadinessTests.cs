@@ -97,18 +97,20 @@ public class ProductionReadinessTests
     }
 
     [Fact]
-    public void Serialize_WithNewlines_ShouldHandle()
+    public void Serialize_WithNewlines_ShouldRoundTripTheNeutralisedMessage()
     {
-        // Arrange
+        // Changed in 3.0. Newlines are replaced at construction, because a
+        // carriage return in a message forges a line in any plain-text log sink.
+        // What matters here is that whatever the error holds survives the round
+        // trip, and it does.
         var result = Result<string>.Failure("ERROR", "Line1\nLine2\r\nLine3");
 
-        // Act
         var json = JsonSerializer.Serialize(result, _options);
         var restored = JsonSerializer.Deserialize<Result<string>>(json, _options);
 
-        // Assert
         restored.IsFailure.Should().BeTrue();
-        restored.Error.Message.Should().Be("Line1\nLine2\r\nLine3");
+        restored.Error.Message.Should().Be("Line1 Line2  Line3");
+        restored.Error.Message.Should().Be(result.Error.Message);
     }
 
     #endregion
@@ -144,7 +146,9 @@ public class ProductionReadinessTests
 
         // Assert
         restored.IsFailure.Should().BeTrue();
-        restored.Error.Message.Should().HaveLength(50_000);
+        // Changed in 3.0. The message is bounded at construction, so the round
+        // trip carries the bounded message rather than the original length.
+        restored.Error.Message.Should().HaveLength(Error.MaxMessageLength);
     }
 
     #endregion
@@ -191,17 +195,18 @@ public class ProductionReadinessTests
     }
 
     [Fact]
-    public void Deserialize_SuccessWithoutValue_ShouldUseDefault()
+    public void Deserialize_SuccessWithoutValue_ShouldThrow()
     {
-        // Arrange - success but no value field (for value types this should work)
+        // Changed in 3.0. This used to assert that a success with no value
+        // silently became default(T), which for Result<Uri> meant a success
+        // carrying null travelling on instead of being rejected at the edge.
+        // The test directly below has always required an error on the failure
+        // branch; the two are symmetric now.
         var json = "{\"isSuccess\":true}";
 
-        // Act
-        var result = JsonSerializer.Deserialize<Result<int>>(json, _options);
+        var act = () => JsonSerializer.Deserialize<Result<int>>(json, _options);
 
-        // Assert
-        result.IsSuccess.Should().BeTrue();
-        result.Value.Should().Be(0); // default(int)
+        act.Should().Throw<JsonException>();
     }
 
     [Fact]

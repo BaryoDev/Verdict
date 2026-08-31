@@ -52,7 +52,7 @@ public class ProblemDetailsFactoryTests
     {
         // Arrange
         var ex = new InvalidOperationException("Inner error");
-        var error = Error.FromException(ex);
+        var error = Error.FromException(ex, sanitize: false);
         var options = new VerdictProblemDetailsOptions { IncludeExceptionDetails = true };
 
         // Act
@@ -67,7 +67,7 @@ public class ProblemDetailsFactoryTests
     {
         // Arrange
         var ex = new InvalidOperationException("Inner error");
-        var error = Error.FromException(ex);
+        var error = Error.FromException(ex, sanitize: false);
 
         // Act
         var problem = ProblemDetailsFactory.CreateFromError(error, 500);

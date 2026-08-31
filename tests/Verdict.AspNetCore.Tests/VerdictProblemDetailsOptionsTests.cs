@@ -49,7 +49,7 @@ public class VerdictProblemDetailsOptionsTests : IDisposable
     {
         // Arrange
         var exception = new InvalidOperationException("Test exception");
-        var error = Error.FromException(exception);
+        var error = Error.FromException(exception, sanitize: false);
         var options = new VerdictProblemDetailsOptions { IncludeExceptionDetails = false };
 
         // Act
@@ -65,7 +65,7 @@ public class VerdictProblemDetailsOptionsTests : IDisposable
     {
         // Arrange
         var exception = new InvalidOperationException("Test exception");
-        var error = Error.FromException(exception);
+        var error = Error.FromException(exception, sanitize: false);
         var options = new VerdictProblemDetailsOptions { IncludeExceptionDetails = true };
 
         // Act
@@ -89,7 +89,7 @@ public class VerdictProblemDetailsOptionsTests : IDisposable
         {
             exception = ex;
         }
-        var error = Error.FromException(exception);
+        var error = Error.FromException(exception, sanitize: false);
         var options = new VerdictProblemDetailsOptions 
         { 
             IncludeExceptionDetails = true, 
@@ -125,7 +125,7 @@ public class VerdictProblemDetailsOptionsTests : IDisposable
         var options = new VerdictProblemDetailsOptions 
         { 
             IncludeErrorMessage = false,
-            GenericServerErrorMessage = "A server error occurred. Please try again later."
+            GenericErrorMessage = "A server error occurred. Please try again later."
         };
 
         // Act
@@ -136,17 +136,34 @@ public class VerdictProblemDetailsOptionsTests : IDisposable
     }
 
     [Fact]
-    public void CreateFromError_ClientError_WithIncludeErrorMessageFalse_ShouldStillIncludeMessage()
+    public void CreateFromError_ClientError_WithIncludeErrorMessageFalse_ShouldSuppressMessage()
     {
-        // Arrange - Client errors (4xx) should still show the message even when IncludeErrorMessage is false
+        // Changed in 3.0. Suppression used to key on statusCode >= 500, so a 4xx
+        // kept its message whatever this option said. An error built from an
+        // exception maps to 400 unless someone maps it, so the option could never
+        // suppress the messages it existed for.
         var error = new Error("VALIDATION_ERROR", "Email is required");
         var options = new VerdictProblemDetailsOptions { IncludeErrorMessage = false };
 
-        // Act
         var problemDetails = ProblemDetailsFactory.CreateFromError(error, 400, options);
 
-        // Assert
-        problemDetails.Detail.Should().Be("Email is required");
+        problemDetails.Detail.Should().Be("An unexpected error occurred.");
+    }
+
+    [Fact]
+    public void GenericServerErrorMessage_StillForwardsToTheNewName()
+    {
+        // Renamed in 3.0 because it now applies to any suppressed message rather
+        // than only 5xx. The old name keeps working so an upgrade is not a
+        // compile break, and this is what says so.
+        var options = new VerdictProblemDetailsOptions();
+
+#pragma warning disable CS0618
+        options.GenericServerErrorMessage = "hidden";
+
+        options.GenericErrorMessage.Should().Be("hidden");
+        options.GenericServerErrorMessage.Should().Be("hidden");
+#pragma warning restore CS0618
     }
 
     [Fact]
@@ -160,7 +177,7 @@ public class VerdictProblemDetailsOptionsTests : IDisposable
         options.IncludeStackTrace.Should().BeFalse();
         options.IncludeErrorCode.Should().BeTrue();
         options.IncludeErrorMessage.Should().BeTrue();
-        options.GenericServerErrorMessage.Should().Be("An unexpected error occurred.");
+        options.GenericErrorMessage.Should().Be("An unexpected error occurred.");
     }
 
     [Fact]
@@ -170,7 +187,7 @@ public class VerdictProblemDetailsOptionsTests : IDisposable
         var customOptions = new VerdictProblemDetailsOptions
         {
             IncludeErrorCode = false,
-            GenericServerErrorMessage = "Custom error"
+            GenericErrorMessage = "Custom error"
         };
 
         // Act

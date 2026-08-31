@@ -59,6 +59,17 @@ public readonly struct MultiResult<T>
     internal ErrorCollection ErrorCollection => _errors;
 
     /// <summary>
+    /// Gets whether the errors have already been returned to the pool, in which
+    /// case reading <see cref="Errors"/> or <see cref="ErrorCount"/> throws.
+    /// </summary>
+    /// <remarks>
+    /// Public because a combinator hands out results that share one collection,
+    /// so a caller can hold a result whose errors were released by code it never
+    /// wrote. Anything rendering a failure needs to be able to ask before it reads.
+    /// </remarks>
+    public bool ErrorsDisposed => _errors.IsDisposed;
+
+    /// <summary>
     /// Gets the value if successful, or default(T) if failed.
     /// </summary>
     public T? ValueOrDefault => _isSuccess ? _value : default;
@@ -139,10 +150,20 @@ public readonly struct MultiResult<T>
     /// <summary>
     /// Returns a string representation of the result.
     /// </summary>
+    /// <remarks>
+    /// Reads the disposed flag first and then a count that cannot throw. Reading
+    /// <see cref="ErrorCount"/> instead left a window: another struct copy
+    /// calling <c>DisposeErrors</c> between the two reads made this throw, which
+    /// is the thing it exists to prevent. A ToString that throws breaks the
+    /// debugger and the log line in exactly the situation you are trying to
+    /// understand.
+    /// </remarks>
     public override string ToString() =>
         _isSuccess
             ? $"Success({_value})"
-            : $"Failure({_errors.Count} error(s))";
+            : _errors.IsDisposed
+                ? "Failure(errors released)"
+                : $"Failure({_errors.RawCount} error(s))";
 
     /// <summary>
     /// Deconstructs the result into its components for pattern matching.
@@ -203,6 +224,17 @@ public readonly struct MultiResult
     /// Use DisposeErrors() to return pooled arrays to the pool when done.
     /// </summary>
     internal ErrorCollection ErrorCollection => _errors;
+
+    /// <summary>
+    /// Gets whether the errors have already been returned to the pool, in which
+    /// case reading <see cref="Errors"/> or <see cref="ErrorCount"/> throws.
+    /// </summary>
+    /// <remarks>
+    /// Public because a combinator hands out results that share one collection,
+    /// so a caller can hold a result whose errors were released by code it never
+    /// wrote. Anything rendering a failure needs to be able to ask before it reads.
+    /// </remarks>
+    public bool ErrorsDisposed => _errors.IsDisposed;
 
     private MultiResult(bool isSuccess)
     {
@@ -273,10 +305,20 @@ public readonly struct MultiResult
     /// <summary>
     /// Returns a string representation of the result.
     /// </summary>
+    /// <remarks>
+    /// Reads the disposed flag first and then a count that cannot throw. Reading
+    /// <see cref="ErrorCount"/> instead left a window: another struct copy
+    /// calling <c>DisposeErrors</c> between the two reads made this throw, which
+    /// is the thing it exists to prevent. A ToString that throws breaks the
+    /// debugger and the log line in exactly the situation you are trying to
+    /// understand.
+    /// </remarks>
     public override string ToString() =>
         _isSuccess
             ? "Success"
-            : $"Failure({_errors.Count} error(s))";
+            : _errors.IsDisposed
+                ? "Failure(errors released)"
+                : $"Failure({_errors.RawCount} error(s))";
 
     /// <summary>
     /// Deconstructs the result into its components for pattern matching.

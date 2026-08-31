@@ -17,4 +17,12 @@
     <ProjectReference Include="..\Verdict\Verdict.csproj" />
   </ItemGroup>
 
+  <!-- ValueTask is in the box from net8.0 onwards. On netstandard2.0 it needs
+       this, the same way Verdict.Extensions needs System.Memory for ArrayPool.
+       Microsoft-owned and tiny, and the alternative is a ValueTask API that
+       exists on one target and not the other. -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
+    <PackageReference Include="System.Threading.Tasks.Extensions" Version="4.6.3" />
+  </ItemGroup>
+
 </Project>

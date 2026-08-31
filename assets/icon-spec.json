@@ -1,0 +1,198 @@
+{
+  "size": 128,
+  "out": "/private/tmp/claude-501/-Users-arnelirobles/46f2e1b7-f05c-4695-aeb2-a77981750ec0/scratchpad/icons/out",
+  "icons": [
+    {
+      "name": "verdict-slate",
+      "bg": "slate",
+      "layers": [
+        {
+          "fill": "white",
+          "d": "M39.37 63.73 L89.37 38.73 L78.63 17.27 L28.63 42.27 Z"
+        },
+        {
+          "fill": "white",
+          "circle": [
+            34,
+            53,
+            12
+          ]
+        },
+        {
+          "fill": "white",
+          "circle": [
+            84,
+            28,
+            12
+          ]
+        },
+        {
+          "fill": "white",
+          "d": "M62.26 40.87 L80.26 76.87 L67.74 83.13 L49.74 47.13 Z"
+        },
+        {
+          "fill": "white",
+          "circle": [
+            74,
+            80,
+            7
+          ]
+        },
+        {
+          "fill": "gold",
+          "rect": [
+            26,
+            94,
+            76,
+            15,
+            7.5
+          ]
+        }
+      ]
+    },
+    {
+      "name": "verdict-teal",
+      "bg": "teal",
+      "layers": [
+        {
+          "fill": "white",
+          "d": "M39.37 63.73 L89.37 38.73 L78.63 17.27 L28.63 42.27 Z"
+        },
+        {
+          "fill": "white",
+          "circle": [
+            34,
+            53,
+            12
+          ]
+        },
+        {
+          "fill": "white",
+          "circle": [
+            84,
+            28,
+            12
+          ]
+        },
+        {
+          "fill": "white",
+          "d": "M62.26 40.87 L80.26 76.87 L67.74 83.13 L49.74 47.13 Z"
+        },
+        {
+          "fill": "white",
+          "circle": [
+            74,
+            80,
+            7
+          ]
+        },
+        {
+          "fill": "gold",
+          "rect": [
+            26,
+            94,
+            76,
+            15,
+            7.5
+          ]
+        }
+      ]
+    },
+    {
+      "name": "verdict-purple",
+      "bg": "purple",
+      "layers": [
+        {
+          "fill": "white",
+          "d": "M39.37 63.73 L89.37 38.73 L78.63 17.27 L28.63 42.27 Z"
+        },
+        {
+          "fill": "white",
+          "circle": [
+            34,
+            53,
+            12
+          ]
+        },
+        {
+          "fill": "white",
+          "circle": [
+            84,
+            28,
+            12
+          ]
+        },
+        {
+          "fill": "white",
+          "d": "M62.26 40.87 L80.26 76.87 L67.74 83.13 L49.74 47.13 Z"
+        },
+        {
+          "fill": "white",
+          "circle": [
+            74,
+            80,
+            7
+          ]
+        },
+        {
+          "fill": "gold",
+          "rect": [
+            26,
+            94,
+            76,
+            15,
+            7.5
+          ]
+        }
+      ]
+    },
+    {
+      "name": "verdict-blue",
+      "bg": "blue",
+      "layers": [
+        {
+          "fill": "white",
+          "d": "M39.37 63.73 L89.37 38.73 L78.63 17.27 L28.63 42.27 Z"
+        },
+        {
+          "fill": "white",
+          "circle": [
+            34,
+            53,
+            12
+          ]
+        },
+        {
+          "fill": "white",
+          "circle": [
+            84,
+            28,
+            12
+          ]
+        },
+        {
+          "fill": "white",
+          "d": "M62.26 40.87 L80.26 76.87 L67.74 83.13 L49.74 47.13 Z"
+        },
+        {
+          "fill": "white",
+          "circle": [
+            74,
+            80,
+            7
+          ]
+        },
+        {
+          "fill": "gold",
+          "rect": [
+            26,
+            94,
+            76,
+            15,
+            7.5
+          ]
+        }
+      ]
+    }
+  ]
+}

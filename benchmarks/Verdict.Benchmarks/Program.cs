@@ -297,16 +297,12 @@ public class Program
 {
     public static void Main(string[] args)
     {
-        Console.WriteLine("Running Verdict Benchmarks...\n");
-        
-        // Run competitive benchmarks by default
-        var summary = BenchmarkRunner.Run<CompetitiveBenchmarks>();
-        
-        // Optionally run JSON benchmarks
-        if (args.Contains("--json"))
-        {
-            Console.WriteLine("\nRunning JSON Serialization Benchmarks...\n");
-            BenchmarkRunner.Run<JsonSerializationBenchmarks>();
-        }
+        // args is handed to BenchmarkDotNet rather than inspected here. Without
+        // this every switch was discarded: the scheduled workflow asks for
+        // --filter "*" and --exporters json markdown and got neither, so the
+        // JSON benchmarks never ran and the requested export never appeared.
+        BenchmarkSwitcher
+            .FromAssembly(typeof(Program).Assembly)
+            .Run(args.Length > 0 ? args : new[] { "--filter", "*" });
     }
 }

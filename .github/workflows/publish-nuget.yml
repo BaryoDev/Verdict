@@ -40,16 +40,30 @@ jobs:
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "Version from Directory.Build.props: $VERSION"
 
-      - name: Confirm tag matches the version in source
-        if: startsWith(github.ref, 'refs/tags/v')
+      # Runs unconditionally. A publish that is not from a tag fails here rather
+      # than silently skipping the push step and looking like a success.
+      - name: Confirm this publish is from a matching tag
         env:
           TAG: ${{ github.ref_name }}
           VERSION: ${{ steps.version.outputs.version }}
+          IS_TAG: ${{ startsWith(github.ref, 'refs/tags/v') }}
+          DRY_RUN: ${{ inputs.dry_run }}
         run: |
-          if [ "$TAG" != "v$VERSION" ]; then
-            echo "Tag $TAG does not match VersionPrefix $VERSION" >&2
+          if [ "$IS_TAG" = "true" ]; then
+            if [ "$TAG" != "v$VERSION" ]; then
+              echo "::error::Tag $TAG does not match VersionPrefix $VERSION"
+              exit 1
+            fi
+            echo "Tag $TAG matches VersionPrefix $VERSION."
+            exit 0
+          fi
+
+          # Not a tag. Packing and dry running is fine; publishing is not.
+          if [ "$DRY_RUN" = "false" ]; then
+            echo "::error::Refusing to publish from $GITHUB_REF. Push a v$VERSION tag instead."
             exit 1
           fi
+          echo "Not a tag, and dry_run is on. Packing only."
 
       - run: dotnet restore
 
@@ -87,8 +101,10 @@ jobs:
           fi
           echo "Trusted publishing OK: short-lived key issued."
 
+      # Belt and braces: the guard step above already fails an untagged publish,
+      # and this makes the push itself unreachable from a branch.
       - name: Publish
-        if: ${{ !inputs.dry_run }}
+        if: ${{ startsWith(github.ref, 'refs/tags/v') && !inputs.dry_run }}
         run: |
           dotnet nuget push ./nupkgs/*.nupkg \
             --api-key "${{ steps.nuget_login.outputs.NUGET_API_KEY }}" \

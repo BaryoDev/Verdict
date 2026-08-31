@@ -49,6 +49,117 @@ public static class ResultExtensions
     }
 
     /// <summary>
+    /// Converts Result{T} to IResult using the configuration registered in this
+    /// request's container.
+    /// </summary>
+    /// <remarks>
+    /// The overloads without an <see cref="HttpContext"/> read process-wide
+    /// statics, so two applications hosted in one process share one configuration
+    /// and the last registration wins. <c>AddVerdictProblemDetails</c> registered
+    /// <see cref="IErrorStatusCodeMapper"/> and <see cref="IVerdictProblemDetailsFactory"/>
+    /// but nothing resolved them, which is what made the container-scoped half of
+    /// that fix unreachable. This is the overload that reaches it.
+    /// <para>
+    /// Falls back to the statics when neither service is registered, so it is safe
+    /// to call from an application that never called <c>AddVerdictProblemDetails</c>.
+    /// </para>
+    /// </remarks>
+    /// <typeparam name="T">The result value type.</typeparam>
+    /// <param name="result">The result to convert.</param>
+    /// <param name="context">The current request, used to resolve the registered configuration.</param>
+    /// <param name="successStatusCode">HTTP status code for success (default: 200).</param>
+    /// <returns>An IResult for Minimal API endpoints.</returns>
+    public static IResult ToHttpResult<T>(
+        this Result<T> result,
+        HttpContext context,
+        int successStatusCode = 200)
+    {
+        if (context is null) throw new ArgumentNullException(nameof(context));
+
+        if (result.IsSuccess)
+        {
+            return Results.Json(result.Value, statusCode: successStatusCode);
+        }
+
+        var (statusCode, problemDetails) = Describe(context, result.Error);
+        return Results.Json(problemDetails, statusCode: statusCode, contentType: "application/problem+json");
+    }
+
+    /// <summary>
+    /// Converts a non-generic Result to IResult using the configuration
+    /// registered in this request's container.
+    /// </summary>
+    /// <param name="result">The result to convert.</param>
+    /// <param name="context">The current request, used to resolve the registered configuration.</param>
+    /// <param name="successStatusCode">HTTP status code for success (default: 204).</param>
+    /// <returns>An IResult for Minimal API endpoints.</returns>
+    public static IResult ToHttpResult(
+        this Result result,
+        HttpContext context,
+        int successStatusCode = 204)
+    {
+        if (context is null) throw new ArgumentNullException(nameof(context));
+
+        if (result.IsSuccess)
+        {
+            return Results.StatusCode(successStatusCode);
+        }
+
+        var (statusCode, problemDetails) = Describe(context, result.Error);
+        return Results.Json(problemDetails, statusCode: statusCode, contentType: "application/problem+json");
+    }
+
+    /// <summary>
+    /// Converts Result{T} to ActionResult using the configuration registered in
+    /// this request's container.
+    /// </summary>
+    /// <typeparam name="T">The result value type.</typeparam>
+    /// <param name="result">The result to convert.</param>
+    /// <param name="context">The current request, used to resolve the registered configuration.</param>
+    /// <param name="successStatusCode">HTTP status code for success (default: 200).</param>
+    /// <returns>An ActionResult for MVC controllers.</returns>
+    public static ActionResult<T> ToActionResult<T>(
+        this Result<T> result,
+        HttpContext context,
+        int successStatusCode = 200)
+    {
+        if (context is null) throw new ArgumentNullException(nameof(context));
+
+        if (result.IsSuccess)
+        {
+            return new ObjectResult(result.Value) { StatusCode = successStatusCode };
+        }
+
+        var (statusCode, problemDetails) = Describe(context, result.Error);
+        // RFC 7807 says a problem document is application/problem+json. The
+        // minimal API paths have always set it; these three did not, so the same
+        // error reached a client differently depending on which one produced it.
+        var payload = new ObjectResult(problemDetails) { StatusCode = statusCode };
+        payload.ContentTypes.Add("application/problem+json");
+        return payload;
+    }
+
+    /// <summary>
+    /// Resolves the container's mapper and factory, falling back to the statics.
+    /// </summary>
+    private static (int StatusCode, ProblemDetails Details) Describe(HttpContext context, Error error)
+    {
+        var services = context.RequestServices;
+
+        var mapper = services?.GetService(typeof(IErrorStatusCodeMapper)) as IErrorStatusCodeMapper;
+        var statusCode = mapper is not null
+            ? mapper.GetStatusCode(error)
+            : ErrorStatusCodeMapper.GetStatusCode(error);
+
+        var factory = services?.GetService(typeof(IVerdictProblemDetailsFactory)) as IVerdictProblemDetailsFactory;
+        var details = factory is not null
+            ? factory.CreateFromError(error, statusCode)
+            : ProblemDetailsFactory.CreateFromError(error, statusCode);
+
+        return (statusCode, details);
+    }
+
+    /// <summary>
     /// Converts Result{T} to ActionResult (MVC Controllers).
     /// </summary>
     /// <typeparam name="T">The result value type.</typeparam>
@@ -100,7 +211,12 @@ public static class ResultExtensions
             ?? ErrorStatusCodeMapper.GetStatusCode(result.Error);
 
         var problemDetails = ProblemDetailsFactory.CreateFromError(result.Error, statusCode);
-        return new ObjectResult(problemDetails) { StatusCode = statusCode };
+        // RFC 7807 says a problem document is application/problem+json. The
+        // minimal API paths have always set it; these three did not, so the same
+        // error reached a client differently depending on which one produced it.
+        var payload = new ObjectResult(problemDetails) { StatusCode = statusCode };
+        payload.ContentTypes.Add("application/problem+json");
+        return payload;
     }
 
     /// <summary>
@@ -134,6 +250,11 @@ public static class ResultExtensions
 
         var statusCode = ErrorStatusCodeMapper.GetStatusCode(result.Error);
         var problemDetails = ProblemDetailsFactory.CreateFromError(result.Error, statusCode);
-        return new ObjectResult(problemDetails) { StatusCode = statusCode };
+        // RFC 7807 says a problem document is application/problem+json. The
+        // minimal API paths have always set it; these three did not, so the same
+        // error reached a client differently depending on which one produced it.
+        var payload = new ObjectResult(problemDetails) { StatusCode = statusCode };
+        payload.ContentTypes.Add("application/problem+json");
+        return payload;
     }
 }
