@@ -186,7 +186,7 @@ is deterministic, so that is gated on every push instead.
 |---|---|---|
 | net8.0 | yes | yes, the whole suite |
 | netstandard2.0 | yes | yes, via `tests/Verdict.NetStandard.Tests` |
-| .NET 10 runtime | via the net8.0 assets | yes, second CI leg |
+| net10.0 | via the net8.0 assets | yes, the suite multi-targets it |
 
 Native AOT and trimming: every package is annotated `IsTrimmable` and
 `IsAotCompatible`, and `tests/Verdict.Aot.Smoke` is a `PublishAot` console app

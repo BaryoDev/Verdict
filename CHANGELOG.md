@@ -100,9 +100,11 @@ need an edit; the rest do not.
 
 ### Changed
 
-- **CI runs the suite on .NET 10 as well as .NET 8**, installing only the matrix
-  SDK so the net8.0 assets genuinely roll forward rather than silently re-running
-  on 8.0. (#38)
+- **The suite runs on .NET 10 as well as .NET 8.** Every test project targets
+  both, and CI fails if the two counts do not match. A matrix leg with
+  `DOTNET_ROLL_FORWARD` was tried first and did nothing: the hosted image ships
+  .NET 8, 9 and 10, roll-forward never engages when an exact match is present, so
+  both legs ran the net8.0 assets on .NET 8. (#38)
 - **Coverage has a floor.** The nine Cobertura reports are merged first, because
   each lists every package and a naive sum lands nowhere near the truth. Measured
   76%, not the 98.4% the badge claimed. (#40)

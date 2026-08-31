@@ -10,23 +10,6 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
-    strategy:
-      fail-fast: false
-      matrix:
-        # The libraries target net8.0 and netstandard2.0. Running the suite on
-        # the .NET 10 runtime as well proves the shipped net8.0 assets keep
-        # working there, which is what a consumer on the current LTS actually does.
-        dotnet: ["8.0.x", "10.0.x"]
-
-    name: build (${{ matrix.dotnet }})
-
-    env:
-      # Only the matrix SDK is installed, so on the 10.0.x leg the net8.0 test
-      # assemblies have no 8.0 runtime to load and roll forward to 10 instead.
-      # Installing both runtimes would make that leg silently re-run on 8.0,
-      # which is a gate that cannot fail.
-      DOTNET_ROLL_FORWARD: LatestMajor
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -34,18 +17,9 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: ${{ matrix.dotnet }}
-
-      # The evidence that the 10.0.x leg is not quietly re-running on 8.0. If an
-      # 8.0 runtime appears in this list, roll-forward never happened and this
-      # leg is testing the same thing as the other one.
-      - name: Show the runtimes the tests can load
-        run: |
-          dotnet --list-runtimes
-          if [ "${{ matrix.dotnet }}" != "8.0.x" ] && dotnet --list-runtimes | grep -q "Microsoft.NETCore.App 8\."; then
-            echo "::error::A .NET 8 runtime is installed on the ${{ matrix.dotnet }} leg, so the net8.0 assets will load there instead of rolling forward."
-            exit 1
-          fi
+          dotnet-version: |
+            8.0.x
+            10.0.x
 
       - name: Restore dependencies
         run: dotnet restore
@@ -53,27 +27,45 @@ jobs:
       - name: Build
         run: dotnet build --configuration Release --no-restore
 
+      # The test projects multi-target net8.0 and net10.0, so one run covers both
+      # runtimes. An earlier version of this used a matrix and set
+      # DOTNET_ROLL_FORWARD, which did nothing: the hosted image ships .NET 8, 9
+      # and 10, roll-forward never engages when an exact match is present, and
+      # both legs ran the net8.0 assets on .NET 8. Targeting the framework is the
+      # only thing that actually moves the runtime.
       - name: Test
         run: >
           dotnet test --configuration Release --no-build --verbosity normal
           --collect:"XPlat Code Coverage" --results-directory ./TestResults
+          | tee test-output.txt
 
-      # The suite is split over nine projects and each writes its own report
+      - name: Confirm both runtimes were exercised
+        run: |
+          NET8=$(grep -c "(net8.0)" test-output.txt || true)
+          NET10=$(grep -c "(net10.0)" test-output.txt || true)
+          echo "test assemblies run on net8.0: $NET8, on net10.0: $NET10"
+          if [ "$NET8" -lt 1 ] || [ "$NET10" -lt 1 ]; then
+            echo "::error::Expected the suite to run on both net8.0 and net10.0. Got $NET8 and $NET10."
+            exit 1
+          fi
+          if [ "$NET8" -ne "$NET10" ]; then
+            echo "::error::$NET8 assemblies ran on net8.0 but $NET10 on net10.0. A project is missing a target."
+            exit 1
+          fi
+
+      # The suite is split over twelve projects and each writes its own report
       # listing every package, so this merges them before checking. Without the
       # merge the number is meaningless and no threshold could be trusted.
       - name: Coverage floor
-        if: matrix.dotnet == '8.0.x'
         run: python3 build/coverage-gate.py ./TestResults 75
 
       # The AOT claim, re-proved on every push. Library annotations do not prove
       # that the ILC compiler accepts the packages, and they do not prove the
       # binary behaves. Publishing it and running it does both.
       - name: Native AOT publish and run
-        if: matrix.dotnet == '8.0.x'
         run: |
           dotnet publish tests/Verdict.Aot.Smoke -c Release -r linux-x64 --nologo
           BINARY=tests/Verdict.Aot.Smoke/bin/Release/net8.0/linux-x64/native/Verdict.Aot.Smoke
-          ls -l "$BINARY"
           SIZE=$(stat -c%s "$BINARY")
           echo "Native binary: $SIZE bytes"
           # A tripwire rather than a precise claim. The point is to notice if
@@ -85,7 +77,6 @@ jobs:
           "$BINARY"
 
       - name: Upload coverage reports to Codecov
-        if: matrix.dotnet == '8.0.x'
         uses: codecov/codecov-action@v4
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
