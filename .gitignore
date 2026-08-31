@@ -12,7 +12,9 @@ obj/
 # NuGet
 *.nupkg
 *.snupkg
-packages/
+# Anchored to the root. Unanchored, this also swallowed docs/packages/, and
+# git add -A skipped eight committed-looking files without saying anything.
+/packages/
 .nuget/
 
 # BenchmarkDotNet
