@@ -33,16 +33,22 @@ jobs:
       # and 10, roll-forward never engages when an exact match is present, and
       # both legs ran the net8.0 assets on .NET 8. Targeting the framework is the
       # only thing that actually moves the runtime.
+      # pipefail, because tee returns its own exit code and would otherwise
+      # swallow a failing test run entirely.
       - name: Test
-        run: >
-          dotnet test --configuration Release --no-build --verbosity normal
-          --collect:"XPlat Code Coverage" --results-directory ./TestResults
-          | tee test-output.txt
+        run: |
+          set -o pipefail
+          dotnet test --configuration Release --no-build --verbosity normal \
+            --collect:"XPlat Code Coverage" --results-directory ./TestResults \
+            | tee test-output.txt
 
       - name: Confirm both runtimes were exercised
         run: |
-          NET8=$(grep -c "(net8.0)" test-output.txt || true)
-          NET10=$(grep -c "(net10.0)" test-output.txt || true)
+          # "Test run for ... (.NETCoreApp,Version=v8.0)" is what dotnet test
+          # prints per assembly. The per-project summary line uses a different
+          # form depending on verbosity, so match the one that is always there.
+          NET8=$(grep -c "Version=v8.0)" test-output.txt || true)
+          NET10=$(grep -c "Version=v10.0)" test-output.txt || true)
           echo "test assemblies run on net8.0: $NET8, on net10.0: $NET10"
           if [ "$NET8" -lt 1 ] || [ "$NET10" -lt 1 ]; then
             echo "::error::Expected the suite to run on both net8.0 and net10.0. Got $NET8 and $NET10."
