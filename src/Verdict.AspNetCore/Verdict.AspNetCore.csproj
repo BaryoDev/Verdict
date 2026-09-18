@@ -9,7 +9,7 @@
     <!-- Not trim or AOT safe, and saying so is the honest thing. Every path here
          ends in Results.Json(T), which serialises an arbitrary T reflectively;
          making it safe means taking a JsonTypeInfo through the public API. That
-         is a design change, not a build setting, and it is tracked separately.
+         is a design change, not a build setting, and it is tracked in #61.
          Until then the analyser stays off HERE and only here, so the rest of the
          libraries keep theirs armed.
 
