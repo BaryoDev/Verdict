@@ -63,9 +63,9 @@ public readonly struct MultiResult<T>
     /// case reading <see cref="Errors"/> or <see cref="ErrorCount"/> throws.
     /// </summary>
     /// <remarks>
-    /// Public because a combinator hands out results that share one collection,
-    /// so a caller can hold a result whose errors were released by code it never
-    /// wrote. Anything rendering a failure needs to be able to ask before it reads.
+    /// Public because a caller can hold a result whose errors were released by
+    /// code it never wrote, for instance a copy of the same struct. Anything
+    /// rendering a failure needs to be able to ask before it reads.
     /// </remarks>
     public bool ErrorsDisposed => _errors.IsDisposed;
 
@@ -179,6 +179,7 @@ public readonly struct MultiResult<T>
     /// Disposes the underlying error collection to return pooled arrays to the pool.
     /// Only call this if the result was created with ErrorCollection.Create(IEnumerable) which uses ArrayPool.
     /// IMPORTANT: Do not call this if you have copies of this struct, as they share the same ErrorCollection.
+    /// Results produced by a combinator such as Map or Bind own separate storage and are disposed independently.
     /// </summary>
     public void DisposeErrors()
     {
@@ -230,9 +231,9 @@ public readonly struct MultiResult
     /// case reading <see cref="Errors"/> or <see cref="ErrorCount"/> throws.
     /// </summary>
     /// <remarks>
-    /// Public because a combinator hands out results that share one collection,
-    /// so a caller can hold a result whose errors were released by code it never
-    /// wrote. Anything rendering a failure needs to be able to ask before it reads.
+    /// Public because a caller can hold a result whose errors were released by
+    /// code it never wrote, for instance a copy of the same struct. Anything
+    /// rendering a failure needs to be able to ask before it reads.
     /// </remarks>
     public bool ErrorsDisposed => _errors.IsDisposed;
 
@@ -333,6 +334,7 @@ public readonly struct MultiResult
     /// Disposes the underlying error collection to return pooled arrays to the pool.
     /// Only call this if the result was created with ErrorCollection.Create(IEnumerable) which uses ArrayPool.
     /// IMPORTANT: Do not call this if you have copies of this struct, as they share the same ErrorCollection.
+    /// Results produced by a combinator such as Map or Bind own separate storage and are disposed independently.
     /// </summary>
     public void DisposeErrors()
     {

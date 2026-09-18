@@ -30,9 +30,11 @@ carries one error, and carrying several needs somewhere to put them.
 
 Below the threshold the pool saved eight bytes when the caller got disposal right
 and cost four hundred when they did not, and forgetting is the default outcome
-for a struct that cannot be used with `using`. Above the ceiling the rented array
-is on the large object heap and `ArrayPool.Shared` keeps it for the life of the
-process.
+for a struct that cannot be used with `using`. Above the ceiling a rented array
+would sit on the large object heap and `ArrayPool.Shared` would keep it for the
+life of the process. Neither band is pooled, so in both there is nothing to
+dispose. Only the 9 to 1024 band rents, and only there does `DisposeErrors()`
+do any work.
 
 Nothing is dropped at any size. The bound is on what goes into the pool, not on
 what you get back.

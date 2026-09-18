@@ -57,7 +57,7 @@ public class MultiResultToStringTests
 public class MultiResultToStringRaceTests
 {
     [Fact]
-    public void ToStringNeverThrowsWhileAnotherCopyIsBeingDisposed()
+    public async System.Threading.Tasks.Task ToStringNeverThrowsWhileAnotherCopyIsBeingDisposed()
     {
         // The two reads used to be IsDisposed and then Count, and Count throws
         // once the buffer is released. A copy disposing between them turned the
@@ -87,7 +87,7 @@ public class MultiResultToStringRaceTests
                 copy.DisposeErrors();
             });
 
-            System.Threading.Tasks.Task.WaitAll(reader, disposer);
+            await System.Threading.Tasks.Task.WhenAll(reader, disposer);
 
             Assert.Null(thrown);
             Assert.NotNull(text);
