@@ -196,7 +196,10 @@ Native AOT and trimming: every package except `Verdict.AspNetCore` is annotated
 `tests/Verdict.Aot.Smoke` is a `PublishAot` console app that CI publishes and
 runs on every push. `Verdict.AspNetCore` is explicitly neither: every path ends
 in `Results.Json(T)`, which serialises an arbitrary `T` reflectively, so it
-cannot be trim safe without taking a `JsonTypeInfo` through its public API. `Verdict.Json` needs its converters
+cannot be trim safe without taking a `JsonTypeInfo` through its public API.
+Tracked in [#61](https://github.com/BaryoDev/Verdict/issues/61).
+
+`Verdict.Json` needs its converters
 registered explicitly under AOT, through the `JsonTypeInfo` overload rather than
 the options one. See [json.md](docs/packages/json.md).
 
