@@ -54,11 +54,13 @@
     <Deterministic>true</Deterministic>
     <ContinuousIntegrationBuild Condition="'$(GITHUB_ACTIONS)' == 'true'">true</ContinuousIntegrationBuild>
 
-    <!-- Trimming and Native AOT. Only meaningful on the net8.0 targets; the
-         netstandard2.0 builds ignore these. -->
-    <IsTrimmable Condition="'$(TargetFramework)' == 'net8.0'">true</IsTrimmable>
-    <IsAotCompatible Condition="'$(TargetFramework)' == 'net8.0'">true</IsAotCompatible>
-    <EnableTrimAnalyzer Condition="'$(TargetFramework)' == 'net8.0'">true</EnableTrimAnalyzer>
+    <!-- Trimming and Native AOT. Meaningful on every .NET target; the
+         netstandard2.0 builds ignore these. Matched on "not netstandard2.0"
+         rather than an exact TFM, so adding a target cannot silently ship an
+         assembly with the trim analyzer switched off. -->
+    <IsTrimmable Condition="'$(TargetFramework)' != 'netstandard2.0'">true</IsTrimmable>
+    <IsAotCompatible Condition="'$(TargetFramework)' != 'netstandard2.0'">true</IsAotCompatible>
+    <EnableTrimAnalyzer Condition="'$(TargetFramework)' != 'netstandard2.0'">true</EnableTrimAnalyzer>
 
     <!-- A library that emits warnings teaches consumers to ignore warnings. -->
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>

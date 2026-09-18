@@ -31,7 +31,12 @@ jobs:
 
       - uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: "8.0.x"
+          # Both, because the libraries target net8.0 and net10.0. The 8.0 SDK
+          # alone cannot build the net10.0 assets and pack would fail here,
+          # after the tag exists.
+          dotnet-version: |
+            8.0.x
+            10.0.x
 
       - name: Read version from source
         id: version

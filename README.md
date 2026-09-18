@@ -186,11 +186,17 @@ is deterministic, so that is gated on every push instead.
 |---|---|---|
 | net8.0 | yes | yes, the whole suite |
 | netstandard2.0 | yes | yes, via `tests/Verdict.NetStandard.Tests` |
-| net10.0 | via the net8.0 assets | yes, the suite multi-targets it |
+| net10.0 | yes | yes, the suite multi-targets it |
 
-Native AOT and trimming: every package is annotated `IsTrimmable` and
-`IsAotCompatible`, and `tests/Verdict.Aot.Smoke` is a `PublishAot` console app
-that CI publishes and runs on every push. `Verdict.Json` needs its converters
+`Verdict.AspNetCore` targets net8.0 and net10.0 only; the rest add
+netstandard2.0.
+
+Native AOT and trimming: every package except `Verdict.AspNetCore` is annotated
+`IsTrimmable` and `IsAotCompatible` on its .NET targets, and
+`tests/Verdict.Aot.Smoke` is a `PublishAot` console app that CI publishes and
+runs on every push. `Verdict.AspNetCore` is explicitly neither: every path ends
+in `Results.Json(T)`, which serialises an arbitrary `T` reflectively, so it
+cannot be trim safe without taking a `JsonTypeInfo` through its public API. `Verdict.Json` needs its converters
 registered explicitly under AOT, through the `JsonTypeInfo` overload rather than
 the options one. See [json.md](docs/packages/json.md).
 
