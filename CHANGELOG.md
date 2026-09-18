@@ -89,6 +89,11 @@ need an edit; the rest do not.
   above it `ArrayPool.Shared` retained a large object heap array for the life of
   the process. Forgetting to dispose went from 496 bytes an operation to 96.
   Nothing is dropped at any size. (#44, #48)
+- **`Microsoft.SourceLink.GitHub` bumped to 10.0.401** for CVE-2026-62900
+  (GHSA-23fw-v26w-5fgq), which flagged the `Microsoft.Build.Tasks.Git` 8.0.0 it
+  pulled in. Restore failed for every project, so nothing compiled. The
+  `System.Memory` floor on the netstandard2.0 backfill moves 4.5.5 to 4.6.3 with
+  it, because the new SourceLink pulls `System.IO.Hashing`, which requires it.
 - **A publish could ship any branch to NuGet.** The tag check was guarded by the
   ref being a tag while the push was guarded only by `dry_run`, so a manual
   dispatch with `dry_run=false` skipped it. (#41)
@@ -141,6 +146,18 @@ need an edit; the rest do not.
   failed after a clean one. (#33, #36)
 
 ### Added
+
+- **`net10.0` alongside `netstandard2.0` and `net8.0` on every package.** Purely
+  additive, same as the net8.0 addition below: no consumer moves, and .NET 10
+  consumers stop resolving the net8.0 assets. All eight packages now ship
+  `lib/net10.0`. `Verdict.AspNetCore` targets net8.0 and net10.0 only.
+- **The trimming and AOT properties now apply to every .NET target.** They were
+  matched on `'$(TargetFramework)' == 'net8.0'`, which is evaluated before that
+  property is set, so only the per-TFM inner build of a multi-targeting project
+  ever matched. `Verdict.AspNetCore` was single-target and silently had no
+  `IsTrimmable`, no `IsAotCompatible` and no trim analyser. It is now marked
+  explicitly not trim safe, because six `Results.Json(T)` call sites serialise an
+  arbitrary `T` reflectively. Tracked in #61.
 
 - **`net8.0` alongside `netstandard2.0` on every package.** Purely additive:
   existing consumers resolve exactly as before, and .NET 8 consumers now get a
