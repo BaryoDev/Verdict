@@ -54,6 +54,18 @@ need an edit; the rest do not.
 
 ### Added
 
+- **`net10.0` alongside `netstandard2.0` and `net8.0` on every package.** Purely
+  additive, same as the net8.0 addition in 2.8.0: no consumer moves, and .NET 10
+  consumers stop resolving the net8.0 assets. All eight packages now ship
+  `lib/net10.0`. `Verdict.AspNetCore` targets net8.0 and net10.0 only.
+- **The trimming and AOT properties now apply to every .NET target.** They were
+  matched on `'$(TargetFramework)' == 'net8.0'`, which is evaluated before that
+  property is set, so only the per-TFM inner build of a multi-targeting project
+  ever matched. `Verdict.AspNetCore` was single-target and silently had no
+  `IsTrimmable`, no `IsAotCompatible` and no trim analyser. It is now marked
+  explicitly not trim safe, because six `Results.Json(T)` call sites serialise an
+  arbitrary `T` reflectively. Tracked in #61.
+
 - **`ValueTask` overloads throughout `Verdict.Async`,** with a synchronous fast
   path when the antecedent has already completed. A four-step chain over
   completed antecedents goes from 480 bytes to 0. A `ValueTask` may be awaited
@@ -146,18 +158,6 @@ need an edit; the rest do not.
   failed after a clean one. (#33, #36)
 
 ### Added
-
-- **`net10.0` alongside `netstandard2.0` and `net8.0` on every package.** Purely
-  additive, same as the net8.0 addition below: no consumer moves, and .NET 10
-  consumers stop resolving the net8.0 assets. All eight packages now ship
-  `lib/net10.0`. `Verdict.AspNetCore` targets net8.0 and net10.0 only.
-- **The trimming and AOT properties now apply to every .NET target.** They were
-  matched on `'$(TargetFramework)' == 'net8.0'`, which is evaluated before that
-  property is set, so only the per-TFM inner build of a multi-targeting project
-  ever matched. `Verdict.AspNetCore` was single-target and silently had no
-  `IsTrimmable`, no `IsAotCompatible` and no trim analyser. It is now marked
-  explicitly not trim safe, because six `Results.Json(T)` call sites serialise an
-  arbitrary `T` reflectively. Tracked in #61.
 
 - **`net8.0` alongside `netstandard2.0` on every package.** Purely additive:
   existing consumers resolve exactly as before, and .NET 8 consumers now get a
