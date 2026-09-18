@@ -12,11 +12,19 @@ namespace Verdict.Extensions;
 /// keep an accumulated result composable with the same shape as the single-error
 /// combinators.
 /// <para>
-/// A failure carries its <see cref="ErrorCollection"/> through unchanged rather
-/// than copying it, so pooled buffers are neither duplicated nor orphaned and
-/// disposal semantics are unaffected. The failure branch of
-/// <c>Match</c> and <c>OnFailure</c> receives that same collection by value, so
-/// nothing allocates.
+/// A failure carries its errors through <see cref="ErrorCollection.Detach"/>, so
+/// every derived result owns its own storage. This used to pass the collection
+/// straight through, which meant <c>a.DisposeErrors()</c> left <c>b.ErrorCount</c>
+/// throwing on a result the caller had never copied by hand. This file said that
+/// was safe and <c>MultiResult.DisposeErrors</c> said it was not; the second one
+/// was right.
+/// </para>
+/// <para>
+/// Detach copies only when there is something to alias, which means only when the
+/// collection was pooled, which means only above
+/// <see cref="ErrorCollection.PoolingThreshold"/> errors. Below that the
+/// collection owns an ordinary array, there is no rental to return, and it is
+/// carried through unchanged and free, which is nearly every failure.
 /// </para>
 /// </remarks>
 public static class MultiResultCombinators
@@ -35,7 +43,7 @@ public static class MultiResultCombinators
 
         return result.IsSuccess
             ? MultiResult<TOut>.Success(mapper(result.Value))
-            : MultiResult<TOut>.Failure(result.ErrorCollection);
+            : MultiResult<TOut>.Failure(result.ErrorCollection.Detach());
     }
 
     // --------------------------------------------------------------- Bind --
@@ -52,7 +60,7 @@ public static class MultiResultCombinators
 
         return result.IsSuccess
             ? binder(result.Value)
-            : MultiResult<TOut>.Failure(result.ErrorCollection);
+            : MultiResult<TOut>.Failure(result.ErrorCollection.Detach());
     }
 
     // -------------------------------------------------------------- Match --
@@ -71,7 +79,7 @@ public static class MultiResultCombinators
 
         return result.IsSuccess
             ? onSuccess(result.Value)
-            : onFailure(result.ErrorCollection);
+            : onFailure(result.ErrorCollection.Detach());
     }
 
     /// <summary>
@@ -85,7 +93,7 @@ public static class MultiResultCombinators
         if (onSuccess is null) throw new ArgumentNullException(nameof(onSuccess));
         if (onFailure is null) throw new ArgumentNullException(nameof(onFailure));
 
-        return result.IsSuccess ? onSuccess() : onFailure(result.ErrorCollection);
+        return result.IsSuccess ? onSuccess() : onFailure(result.ErrorCollection.Detach());
     }
 
     // ------------------------------------------------------- side effects --
@@ -108,7 +116,7 @@ public static class MultiResultCombinators
     {
         if (action is null) throw new ArgumentNullException(nameof(action));
 
-        if (result.IsFailure) action(result.ErrorCollection);
+        if (result.IsFailure) action(result.ErrorCollection.Detach());
         return result;
     }
 
@@ -130,7 +138,7 @@ public static class MultiResultCombinators
     {
         if (action is null) throw new ArgumentNullException(nameof(action));
 
-        if (result.IsFailure) action(result.ErrorCollection);
+        if (result.IsFailure) action(result.ErrorCollection.Detach());
         return result;
     }
 
@@ -147,7 +155,7 @@ public static class MultiResultCombinators
         if (mapper is null) throw new ArgumentNullException(nameof(mapper));
 
         var result = await resultTask.ConfigureAwait(false);
-        if (result.IsFailure) return MultiResult<TOut>.Failure(result.ErrorCollection);
+        if (result.IsFailure) return MultiResult<TOut>.Failure(result.ErrorCollection.Detach());
 
         return MultiResult<TOut>.Success(await mapper(result.Value).ConfigureAwait(false));
     }
@@ -164,7 +172,7 @@ public static class MultiResultCombinators
 
         var result = await resultTask.ConfigureAwait(false);
         return result.IsFailure
-            ? MultiResult<TOut>.Failure(result.ErrorCollection)
+            ? MultiResult<TOut>.Failure(result.ErrorCollection.Detach())
             : await binder(result.Value).ConfigureAwait(false);
     }
 

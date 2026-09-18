@@ -28,9 +28,12 @@ namespace Verdict.AspNetCore
     {
         public static Microsoft.AspNetCore.Mvc.IActionResult ToActionResult(this Verdict.Result result) { }
         public static Microsoft.AspNetCore.Mvc.ActionResult<T> ToActionResult<T>(this Verdict.Result<T> result) { }
+        public static Microsoft.AspNetCore.Mvc.ActionResult<T> ToActionResult<T>(this Verdict.Result<T> result, Microsoft.AspNetCore.Http.HttpContext context, int successStatusCode = 200) { }
         public static Microsoft.AspNetCore.Mvc.ActionResult<T> ToActionResult<T>(this Verdict.Result<T> result, int successStatusCode = 200, System.Func<Verdict.Error, int>? errorStatusCodeMapper = null, string? locationUri = null) { }
         public static Microsoft.AspNetCore.Http.IResult ToHttpResult(this Verdict.Result result) { }
+        public static Microsoft.AspNetCore.Http.IResult ToHttpResult(this Verdict.Result result, Microsoft.AspNetCore.Http.HttpContext context, int successStatusCode = 204) { }
         public static Microsoft.AspNetCore.Http.IResult ToHttpResult<T>(this Verdict.Result<T> result) { }
+        public static Microsoft.AspNetCore.Http.IResult ToHttpResult<T>(this Verdict.Result<T> result, Microsoft.AspNetCore.Http.HttpContext context, int successStatusCode = 200) { }
         public static Microsoft.AspNetCore.Http.IResult ToHttpResult<T>(this Verdict.Result<T> result, int successStatusCode = 200, System.Func<Verdict.Error, int>? errorStatusCodeMapper = null) { }
     }
     public static class ServiceCollectionExtensions
@@ -41,6 +44,9 @@ namespace Verdict.AspNetCore
     public class VerdictProblemDetailsOptions
     {
         public VerdictProblemDetailsOptions() { }
+        public string GenericErrorMessage { get; set; }
+        [System.Obsolete("Renamed to GenericErrorMessage, because it now applies to any suppressed message " +
+            "rather than only server errors.")]
         public string GenericServerErrorMessage { get; set; }
         public bool IncludeErrorCode { get; set; }
         public bool IncludeErrorMessage { get; set; }

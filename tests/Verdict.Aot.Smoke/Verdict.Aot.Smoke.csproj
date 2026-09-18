@@ -1,0 +1,38 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+
+    <!-- The point of this project. Publishing it is the test: the ILC compiler
+         either accepts every package or it does not, and library annotations do
+         not prove that on their own. -->
+    <PublishAot>true</PublishAot>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <TrimmerSingleWarn>false</TrimmerSingleWarn>
+
+    <!-- Error.Exception is a public property, so any consumer's source-generated
+         JSON context emits an Exception serializer, and that touches
+         Exception.TargetSite. Two IL2026 warnings follow from a design decision
+         in the library rather than from anything this project does.
+
+         Downgraded rather than silenced. NoWarn would hide any other IL2026 that
+         appeared later, including one this project did cause, and the point of
+         publishing this app is to find out what the trim analyser says. The
+         count is asserted in CI, so a third warning fails the build. -->
+    <WarningsNotAsErrors>$(WarningsNotAsErrors);IL2026</WarningsNotAsErrors>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../src/Verdict/Verdict.csproj" />
+    <ProjectReference Include="../../src/Verdict.Fluent/Verdict.Fluent.csproj" />
+    <ProjectReference Include="../../src/Verdict.Extensions/Verdict.Extensions.csproj" />
+    <ProjectReference Include="../../src/Verdict.Async/Verdict.Async.csproj" />
+    <ProjectReference Include="../../src/Verdict.Rich/Verdict.Rich.csproj" />
+    <ProjectReference Include="../../src/Verdict.Logging/Verdict.Logging.csproj" />
+    <ProjectReference Include="../../src/Verdict.Json/Verdict.Json.csproj" />
+  </ItemGroup>
+
+</Project>

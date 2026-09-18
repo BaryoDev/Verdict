@@ -29,7 +29,7 @@ public class TryTests
 
         // Assert
         result.IsFailure.Should().BeTrue();
-        result.Error.Code.Should().Be("InvalidOperationException");
+        result.Error.Code.Should().Be(Error.UnhandledExceptionCode);
         // Default behavior is now sanitized for security - use custom errorFactory for raw message
         result.Error.Message.Should().Be("An error occurred.");
         result.Error.Exception.Should().NotBeNull();
@@ -83,7 +83,7 @@ public class TryTests
 
         // Assert
         result.IsFailure.Should().BeTrue();
-        result.Error.Code.Should().Be("InvalidOperationException");
+        result.Error.Code.Should().Be(Error.UnhandledExceptionCode);
     }
 
     [Fact]
@@ -150,7 +150,7 @@ public class TryTests
 
         // Assert
         result.IsFailure.Should().BeTrue();
-        result.Error.Code.Should().Be("Exception");
+        result.Error.Code.Should().Be(Error.UnhandledExceptionCode);
     }
 
     [Fact]

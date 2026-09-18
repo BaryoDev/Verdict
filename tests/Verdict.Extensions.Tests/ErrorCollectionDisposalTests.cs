@@ -15,8 +15,25 @@ namespace Verdict.Extensions.Tests;
 /// </summary>
 public class ErrorCollectionDisposalTests
 {
-    private static ErrorCollection Pooled(params Error[] errors) =>
-        ErrorCollection.Create(new List<Error>(errors));
+    /// <summary>
+    /// Builds a collection large enough to actually be pooled.
+    /// </summary>
+    /// <remarks>
+    /// Collections of <see cref="ErrorCollection.PoolingThreshold"/> errors or
+    /// fewer are allocated outright and have no rental to return, so disposing
+    /// one is a no-op and the tests below would pass for the wrong reason. The
+    /// caller's errors stay at the front, so indexing and First are unaffected.
+    /// </remarks>
+    private static ErrorCollection Pooled(params Error[] errors)
+    {
+        var padded = new List<Error>(errors);
+        while (padded.Count <= ErrorCollection.PoolingThreshold)
+        {
+            padded.Add(new Error("PAD", "padding to exceed the pooling threshold"));
+        }
+
+        return ErrorCollection.Create(padded);
+    }
 
     [Fact]
     public void Indexer_AfterDispose_Throws()
@@ -110,9 +127,12 @@ public class ErrorCollectionDisposalTests
     [Fact]
     public void Create_WhenCollectionEnumerationThrows_ReturnsClearedBufferToPool()
     {
-        var pool = new TrackingArrayPool<Error>(4);
+        // Above PoolingThreshold, so this exercises the pooled path. Below it the
+        // collection is allocated outright and nothing is rented, which would make
+        // this test pass without ever touching the behaviour it guards.
+        var pool = new TrackingArrayPool<Error>(16);
         var errors = new MisreportingCollection(
-            reportedCount: 4,
+            reportedCount: 16,
             throwAfterFirst: true,
             new Error("SENSITIVE", "must be cleared"));
 

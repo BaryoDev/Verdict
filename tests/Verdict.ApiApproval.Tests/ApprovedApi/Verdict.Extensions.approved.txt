@@ -12,11 +12,14 @@ namespace Verdict.Extensions
     }
     public readonly struct ErrorCollection : System.IDisposable
     {
+        public const int PoolingCeiling = 1024;
+        public const int PoolingThreshold = 8;
         public int Count { get; }
         public bool HasErrors { get; }
         public bool IsDisposed { get; }
         public Verdict.Error this[int index] { get; }
         public System.ReadOnlySpan<Verdict.Error> AsSpan() { }
+        public Verdict.Extensions.ErrorCollection Detach() { }
         public void Dispose() { }
         public Verdict.Error First() { }
         public Verdict.Error[] ToArray() { }
@@ -29,6 +32,7 @@ namespace Verdict.Extensions
     {
         public int ErrorCount { get; }
         public System.ReadOnlySpan<Verdict.Error> Errors { get; }
+        public bool ErrorsDisposed { get; }
         public bool IsFailure { get; }
         public bool IsSuccess { get; }
         public void Deconstruct(out bool isSuccess, out System.ReadOnlySpan<Verdict.Error> errors) { }
@@ -61,6 +65,7 @@ namespace Verdict.Extensions
     {
         public int ErrorCount { get; }
         public System.ReadOnlySpan<Verdict.Error> Errors { get; }
+        public bool ErrorsDisposed { get; }
         public bool IsFailure { get; }
         public bool IsSuccess { get; }
         public T Value { get; }

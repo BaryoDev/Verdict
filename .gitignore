@@ -12,7 +12,9 @@ obj/
 # NuGet
 *.nupkg
 *.snupkg
-packages/
+# Anchored to the root. Unanchored, this also swallowed docs/packages/, and
+# git add -A skipped eight committed-looking files without saying anything.
+/packages/
 .nuget/
 
 # BenchmarkDotNet
@@ -47,3 +49,10 @@ secrets.json
 node_modules/
 vendor/
 .claude/settings.local.json
+
+# Coverage output from the local gate check
+TestResults/
+nupkgs/
+
+# API approval writes these beside the approved files on every run
+tests/Verdict.ApiApproval.Tests/ApprovedApi/*.received.txt

@@ -1,10 +1,24 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
 
     <PackageId>Verdict.AspNetCore</PackageId>
     <Description>Baryo.Dev: ASP.NET Core integration for Verdict. Automatic Result to IResult conversion, ProblemDetails RFC 7807 support, and Minimal API extensions.</Description>
     <PackageTags>result;aspnetcore;minimal-api;problemdetails</PackageTags>
+
+    <!-- Not trim or AOT safe, and saying so is the honest thing. Every path here
+         ends in Results.Json(T), which serialises an arbitrary T reflectively;
+         making it safe means taking a JsonTypeInfo through the public API. That
+         is a design change, not a build setting, and it is tracked separately.
+         Until then the analyser stays off HERE and only here, so the rest of the
+         libraries keep theirs armed.
+
+         This was invisible until this project multi-targeted: the conditions in
+         Directory.Build.props are evaluated before $(TargetFramework) is set, so
+         a single-target project never matched them and never ran the analyser. -->
+    <IsTrimmable>false</IsTrimmable>
+    <IsAotCompatible>false</IsAotCompatible>
+    <EnableTrimAnalyzer>false</EnableTrimAnalyzer>
   </PropertyGroup>
 
   <ItemGroup>

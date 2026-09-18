@@ -80,7 +80,7 @@ public static class ResultLoggingExtensions
         }
         else
         {
-            logger.Log(failureLevel, "{Message} - [{ErrorCode}] {ErrorMessage}",
+            logger.Log(failureLevel, result.Error.Exception, "{Message} - [{ErrorCode}] {ErrorMessage}",
                 message, result.Error.Code, result.Error.Message);
         }
 
@@ -127,7 +127,10 @@ public static class ResultLoggingExtensions
         if (logger == null) throw new ArgumentNullException(nameof(logger));
         if (result.IsSuccess) return result;
 
-        logger.Log(level, "{Message} - [{ErrorCode}] {ErrorMessage}",
+        // The exception overload, so the stack trace survives. ResultLogger has
+        // always passed it and this path did not, so the version a caller reaches
+        // from result.LogError was the lossy one.
+        logger.Log(level, result.Error.Exception, "{Message} - [{ErrorCode}] {ErrorMessage}",
             message, result.Error.Code, result.Error.Message);
         return result;
     }
@@ -222,7 +225,10 @@ public static class ResultLoggingExtensions
         if (logger == null) throw new ArgumentNullException(nameof(logger));
         if (result.IsSuccess) return result;
 
-        logger.Log(level, "{Message} - [{ErrorCode}] {ErrorMessage}",
+        // The exception overload, so the stack trace survives. ResultLogger has
+        // always passed it and this path did not, so the version a caller reaches
+        // from result.LogError was the lossy one.
+        logger.Log(level, result.Error.Exception, "{Message} - [{ErrorCode}] {ErrorMessage}",
             message, result.Error.Code, result.Error.Message);
         return result;
     }

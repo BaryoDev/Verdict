@@ -40,6 +40,7 @@ public class ResultJsonConverter<T> : JsonConverter<Result<T>>
 
         bool? isSuccess = null;
         T? value = default;
+        var sawValue = false;
         Error error = default;
 
         while (reader.Read())
@@ -53,6 +54,18 @@ public class ResultJsonConverter<T> : JsonConverter<Result<T>>
 
                 if (isSuccess.Value)
                 {
+                    // The failure branch below already checks that an error
+                    // arrived. Without the same check here, {"isSuccess":true}
+                    // produced a success carrying default(T), so a truncated or
+                    // hostile body became a Result<Uri> whose Value was null and
+                    // the null travelled instead of being rejected at the edge.
+                    // The whole contract of the type is that a success has a value.
+                    if (!sawValue)
+                    {
+                        throw new JsonException(
+                            "Missing 'value' property for success result (isSuccess=true)");
+                    }
+
                     return Result<T>.Success(value!);
                 }
                 
@@ -80,6 +93,7 @@ public class ResultJsonConverter<T> : JsonConverter<Result<T>>
                     break;
                 case "value":
                     value = JsonSerializer.Deserialize(ref reader, GetValueTypeInfo(options));
+                    sawValue = true;
                     break;
                 case "error":
                     error = _errorConverter.Read(ref reader, typeof(Error), options);

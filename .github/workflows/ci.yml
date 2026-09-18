@@ -17,7 +17,9 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: "8.0.x"
+          dotnet-version: |
+            8.0.x
+            10.0.x
 
       - name: Restore dependencies
         run: dotnet restore
@@ -25,14 +27,89 @@ jobs:
       - name: Build
         run: dotnet build --configuration Release --no-restore
 
+      # The test projects multi-target net8.0 and net10.0, so one run covers both
+      # runtimes. An earlier version of this used a matrix and set
+      # DOTNET_ROLL_FORWARD, which did nothing: the hosted image ships .NET 8, 9
+      # and 10, roll-forward never engages when an exact match is present, and
+      # both legs ran the net8.0 assets on .NET 8. Targeting the framework is the
+      # only thing that actually moves the runtime.
+      # pipefail, because tee returns its own exit code and would otherwise
+      # swallow a failing test run entirely.
       - name: Test
-        run: dotnet test --configuration Release --no-build --verbosity normal --collect:"XPlat Code Coverage"
+        run: |
+          set -o pipefail
+          dotnet test --configuration Release --no-build --verbosity normal \
+            --collect:"XPlat Code Coverage" --results-directory ./TestResults \
+            | tee test-output.txt
+
+      - name: Confirm both runtimes were exercised
+        run: |
+          # Say what was actually read before drawing a conclusion from it. An
+          # earlier version of this reported 0 and 0 twice without ever showing
+          # whether the file it was grepping had anything in it.
+          ls -l test-output.txt || echo "test-output.txt is missing"
+          echo "lines captured: $(wc -l < test-output.txt 2>/dev/null || echo 0)"
+          echo "--- first lines ---"
+          head -5 test-output.txt 2>/dev/null || true
+          echo "-------------------"
+
+          # "Test run for ... (.NETCoreApp,Version=v8.0)" is what dotnet test
+          # prints per assembly. The per-project summary line uses a different
+          # form depending on verbosity, so match the one that is always there.
+          NET8=$(grep -c "Version=v8.0)" test-output.txt || true)
+          NET10=$(grep -c "Version=v10.0)" test-output.txt || true)
+          echo "test assemblies run on net8.0: $NET8, on net10.0: $NET10"
+          if [ "$NET8" -lt 1 ] || [ "$NET10" -lt 1 ]; then
+            echo "::error::Expected the suite to run on both net8.0 and net10.0. Got $NET8 and $NET10."
+            exit 1
+          fi
+          if [ "$NET8" -ne "$NET10" ]; then
+            echo "::error::$NET8 assemblies ran on net8.0 but $NET10 on net10.0. A project is missing a target."
+            exit 1
+          fi
+
+      # The suite is split over twelve projects and each writes its own report
+      # listing every package, so this merges them before checking. Without the
+      # merge the number is meaningless and no threshold could be trusted.
+      - name: Coverage floor
+        run: python3 build/coverage-gate.py ./TestResults 75
+
+      # The AOT claim, re-proved on every push. Library annotations do not prove
+      # that the ILC compiler accepts the packages, and they do not prove the
+      # binary behaves. Publishing it and running it does both.
+      - name: Native AOT publish and run
+        run: |
+          set -o pipefail
+          dotnet publish tests/Verdict.Aot.Smoke -c Release -r linux-x64 --nologo \
+            2>&1 | tee aot-output.txt
+
+          # Exactly two IL2026 warnings are expected, both from the generated
+          # Exception serializer that Error.Exception forces into a consumer's
+          # JSON context. A third is something this project caused.
+          IL=$(grep -c "warning IL2026" aot-output.txt || true)
+          echo "IL2026 warnings: $IL"
+          if [ "$IL" -gt 2 ]; then
+            echo "::error::$IL IL2026 warnings, expected at most 2. Something new is not trim safe."
+            grep "warning IL2026" aot-output.txt || true
+            exit 1
+          fi
+
+          BINARY=tests/Verdict.Aot.Smoke/bin/Release/net8.0/linux-x64/native/Verdict.Aot.Smoke
+          SIZE=$(stat -c%s "$BINARY")
+          echo "Native binary: $SIZE bytes"
+          # A tripwire rather than a precise claim. The point is to notice if
+          # something drags a large dependency into the graph.
+          if [ "$SIZE" -gt 8000000 ]; then
+            echo "::error::Native binary is $SIZE bytes, over the 8 MB ceiling."
+            exit 1
+          fi
+          "$BINARY"
 
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v4
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          directory: ./tests
+          directory: ./TestResults
           flags: unittests
           name: codecov-umbrella
           fail_ci_if_error: false

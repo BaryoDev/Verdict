@@ -49,18 +49,19 @@ public class SecurityEdgeCaseTests
     }
 
     [Fact]
-    public void Error_WithVeryLongStrings_ShouldHandleWithoutOverflow()
+    public void Error_WithVeryLongStrings_ShouldBoundTheMessage()
     {
-        // Arrange
+        // Changed in 3.0. A message is read by a person and reaches the log and
+        // the response body, so it is bounded. The code is not, because it is
+        // chosen by the programmer rather than interpolated from a request.
         var longCode = new string('A', 10000);
         var longMessage = new string('B', 10000);
 
-        // Act
         var error = new Error(longCode, longMessage);
 
-        // Assert
         error.Code.Should().HaveLength(10000);
-        error.Message.Should().HaveLength(10000);
+        error.Message.Should().HaveLength(Error.MaxMessageLength);
+        error.Message.Should().EndWith(Error.TruncationMarker);
     }
 
     #endregion
@@ -140,10 +141,10 @@ public class SecurityEdgeCaseTests
         var exception = new ArgumentException("Invalid argument provided");
 
         // Act
-        var error = Error.FromException(exception);
+        var error = Error.FromException(exception, sanitize: false);
 
         // Assert
-        error.Code.Should().Be("ArgumentException");
+        error.Code.Should().Be(Error.UnhandledExceptionCode);
         error.Message.Should().Be("Invalid argument provided");
         error.Exception.Should().BeSameAs(exception);
     }

@@ -12,12 +12,24 @@
     <PackageReference Include="BenchmarkDotNet" Version="0.13.12" />
     <PackageReference Include="FluentResults" Version="4.0.0" />
     <PackageReference Include="LanguageExt.Core" Version="4.4.9" />
+
+    <!-- The field that actually exists. FluentResults is the only class-based
+         Result library here, so measuring only against it compares Verdict with
+         the one competitor it beats structurally. These two are struct-based and
+         allocate nothing on the success path, same as Verdict. -->
+    <!-- ErrorOr's nuspec declares no licence at all: no expression, no element,
+         no file in the package. The GitHub repository is MIT. Benchmarks are not
+         packed, so nothing here ships, but that gap should be raised upstream
+         before this is relied on anywhere that is. -->
+    <PackageReference Include="ErrorOr" Version="2.1.1" />
+    <PackageReference Include="CSharpFunctionalExtensions" Version="3.7.0" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Verdict\Verdict.csproj" />
     <ProjectReference Include="..\..\src\Verdict.Fluent\Verdict.Fluent.csproj" />
     <ProjectReference Include="..\..\src\Verdict.Json\Verdict.Json.csproj" />
+    <ProjectReference Include="..\..\src\Verdict.Async\Verdict.Async.csproj" />
   </ItemGroup>
 
 </Project>

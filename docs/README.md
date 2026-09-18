@@ -13,10 +13,12 @@ dotnet add package Verdict
 | --- | --- |
 | [Developer quick reference](developer_quick_reference.md) | You want the API in one page |
 | [Architect's decision guide](architects_decision_guide.md) | You are deciding whether to adopt Verdict |
+| [Design decisions](design-decisions.md) | You want to know why it is shaped this way, including what was tried and rejected |
 | [How Verdict does it better](how_verdict_does_it_better.md) | You are comparing against FluentResults or similar |
-| [Migrating to 2.5](migration-2.4-to-2.5.md) | You are on 2.4 or earlier. **Contains a breaking change** |
+| [Migrating to 3.0](migration-2.x-to-3.0.md) | You are on any 2.x. **Two changes need an edit** |
+| [Migrating to 2.5](migration-2.4-to-2.5.md) | You are on 2.4 or earlier |
 | [Thread safety](../README.md#thread-safety) | You share a `Result` between threads |
-| [Trimming and Native AOT](../README.md#trimming-and-native-aot) | You publish with `PublishAot` or trimming |
+| [Runtime support](../README.md#runtime-support) | You publish with `PublishAot`, trimming, or on .NET 10 |
 
 ## Packages
 
@@ -27,7 +29,7 @@ other package depends only on the core unless noted.
 | --- | --- | --- |
 | **Verdict** | `Result`, `Result<T>`, `Error`, `Unit`, and the core combinators | [core.md](packages/core.md) |
 | **Verdict.Extensions** | Validation, combining many results, exception capture | [extensions.md](packages/extensions.md) |
-| **Verdict.Async** | `Task`-returning combinators and timeouts | [async.md](packages/async.md) |
+| **Verdict.Async** | `ValueTask` and `Task` combinators, timeouts | [async.md](packages/async.md) |
 | **Verdict.Fluent** | `Match`, `OnSuccess`, `OnFailure` chaining | [fluent.md](packages/fluent.md) |
 | **Verdict.Json** | System.Text.Json converters, AOT-safe registration | [json.md](packages/json.md) |
 | **Verdict.Rich** | Success messages and typed error metadata | [rich.md](packages/rich.md) |
