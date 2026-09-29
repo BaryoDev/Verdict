@@ -21,6 +21,7 @@ namespace Verdict.AspNetCore
         public static Microsoft.AspNetCore.Mvc.ProblemDetails CreateFromError(Verdict.Error error, int statusCode = 400) { }
         public static Microsoft.AspNetCore.Mvc.ProblemDetails CreateFromError(Verdict.Error error, int statusCode, Verdict.AspNetCore.VerdictProblemDetailsOptions options) { }
         public static Microsoft.AspNetCore.Mvc.ValidationProblemDetails CreateFromMultiResult<T>(Verdict.Extensions.MultiResult<T> result) { }
+        public static Microsoft.AspNetCore.Mvc.ValidationProblemDetails CreateFromMultiResult<T>(Verdict.Extensions.MultiResult<T> result, Verdict.AspNetCore.VerdictProblemDetailsOptions options) { }
         public static void ResetDefaultOptions() { }
         public static void SetDefaultOptions(Verdict.AspNetCore.VerdictProblemDetailsOptions options) { }
     }

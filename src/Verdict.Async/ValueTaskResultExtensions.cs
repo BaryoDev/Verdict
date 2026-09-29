@@ -43,7 +43,14 @@ public static class ValueTaskResultExtensions
 
         if (resultTask.IsCompletedSuccessfully)
         {
-            return new ValueTask<Result<K>>(Apply(resultTask.Result, mapper));
+            try
+            {
+                return new ValueTask<Result<K>>(Apply(resultTask.Result, mapper));
+            }
+            catch (Exception ex)
+            {
+                return Faulted<Result<K>>(ex);
+            }
         }
 
         return Awaited(resultTask, mapper);
@@ -66,19 +73,26 @@ public static class ValueTaskResultExtensions
 
         if (resultTask.IsCompletedSuccessfully)
         {
-            var result = resultTask.Result;
-            if (result.IsFailure)
+            try
             {
-                return new ValueTask<Result<K>>(Result<K>.Failure(result.Error));
-            }
+                var result = resultTask.Result;
+                if (result.IsFailure)
+                {
+                    return new ValueTask<Result<K>>(Result<K>.Failure(result.Error));
+                }
 
-            var mapped = mapper(result.Value);
-            if (mapped.IsCompletedSuccessfully)
+                var mapped = mapper(result.Value);
+                if (mapped.IsCompletedSuccessfully)
+                {
+                    return new ValueTask<Result<K>>(Result<K>.Success(mapped.Result));
+                }
+
+                return AwaitedMapper(mapped);
+            }
+            catch (Exception ex)
             {
-                return new ValueTask<Result<K>>(Result<K>.Success(mapped.Result));
+                return Faulted<Result<K>>(ex);
             }
-
-            return AwaitedMapper(mapped);
         }
 
         return Awaited(resultTask, mapper);
@@ -105,7 +119,10 @@ public static class ValueTaskResultExtensions
     {
         if (mapper == null) throw new ArgumentNullException(nameof(mapper));
 
-        cancellationToken.ThrowIfCancellationRequested();
+        if (cancellationToken.IsCancellationRequested)
+        {
+            return Faulted<Result<K>>(new OperationCanceledException(cancellationToken));
+        }
 
         // Checked again inside, after the antecedent completes. A token cancelled
         // while the antecedent was still pending would otherwise still run the
@@ -130,7 +147,14 @@ public static class ValueTaskResultExtensions
 
         if (resultTask.IsCompletedSuccessfully)
         {
-            return new ValueTask<Result<K>>(Apply(resultTask.Result, binder));
+            try
+            {
+                return new ValueTask<Result<K>>(Apply(resultTask.Result, binder));
+            }
+            catch (Exception ex)
+            {
+                return Faulted<Result<K>>(ex);
+            }
         }
 
         return Awaited(resultTask, binder);
@@ -153,19 +177,26 @@ public static class ValueTaskResultExtensions
 
         if (resultTask.IsCompletedSuccessfully)
         {
-            var result = resultTask.Result;
-            if (result.IsFailure)
+            try
             {
-                return new ValueTask<Result<K>>(Result<K>.Failure(result.Error));
-            }
+                var result = resultTask.Result;
+                if (result.IsFailure)
+                {
+                    return new ValueTask<Result<K>>(Result<K>.Failure(result.Error));
+                }
 
-            var bound = binder(result.Value);
-            if (bound.IsCompletedSuccessfully)
+                var bound = binder(result.Value);
+                if (bound.IsCompletedSuccessfully)
+                {
+                    return new ValueTask<Result<K>>(bound.Result);
+                }
+
+                return bound;
+            }
+            catch (Exception ex)
             {
-                return new ValueTask<Result<K>>(bound.Result);
+                return Faulted<Result<K>>(ex);
             }
-
-            return bound;
         }
 
         return Awaited(resultTask, binder);
@@ -192,7 +223,14 @@ public static class ValueTaskResultExtensions
 
         if (resultTask.IsCompletedSuccessfully)
         {
-            return new ValueTask<Result<T>>(Apply(resultTask.Result, action));
+            try
+            {
+                return new ValueTask<Result<T>>(Apply(resultTask.Result, action));
+            }
+            catch (Exception ex)
+            {
+                return Faulted<Result<T>>(ex);
+            }
         }
 
         return Awaited(resultTask, action);
@@ -222,19 +260,26 @@ public static class ValueTaskResultExtensions
 
         if (resultTask.IsCompletedSuccessfully)
         {
-            var result = resultTask.Result;
-            if (result.IsFailure)
+            try
             {
-                return new ValueTask<Result<T>>(result);
-            }
+                var result = resultTask.Result;
+                if (result.IsFailure)
+                {
+                    return new ValueTask<Result<T>>(result);
+                }
 
-            var running = action(result.Value);
-            if (running.IsCompletedSuccessfully)
+                var running = action(result.Value);
+                if (running.IsCompletedSuccessfully)
+                {
+                    return new ValueTask<Result<T>>(result);
+                }
+
+                return AwaitedAction(running, result);
+            }
+            catch (Exception ex)
             {
-                return new ValueTask<Result<T>>(result);
+                return Faulted<Result<T>>(ex);
             }
-
-            return AwaitedAction(running, result);
         }
 
         return Awaited(resultTask, action);
@@ -268,19 +313,26 @@ public static class ValueTaskResultExtensions
 
         if (resultTask.IsCompletedSuccessfully)
         {
-            var result = resultTask.Result;
-            if (result.IsSuccess)
+            try
             {
-                return new ValueTask<Result<T>>(result);
-            }
+                var result = resultTask.Result;
+                if (result.IsSuccess)
+                {
+                    return new ValueTask<Result<T>>(result);
+                }
 
-            var running = action(result.Error);
-            if (running.IsCompletedSuccessfully)
+                var running = action(result.Error);
+                if (running.IsCompletedSuccessfully)
+                {
+                    return new ValueTask<Result<T>>(result);
+                }
+
+                return AwaitedAction(running, result);
+            }
+            catch (Exception ex)
             {
-                return new ValueTask<Result<T>>(result);
+                return Faulted<Result<T>>(ex);
             }
-
-            return AwaitedAction(running, result);
         }
 
         return Awaited(resultTask, action);
@@ -317,7 +369,14 @@ public static class ValueTaskResultExtensions
 
         if (resultTask.IsCompletedSuccessfully)
         {
-            return new ValueTask<Result<T>>(Apply(resultTask.Result, predicate, error));
+            try
+            {
+                return new ValueTask<Result<T>>(Apply(resultTask.Result, predicate, error));
+            }
+            catch (Exception ex)
+            {
+                return Faulted<Result<T>>(ex);
+            }
         }
 
         return Awaited(resultTask, predicate, error);
@@ -349,7 +408,14 @@ public static class ValueTaskResultExtensions
 
         if (resultTask.IsCompletedSuccessfully)
         {
-            return new ValueTask<TOut>(Apply(resultTask.Result, onSuccess, onFailure));
+            try
+            {
+                return new ValueTask<TOut>(Apply(resultTask.Result, onSuccess, onFailure));
+            }
+            catch (Exception ex)
+            {
+                return Faulted<TOut>(ex);
+            }
         }
 
         return Awaited(resultTask, onSuccess, onFailure);
@@ -375,10 +441,17 @@ public static class ValueTaskResultExtensions
 
         if (resultTask.IsCompletedSuccessfully)
         {
-            var result = resultTask.Result;
-            var chosen = result.IsSuccess ? onSuccess(result.Value) : onFailure(result.Error);
+            try
+            {
+                var result = resultTask.Result;
+                var chosen = result.IsSuccess ? onSuccess(result.Value) : onFailure(result.Error);
 
-            return chosen.IsCompletedSuccessfully ? new ValueTask<TOut>(chosen.Result) : chosen;
+                return chosen.IsCompletedSuccessfully ? new ValueTask<TOut>(chosen.Result) : chosen;
+            }
+            catch (Exception ex)
+            {
+                return Faulted<TOut>(ex);
+            }
         }
 
         return Awaited(resultTask, onSuccess, onFailure);
@@ -416,4 +489,28 @@ public static class ValueTaskResultExtensions
 
         return new ValueTask<Result<T>>(resultTask);
     }
+
+    /// <summary>
+    /// A completed task carrying the exception a delegate threw on the fast path.
+    /// </summary>
+    /// <remarks>
+    /// The fast path runs the delegate before returning, so without this an
+    /// exception escaped the call itself instead of the task it returns. The
+    /// <see cref="Task"/> overloads are async methods and always put it in the
+    /// task, so switching overloads moved where a caller had to catch it.
+    /// <para>
+    /// Rethrown from an async method rather than built with
+    /// <c>Task.FromException</c> or a <c>TaskCompletionSource</c>, because only
+    /// the async builder turns an <see cref="OperationCanceledException"/> into a
+    /// cancelled task while keeping the original exception object for the await
+    /// to rethrow. Allocates only when something threw.
+    /// </para>
+    /// </remarks>
+#pragma warning disable CS1998 // Nothing to await: the method exists to rethrow.
+    private static async ValueTask<T> Faulted<T>(Exception exception)
+    {
+        System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(exception).Throw();
+        return default!;
+    }
+#pragma warning restore CS1998
 }

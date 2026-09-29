@@ -63,6 +63,13 @@ public static class ErrorStatusCodeMapper
     /// <returns>HTTP status code.</returns>
     public static int GetStatusCode(Error error)
     {
+        // default(Error) never ran its constructor, so its Code is null, and a
+        // null key throws from both dictionaries. It has no mapping to find.
+        if (string.IsNullOrEmpty(error.Code))
+        {
+            return error.Exception is not null ? 500 : 400;
+        }
+
         // Check custom mappings first
         if (_customMappings.TryGetValue(error.Code, out var customCode))
         {

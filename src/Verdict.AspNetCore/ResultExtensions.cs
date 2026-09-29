@@ -38,7 +38,9 @@ public static class ResultExtensions
     {
         if (result.IsSuccess)
         {
-            return Results.Json(result.Value, statusCode: successStatusCode);
+            return ForbidsBody(successStatusCode)
+                ? Results.StatusCode(successStatusCode)
+                : Results.Json(result.Value, statusCode: successStatusCode);
         }
 
         var statusCode = errorStatusCodeMapper?.Invoke(result.Error) 
@@ -78,7 +80,9 @@ public static class ResultExtensions
 
         if (result.IsSuccess)
         {
-            return Results.Json(result.Value, statusCode: successStatusCode);
+            return ForbidsBody(successStatusCode)
+                ? Results.StatusCode(successStatusCode)
+                : Results.Json(result.Value, statusCode: successStatusCode);
         }
 
         var (statusCode, problemDetails) = Describe(context, result.Error);
@@ -127,7 +131,9 @@ public static class ResultExtensions
 
         if (result.IsSuccess)
         {
-            return new ObjectResult(result.Value) { StatusCode = successStatusCode };
+            return ForbidsBody(successStatusCode)
+                ? new StatusCodeResult(successStatusCode)
+                : new ObjectResult(result.Value) { StatusCode = successStatusCode };
         }
 
         var (statusCode, problemDetails) = Describe(context, result.Error);
@@ -142,6 +148,14 @@ public static class ResultExtensions
     /// <summary>
     /// Resolves the container's mapper and factory, falling back to the statics.
     /// </summary>
+    /// <summary>
+    /// Whether HTTP forbids a body with this status. Writing the value anyway
+    /// made Kestrel throw after the handler returned, so the client got an
+    /// empty 204 and the server logged an unhandled exception.
+    /// </summary>
+    private static bool ForbidsBody(int statusCode) =>
+        statusCode == 204 || statusCode == 304 || (statusCode >= 100 && statusCode < 200);
+
     private static (int StatusCode, ProblemDetails Details) Describe(HttpContext context, Error error)
     {
         var services = context.RequestServices;
@@ -187,6 +201,13 @@ public static class ResultExtensions
     {
         if (result.IsSuccess)
         {
+            if (ForbidsBody(successStatusCode))
+            {
+                return successStatusCode == 204
+                    ? new NoContentResult()
+                    : new StatusCodeResult(successStatusCode);
+            }
+
             if (locationUri != null)
             {
                 return successStatusCode switch
@@ -202,7 +223,6 @@ public static class ResultExtensions
                 200 => new OkObjectResult(result.Value),
                 201 => new ObjectResult(result.Value) { StatusCode = 201 },
                 202 => new ObjectResult(result.Value) { StatusCode = 202 },
-                204 => new NoContentResult(),
                 _ => new ObjectResult(result.Value) { StatusCode = successStatusCode }
             };
         }

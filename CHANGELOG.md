@@ -7,6 +7,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.0.1] - 2026-09-29
+
+Fixes from an audit of 3.0.0. Each one has a test that fails on 3.0.0.
+
+### Fixed
+
+- **A `MultiResult` failure leaked exception messages into the response.** The
+  multi-error path wrote `[CODE] message` for every error and ignored
+  `IncludeErrorMessage`, `IncludeErrorCode` and `IncludeExceptionDetails`. It now
+  applies them the same way the single-error path does, and a new
+  `CreateFromMultiResult(result, options)` overload takes options directly. This
+  predates 3.0.0.
+- **A success mapped to 204 or 304 no longer writes a body.** `ToHttpResult` and
+  `ToActionResult` serialised the value anyway, and Kestrel throws when a
+  response with those codes has a body.
+- **The `ValueTask` fast path no longer throws out of the call.** When the source
+  had already completed, an exception from the delegate escaped synchronously,
+  while the pending path put it in the task. Both now fault the task. An
+  already cancelled token gives a canceled task instead of a synchronous throw.
+- **Message neutralising missed C1 controls, NEL, U+2028 and U+2029**, which
+  some log viewers and JavaScript treat as line breaks.
+- **Truncation could split a surrogate pair**, leaving a lone high surrogate that
+  an encoder rejects or turns into U+FFFD.
+- **`ErrorStatusCodeMapper.GetStatusCode(default)` threw** on the null code. It
+  now returns 400, or 500 when an exception is attached.
+- **Reading `Value` on a failed `MultiResult` after `DisposeErrors`** threw
+  `ObjectDisposedException` instead of the documented
+  `InvalidOperationException`.
+- `ResultLogger` awaits with `ConfigureAwait(false)`.
+
+### Changed
+
+- **`MultiResult.Failure` with no errors now throws `ArgumentException`.** It
+  used to build a failure that reported nothing and rendered as an empty 400.
+- **A `MultiResult` that holds an error with an exception now maps to 500**,
+  matching the single-error path, rather than 400.
+
 ## [3.0.0] - 2026-08-31
 
 The release where the zero-allocation claim became something the build enforces
