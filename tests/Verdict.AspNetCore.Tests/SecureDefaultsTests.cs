@@ -159,4 +159,69 @@ public class SecureDefaultsTests : IDisposable
         Assert.Contains("age cannot be negative", body, StringComparison.Ordinal);
         Assert.Contains("name is required", body, StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void AMultiResultDoesNotLeakAnExceptionMessage()
+    {
+        // The single-error path withheld this and the multi-error path wrote
+        // "[CODE] message" for every entry regardless of the options.
+        var result = MultiResult<int>.Failure(
+            new Error("INVALID_AGE", "age cannot be negative"),
+            Error.FromException(DatabaseFailure, sanitize: false));
+
+        var details = ProblemDetailsFactory.CreateFromMultiResult(result);
+        var body = Body(details);
+
+        Assert.DoesNotContain("hunter2", body, StringComparison.Ordinal);
+        Assert.DoesNotContain("svc_billing", body, StringComparison.Ordinal);
+        Assert.DoesNotContain(nameof(InvalidOperationException), body, StringComparison.Ordinal);
+        Assert.Contains("age cannot be negative", body, StringComparison.Ordinal);
+        Assert.Equal(500, details.Status);
+    }
+
+    [Fact]
+    public void AMultiResultHonoursIncludeErrorMessage()
+    {
+        ProblemDetailsFactory.SetDefaultOptions(new VerdictProblemDetailsOptions { IncludeErrorMessage = false });
+        var result = MultiResult<int>.Failure(
+            new Error("INVALID_AGE", "age cannot be negative"),
+            new Error("INVALID_NAME", "name is required"));
+
+        var body = Body(ProblemDetailsFactory.CreateFromMultiResult(result));
+
+        Assert.DoesNotContain("age cannot be negative", body, StringComparison.Ordinal);
+        Assert.Contains("An unexpected error occurred.", body, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void AMultiResultHonoursIncludeErrorCode()
+    {
+        var result = MultiResult<int>.Failure(
+            new Error("INVALID_AGE", "age cannot be negative"),
+            new Error("INVALID_NAME", "name is required"));
+
+        var body = Body(ProblemDetailsFactory.CreateFromMultiResult(
+            result, new VerdictProblemDetailsOptions { IncludeErrorCode = false }));
+
+        Assert.DoesNotContain("INVALID_AGE", body, StringComparison.Ordinal);
+        Assert.Contains("age cannot be negative", body, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void AMultiResultShowsExceptionsWhenAskedTo()
+    {
+        var result = MultiResult<int>.Failure(Error.FromException(DatabaseFailure, sanitize: false));
+
+        var body = Body(ProblemDetailsFactory.CreateFromMultiResult(
+            result, new VerdictProblemDetailsOptions { IncludeExceptionDetails = true }));
+
+        Assert.Contains("svc_billing", body, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ADefaultErrorMapsToABadRequest()
+    {
+        // default(Error) has a null code and used to throw from the dictionary lookup.
+        Assert.Equal(400, ErrorStatusCodeMapper.GetStatusCode(default));
+    }
 }

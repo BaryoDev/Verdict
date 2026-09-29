@@ -289,14 +289,42 @@ public class ProductionReadinessTests
     }
 
     [Fact]
-    public void MultiResult_Failure_WithEmptyErrors_ShouldStillBeFailure()
+    public void MultiResult_Map_OnDefault_StillPropagatesTheFailure()
     {
-        // Arrange & Act
-        var result = MultiResult<int>.Failure(Array.Empty<Error>());
+        // The empty-errors check belongs where a caller builds a failure, not
+        // where a combinator forwards one it was handed.
+        var mapped = default(MultiResult<int>).Map(x => x + 1);
 
-        // Assert - empty errors array still creates failure
-        result.IsFailure.Should().BeTrue();
-        result.ErrorCount.Should().Be(0);
+        mapped.IsFailure.Should().BeTrue();
+    }
+
+    [Fact]
+    public void MultiResult_Value_AfterDisposeErrors_ThrowsInvalidOperation()
+    {
+        // Reading Value on a failure is documented to throw InvalidOperationException.
+        // After DisposeErrors it threw ObjectDisposedException from the message instead.
+        // Enough errors to be pooled; a small collection has nothing to release.
+        var errors = Enumerable.Range(0, 64).Select(i => new Error("E" + i, "m")).ToList();
+        var result = MultiResult<int>.Failure(ErrorCollection.Create((IEnumerable<Error>)errors));
+        result.DisposeErrors();
+
+        Action read = () => _ = result.Value;
+
+        read.Should().Throw<InvalidOperationException>().WithMessage("*released*");
+    }
+
+    [Fact]
+    public void MultiResult_Failure_WithEmptyErrors_Throws()
+    {
+        // A failure with no errors has nothing to report and rendered as an
+        // empty 400, so it is refused at construction.
+        Action generic = () => MultiResult<int>.Failure(Array.Empty<Error>());
+        Action nonGeneric = () => MultiResult.Failure(Array.Empty<Error>());
+        Action collection = () => MultiResult<int>.Failure(ErrorCollection.Create(Array.Empty<Error>()));
+
+        generic.Should().Throw<ArgumentException>();
+        nonGeneric.Should().Throw<ArgumentException>();
+        collection.Should().Throw<ArgumentException>();
     }
 
     [Fact]

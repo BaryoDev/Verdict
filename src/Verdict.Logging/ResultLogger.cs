@@ -118,7 +118,7 @@ public static class ResultLogger
 
         try
         {
-            var result = await operation();
+            var result = await operation().ConfigureAwait(false);
 
             if (result.IsSuccess)
             {
@@ -196,7 +196,7 @@ public static class ResultLogger
 
         try
         {
-            var result = await operation();
+            var result = await operation().ConfigureAwait(false);
 
             if (result.IsSuccess)
             {

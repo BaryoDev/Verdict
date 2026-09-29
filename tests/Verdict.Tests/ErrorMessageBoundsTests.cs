@@ -31,6 +31,10 @@ public class ErrorMessageBoundsTests
     [InlineData('\u0007')]
     [InlineData('\u001b')]
     [InlineData('\u007f')]
+    [InlineData('\u0085')]
+    [InlineData('\u009b')]
+    [InlineData('\u2028')]
+    [InlineData('\u2029')]
     public void OtherControlCharactersAreRemovedToo(char control)
     {
         var error = new Error("E", $"before{control}after");
@@ -92,5 +96,20 @@ public class ErrorMessageBoundsTests
         var error = new Error("E", null!);
 
         Assert.Equal(string.Empty, error.Message);
+    }
+
+    [Fact]
+    public void TruncationDoesNotSplitASurrogatePair()
+    {
+        // The cut used to land between the two halves of an emoji, leaving a lone
+        // high surrogate that an encoder turns into U+FFFD or rejects.
+        var cut = Error.MaxMessageLength - Error.TruncationMarker.Length;
+        var text = new string('A', cut - 1) + "\U0001F600" + new string('B', 100);
+
+        var error = new Error("E", text);
+
+        var kept = error.Message.Substring(0, error.Message.Length - Error.TruncationMarker.Length);
+        Assert.False(char.IsHighSurrogate(kept[kept.Length - 1]));
+        Assert.EndsWith(Error.TruncationMarker, error.Message, StringComparison.Ordinal);
     }
 }

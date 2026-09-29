@@ -107,13 +107,40 @@ public static class ProblemDetailsFactory
     }
 
     /// <summary>
-    /// Creates ValidationProblemDetails from MultiResult errors.
+    /// Creates ValidationProblemDetails from MultiResult errors, using the
+    /// default options.
     /// </summary>
     /// <typeparam name="T">The result value type.</typeparam>
     /// <param name="result">The multi-result with errors.</param>
     /// <returns>RFC 7807 compliant ValidationProblemDetails.</returns>
     public static ValidationProblemDetails CreateFromMultiResult<T>(Verdict.Extensions.MultiResult<T> result)
     {
+        var options = Volatile.Read(ref _defaultOptions);
+        return CreateFromMultiResult(result, options);
+    }
+
+    /// <summary>
+    /// Creates ValidationProblemDetails from MultiResult errors, applying the
+    /// same message, code and exception rules as <see cref="CreateFromError(Error, int, VerdictProblemDetailsOptions)"/>
+    /// to every error.
+    /// </summary>
+    /// <remarks>
+    /// This path used to print every error as <c>[CODE] message</c> whatever the
+    /// options said, so an exception message in a multi-error result reached the
+    /// client with every leak-prevention option turned off. When any error
+    /// carries an exception the status is 500, for the same reason
+    /// <see cref="ErrorStatusCodeMapper.GetStatusCode(Error)"/> returns 500 for one.
+    /// </remarks>
+    /// <typeparam name="T">The result value type.</typeparam>
+    /// <param name="result">The multi-result with errors.</param>
+    /// <param name="options">The options to apply. Null uses the defaults.</param>
+    /// <returns>RFC 7807 compliant ValidationProblemDetails.</returns>
+    public static ValidationProblemDetails CreateFromMultiResult<T>(
+        Verdict.Extensions.MultiResult<T> result,
+        VerdictProblemDetailsOptions options)
+    {
+        options ??= Volatile.Read(ref _defaultOptions);
+
         // Reading a disposed collection throws, and this runs while the handler is
         // already building an error response, so throwing here turns a reported
         // validation failure into an unhandled 500 and loses the errors entirely.
@@ -133,17 +160,39 @@ public static class ProblemDetailsFactory
         // Pre-allocate array with exact size to avoid List resizing
         var errorCount = result.ErrorCount;
         var errorMessages = new string[errorCount];
+        var anyException = false;
 
         int index = 0;
         foreach (var error in result.Errors)
         {
-            errorMessages[index++] = $"[{error.Code}] {error.Message}";
+            var carriesException = error.Exception is not null;
+            var withheld = carriesException && !options.IncludeExceptionDetails;
+            anyException |= carriesException;
+
+            var message = !options.IncludeErrorMessage || withheld
+                ? options.GenericErrorMessage
+                : error.Message;
+
+            errorMessages[index++] = options.IncludeErrorCode && !withheld
+                ? $"[{error.Code}] {message}"
+                : message;
         }
 
         var errors = new Dictionary<string, string[]>(1)
         {
             ["errors"] = errorMessages
         };
+
+        if (anyException)
+        {
+            return new ValidationProblemDetails(errors)
+            {
+                Type = GetProblemType(500),
+                Title = GetTitle(500),
+                Status = 500,
+                Detail = $"{errorCount} error(s) occurred."
+            };
+        }
 
         return new ValidationProblemDetails(errors)
         {

@@ -312,6 +312,28 @@ public readonly struct ErrorCollection : IDisposable
     }
 
     /// <summary>
+    /// Returns the collection unchanged, or throws if it holds no errors.
+    /// </summary>
+    /// <remarks>
+    /// A failure with no errors has nothing to report: <c>ToSingleResult</c>
+    /// threw on it and a response built from it said "0 validation error(s)".
+    /// It was usually an empty validation list passed straight through, so the
+    /// mistake is reported where it was made. A released collection is passed
+    /// through, because its count is no longer known to be zero.
+    /// </remarks>
+    internal static ErrorCollection RequireErrors(ErrorCollection errors)
+    {
+        if (errors._count == 0 && !errors.IsDisposed)
+        {
+            throw new ArgumentException(
+                "A failed result needs at least one error. Return a success when there are none.",
+                nameof(errors));
+        }
+
+        return errors;
+    }
+
+    /// <summary>
     /// Gets the error at the specified index.
     /// </summary>
     public Error this[int index]

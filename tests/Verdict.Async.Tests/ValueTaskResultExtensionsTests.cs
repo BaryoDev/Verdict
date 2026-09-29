@@ -273,4 +273,42 @@ public class ValueTaskResultExtensionsTests
 
         Assert.Equal(42, response);
     }
+
+    [Theory]
+    [InlineData("map")]
+    [InlineData("bind")]
+    [InlineData("tap")]
+    [InlineData("ensure")]
+    [InlineData("match")]
+    public void AThrowingDelegateFaultsTheTaskOnTheFastPath(string operation)
+    {
+        // The completed path ran the delegate synchronously and let it throw out
+        // of the call, so a caller holding the ValueTask saw a different failure
+        // shape depending on whether the source had finished yet.
+        var boom = new InvalidOperationException("boom");
+        var task = Completed(21);
+
+        var returned = operation switch
+        {
+            "map" => task.Map<int, int>(_ => throw boom).AsTask(),
+            "bind" => task.Bind<int, int>(_ => throw boom).AsTask(),
+            "tap" => task.Tap(_ => throw boom).AsTask(),
+            "ensure" => task.Ensure(_ => throw boom, Missing).AsTask(),
+            _ => (Task)task.Match<int, int>(_ => throw boom, _ => 0).AsTask(),
+        };
+
+        Assert.True(returned.IsFaulted);
+        Assert.Same(boom, returned.Exception!.InnerException);
+    }
+
+    [Fact]
+    public void AnAlreadyCancelledTokenCancelsTheTask()
+    {
+        using var source = new CancellationTokenSource();
+        source.Cancel();
+
+        var returned = Completed(21).MapAsync((x, _) => new ValueTask<int>(x), source.Token).AsTask();
+
+        Assert.True(returned.IsCanceled);
+    }
 }

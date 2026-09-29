@@ -43,7 +43,7 @@ public static class MultiResultCombinators
 
         return result.IsSuccess
             ? MultiResult<TOut>.Success(mapper(result.Value))
-            : MultiResult<TOut>.Failure(result.ErrorCollection.Detach());
+            : MultiResult<TOut>.Forward(result.ErrorCollection.Detach());
     }
 
     // --------------------------------------------------------------- Bind --
@@ -60,7 +60,7 @@ public static class MultiResultCombinators
 
         return result.IsSuccess
             ? binder(result.Value)
-            : MultiResult<TOut>.Failure(result.ErrorCollection.Detach());
+            : MultiResult<TOut>.Forward(result.ErrorCollection.Detach());
     }
 
     // -------------------------------------------------------------- Match --
@@ -155,7 +155,7 @@ public static class MultiResultCombinators
         if (mapper is null) throw new ArgumentNullException(nameof(mapper));
 
         var result = await resultTask.ConfigureAwait(false);
-        if (result.IsFailure) return MultiResult<TOut>.Failure(result.ErrorCollection.Detach());
+        if (result.IsFailure) return MultiResult<TOut>.Forward(result.ErrorCollection.Detach());
 
         return MultiResult<TOut>.Success(await mapper(result.Value).ConfigureAwait(false));
     }
@@ -172,7 +172,7 @@ public static class MultiResultCombinators
 
         var result = await resultTask.ConfigureAwait(false);
         return result.IsFailure
-            ? MultiResult<TOut>.Failure(result.ErrorCollection.Detach())
+            ? MultiResult<TOut>.Forward(result.ErrorCollection.Detach())
             : await binder(result.Value).ConfigureAwait(false);
     }
 

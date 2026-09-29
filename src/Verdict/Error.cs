@@ -53,21 +53,6 @@ public readonly record struct Error
     public const string TruncationMarker = "... [truncated]";
 
     /// <summary>
-    /// Removes control characters and bounds the length.
-    /// </summary>
-    /// <remarks>
-    /// This runs on every error, including the hot failure path, so it allocates
-    /// nothing unless it actually has to change something: a clean message is
-    /// scanned and returned as it arrived.
-    /// <para>
-    /// Control characters are removed rather than rejected. A carriage return in
-    /// a message forges a line in any plain-text log sink, and throwing instead
-    /// would turn a logging concern into a crash at the worst possible moment.
-    /// The error code still throws on bad input, because a code is chosen by the
-    /// programmer and a message usually is not.
-    /// </para>
-    /// </remarks>
-    /// <summary>
     /// Whether the message holds anything that has to be removed.
     /// </summary>
     /// <remarks>
@@ -83,7 +68,9 @@ public readonly record struct Error
     /// what this uses where it exists.
     /// <para>
     /// Tab is excluded from the set because it is ordinary in a message and does
-    /// not start a new line in a log.
+    /// not start a new line in a log. The C1 controls, NEL among them, and the
+    /// Unicode line and paragraph separators are included, because some log
+    /// viewers and JSON-lines readers break a line on them too.
     /// </para>
     /// </remarks>
 #if NET8_0_OR_GREATER
@@ -92,18 +79,17 @@ public readonly record struct Error
 
     private static string BuildControlCharacters()
     {
-        var characters = new char[32];
+        var characters = new char[128];
         var count = 0;
 
-        for (var c = '\u0000'; c < ' '; c++)
+        for (var c = '\u0000'; c <= '\u2029'; c++)
         {
-            if (c != '\t')
+            if (IsControlCharacter(c))
             {
                 characters[count++] = c;
             }
         }
 
-        characters[count++] = '\u007f';
         return new string(characters, 0, count);
     }
 
@@ -114,8 +100,7 @@ public readonly record struct Error
     {
         for (var i = 0; i < message.Length; i++)
         {
-            var c = message[i];
-            if (c != '\t' && (c < ' ' || c == '\u007f'))
+            if (IsControlCharacter(message[i]))
             {
                 return true;
             }
@@ -125,6 +110,27 @@ public readonly record struct Error
     }
 #endif
 
+    private static bool IsControlCharacter(char c) =>
+        (c < ' ' && c != '\t')
+        || (c >= '\u007f' && c <= '\u009f')
+        || c == '\u2028'
+        || c == '\u2029';
+
+    /// <summary>
+    /// Removes control characters and bounds the length.
+    /// </summary>
+    /// <remarks>
+    /// This runs on every error, including the hot failure path, so it allocates
+    /// nothing unless it actually has to change something: a clean message is
+    /// scanned and returned as it arrived.
+    /// <para>
+    /// Control characters are removed rather than rejected. A carriage return in
+    /// a message forges a line in any plain-text log sink, and throwing instead
+    /// would turn a logging concern into a crash at the worst possible moment.
+    /// The error code still throws on bad input, because a code is chosen by the
+    /// programmer and a message usually is not.
+    /// </para>
+    /// </remarks>
     private static string Normalize(string? message)
     {
         if (string.IsNullOrEmpty(message))
@@ -144,12 +150,20 @@ public readonly record struct Error
         var limit = text.Length <= MaxMessageLength
             ? text.Length
             : MaxMessageLength - TruncationMarker.Length;
+
+        // Never cut between the two halves of a surrogate pair. A lone high
+        // surrogate is not valid UTF-16 and serialises as a replacement character.
+        if (limit < text.Length && char.IsHighSurrogate(text[limit - 1]))
+        {
+            limit--;
+        }
+
         var builder = new System.Text.StringBuilder(limit + TruncationMarker.Length);
 
         for (var i = 0; i < limit; i++)
         {
             var c = text[i];
-            builder.Append(c != '\t' && (c < ' ' || c == '\u007f') ? ' ' : c);
+            builder.Append(IsControlCharacter(c) ? ' ' : c);
         }
 
         if (text.Length > MaxMessageLength)

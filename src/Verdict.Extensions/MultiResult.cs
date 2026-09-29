@@ -35,8 +35,11 @@ public readonly struct MultiResult<T>
         {
             if (!_isSuccess)
             {
-                throw new InvalidOperationException(
-                    $"Cannot access Value on a failed result. {_errors.Count} error(s) occurred.");
+                // RawCount, because Count throws once the errors are released and
+                // the caller asked about the value, not the errors.
+                throw new InvalidOperationException(_errors.IsDisposed
+                    ? "Cannot access Value on a failed result. Its errors were already released."
+                    : $"Cannot access Value on a failed result. {_errors.RawCount} error(s) occurred.");
             }
             return _value;
         }
@@ -103,13 +106,20 @@ public readonly struct MultiResult<T>
     /// Creates a failed result with multiple errors.
     /// </summary>
     public static MultiResult<T> Failure(params Error[] errors) =>
-        new(ErrorCollection.Create(errors));
+        new(ErrorCollection.RequireErrors(ErrorCollection.Create(errors)));
 
     /// <summary>
     /// Creates a failed result with an error collection.
     /// </summary>
     public static MultiResult<T> Failure(ErrorCollection errors) =>
-        new(errors);
+        new(ErrorCollection.RequireErrors(errors));
+
+    /// <summary>
+    /// Carries an existing failure's errors into a new result without checking
+    /// them, so a combinator on <c>default(MultiResult)</c> propagates it as it
+    /// always has rather than reporting the caller's empty error list.
+    /// </summary>
+    internal static MultiResult<T> Forward(ErrorCollection errors) => new(errors);
 
     /// <summary>
     /// Creates a failed result with the specified error code and message.
@@ -264,13 +274,13 @@ public readonly struct MultiResult
     /// Creates a failed result with multiple errors.
     /// </summary>
     public static MultiResult Failure(params Error[] errors) =>
-        new(ErrorCollection.Create(errors));
+        new(ErrorCollection.RequireErrors(ErrorCollection.Create(errors)));
 
     /// <summary>
     /// Creates a failed result with an error collection.
     /// </summary>
     public static MultiResult Failure(ErrorCollection errors) =>
-        new(errors);
+        new(ErrorCollection.RequireErrors(errors));
 
     /// <summary>
     /// Creates a failed result with the specified error code and message.
