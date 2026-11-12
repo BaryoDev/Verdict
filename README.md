@@ -191,13 +191,16 @@ is deterministic, so that is gated on every push instead.
 `Verdict.AspNetCore` targets net8.0 and net10.0 only; the rest add
 netstandard2.0.
 
-Native AOT and trimming: every package except `Verdict.AspNetCore` is annotated
-`IsTrimmable` and `IsAotCompatible` on its .NET targets, and
-`tests/Verdict.Aot.Smoke` is a `PublishAot` console app that CI publishes and
-runs on every push. `Verdict.AspNetCore` is explicitly neither: every path ends
-in `Results.Json(T)`, which serialises an arbitrary `T` reflectively, so it
-cannot be trim safe without taking a `JsonTypeInfo` through its public API.
-Tracked in [#61](https://github.com/BaryoDev/Verdict/issues/61).
+Native AOT and trimming: every package is annotated `IsTrimmable` and
+`IsAotCompatible` on its .NET targets, and `tests/Verdict.Aot.Smoke` is a
+`PublishAot` console app that CI publishes and runs on every push. In
+`Verdict.AspNetCore`, the `ToHttpResult<T>` overloads that take a
+`JsonTypeInfo<T>` are trim and AOT safe, and so is every error path (the
+problem document is written through a source-generated context). The overloads
+without a `JsonTypeInfo<T>` serialise the success value by reflection and are
+marked `RequiresUnreferencedCode` and `RequiresDynamicCode`, so a trimmed or AOT
+app gets a build warning if it calls one. The `JsonTypeInfo<T>` overloads use
+the naming policy of the context you pass, not `HttpJsonOptions`.
 
 `Verdict.Json` needs its converters
 registered explicitly under AOT, through the `JsonTypeInfo` overload rather than

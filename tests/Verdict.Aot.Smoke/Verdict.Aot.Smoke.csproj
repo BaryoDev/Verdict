@@ -33,6 +33,11 @@
     <ProjectReference Include="../../src/Verdict.Rich/Verdict.Rich.csproj" />
     <ProjectReference Include="../../src/Verdict.Logging/Verdict.Logging.csproj" />
     <ProjectReference Include="../../src/Verdict.Json/Verdict.Json.csproj" />
+    <ProjectReference Include="../../src/Verdict.AspNetCore/Verdict.AspNetCore.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>
 
 </Project>

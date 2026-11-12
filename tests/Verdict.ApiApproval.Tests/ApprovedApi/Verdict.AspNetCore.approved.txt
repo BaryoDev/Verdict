@@ -33,9 +33,23 @@ namespace Verdict.AspNetCore
         public static Microsoft.AspNetCore.Mvc.ActionResult<T> ToActionResult<T>(this Verdict.Result<T> result, int successStatusCode = 200, System.Func<Verdict.Error, int>? errorStatusCodeMapper = null, string? locationUri = null) { }
         public static Microsoft.AspNetCore.Http.IResult ToHttpResult(this Verdict.Result result) { }
         public static Microsoft.AspNetCore.Http.IResult ToHttpResult(this Verdict.Result result, Microsoft.AspNetCore.Http.HttpContext context, int successStatusCode = 204) { }
+        [System.Diagnostics.CodeAnalysis.RequiresDynamicCode("Serialises the success value with reflection-based System.Text.Json. Under trimmi" +
+            "ng or Native AOT use the overload that takes a JsonTypeInfo<T>.")]
+        [System.Diagnostics.CodeAnalysis.RequiresUnreferencedCode("Serialises the success value with reflection-based System.Text.Json. Under trimmi" +
+            "ng or Native AOT use the overload that takes a JsonTypeInfo<T>.")]
         public static Microsoft.AspNetCore.Http.IResult ToHttpResult<T>(this Verdict.Result<T> result) { }
+        [System.Diagnostics.CodeAnalysis.RequiresDynamicCode("Serialises the success value with reflection-based System.Text.Json. Under trimmi" +
+            "ng or Native AOT use the overload that takes a JsonTypeInfo<T>.")]
+        [System.Diagnostics.CodeAnalysis.RequiresUnreferencedCode("Serialises the success value with reflection-based System.Text.Json. Under trimmi" +
+            "ng or Native AOT use the overload that takes a JsonTypeInfo<T>.")]
         public static Microsoft.AspNetCore.Http.IResult ToHttpResult<T>(this Verdict.Result<T> result, Microsoft.AspNetCore.Http.HttpContext context, int successStatusCode = 200) { }
+        [System.Diagnostics.CodeAnalysis.RequiresDynamicCode("Serialises the success value with reflection-based System.Text.Json. Under trimmi" +
+            "ng or Native AOT use the overload that takes a JsonTypeInfo<T>.")]
+        [System.Diagnostics.CodeAnalysis.RequiresUnreferencedCode("Serialises the success value with reflection-based System.Text.Json. Under trimmi" +
+            "ng or Native AOT use the overload that takes a JsonTypeInfo<T>.")]
         public static Microsoft.AspNetCore.Http.IResult ToHttpResult<T>(this Verdict.Result<T> result, int successStatusCode = 200, System.Func<Verdict.Error, int>? errorStatusCodeMapper = null) { }
+        public static Microsoft.AspNetCore.Http.IResult ToHttpResult<T>(this Verdict.Result<T> result, Microsoft.AspNetCore.Http.HttpContext context, System.Text.Json.Serialization.Metadata.JsonTypeInfo<T> jsonTypeInfo, int successStatusCode = 200) { }
+        public static Microsoft.AspNetCore.Http.IResult ToHttpResult<T>(this Verdict.Result<T> result, System.Text.Json.Serialization.Metadata.JsonTypeInfo<T> jsonTypeInfo, int successStatusCode = 200, System.Func<Verdict.Error, int>? errorStatusCodeMapper = null) { }
     }
     public static class ServiceCollectionExtensions
     {
