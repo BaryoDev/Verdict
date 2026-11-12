@@ -46,6 +46,16 @@ public class ErrorJsonConverter : JsonConverter<Error>
             {
                 case "code":
                     code = reader.GetString() ?? string.Empty;
+                    foreach (var c in code)
+                    {
+                        // A code is written into log lines, so a control character in one
+                        // forges a line the same way it would in a message. Reject it.
+                        if (char.IsControl(c) || c == '\u2028' || c == '\u2029')
+                        {
+                            throw new JsonException("Error code contains a control character");
+                        }
+                    }
+
                     break;
                 case "message":
                     message = reader.GetString() ?? string.Empty;

@@ -216,6 +216,9 @@ public Result<Data> LoadData(string path)
 }
 ```
 
+`Try` catches every exception, including `OperationCanceledException`, and returns
+it as a failure. Map it in the error factory if you need to tell cancellation apart.
+
 ### 9. Pattern Matching
 
 ```csharp
