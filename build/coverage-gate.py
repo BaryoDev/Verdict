@@ -55,6 +55,16 @@ def main():
     percent = 100.0 * covered / total if total else 0.0
 
     print(f"Merged {len(reports)} report(s).")
+    # DEBUG-PROBE
+    names = defaultdict(set)
+    for (pkg, fn) in seen:
+        names[(pkg, os.path.basename(fn or ""))].add(fn)
+    shown = 0
+    for k, v in sorted(names.items()):
+        if len(v) > 1 and shown < 12:
+            shown += 1
+            print("DUP", k, sorted(v))
+    print("DEBUG keys", len(seen))
     for package, (c, t) in sorted(by_package.items(), key=lambda kv: kv[1][0] / max(1, kv[1][1])):
         print(f"  {package:24} {c:5}/{t:<5} {100.0 * c / t:6.2f}%")
     print(f"  {'OVERALL':24} {covered:5}/{total:<5} {percent:6.2f}%")
