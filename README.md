@@ -25,8 +25,9 @@ var response = Load(id)
 
 ## The promise, and exactly where it applies
 
-**`Verdict` and `Verdict.Fluent` allocate nothing.** Every operation, on value
-types and reference types alike, including composed chains. Measured with
+**`Verdict` and `Verdict.Fluent` allocate nothing** on the operations the gate
+lists (46 rows), on value types and reference types alike, including composed
+chains. A further 15 operations are held to a named byte budget. Measured with
 `GC.GetAllocatedBytesForCurrentThread` over 10,000 iterations in Release on
 net8.0, and asserted by `tests/Verdict.Allocation.Tests`, so a regression fails a
 build rather than a benchmark nobody reads.
@@ -137,7 +138,9 @@ forges a line in a plain-text log sink. A clean message is returned by reference
 so this costs nothing on the common path.
 
 **Deserialisation rejects rather than guesses.** A JSON success carrying no
-`value` property throws instead of producing a success holding `default(T)`.
+`value` property throws instead of producing a success holding `default(T)`, and
+an error `code` containing a control character throws, because the code is
+written into log lines.
 
 Full threat model and what remains your responsibility: [SECURITY.md](SECURITY.md).
 

@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **`ErrorJsonConverter` accepted an error code with a carriage return or line
+  feed.** The code went on into log lines as `[{ErrorCode}]` and could forge a
+  line. It now throws `JsonException` for a code containing a control character.
+  The comment on `Error` that claimed the code throws on bad input is corrected.
+
+### Documentation
+
+- The README no longer says every operation allocates nothing. It says the 46
+  operations in the gate do, and that 15 more have a byte budget. The count in
+  the design notes is corrected from 41 to 46.
+- `TryExtensions` documents that an `OperationCanceledException` thrown by the
+  action becomes an `UNHANDLED_EXCEPTION` failure rather than propagating.
+
 ## [3.0.1] - 2026-09-29
 
 Fixes from an audit of 3.0.0. Each one has a test that fails on 3.0.0.

@@ -5,6 +5,15 @@ namespace Verdict.Extensions;
 /// <summary>
 /// Extension methods for try/catch helpers.
 /// </summary>
+/// <remarks>
+/// Every overload catches every exception, including
+/// <see cref="OperationCanceledException"/>. A cancelled action comes back as a
+/// failure (code <c>UNHANDLED_EXCEPTION</c> unless an errorFactory says otherwise),
+/// not as a thrown <see cref="OperationCanceledException"/>. The async helpers in
+/// Verdict.Async let caller cancellation propagate; these synchronous ones do not.
+/// Pass an errorFactory that maps <see cref="OperationCanceledException"/> to your
+/// own code if you need to tell cancellation from a fault.
+/// </remarks>
 public static class TryExtensions
 {
     /// <summary>
