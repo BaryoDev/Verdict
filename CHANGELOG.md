@@ -9,17 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- `ToHttpResult<T>` overloads that take a `JsonTypeInfo<T>`, with and without an
-  `HttpContext`. They are trim and Native AOT safe. ([#61](https://github.com/BaryoDev/Verdict/issues/61))
+- `ToHttpResult` overloads that take a `JsonTypeInfo<T>` (generic, with and
+  without an `HttpContext`) or a `JsonTypeInfo<ProblemDetails>` (non-generic).
+  They are trim and Native AOT safe. ([#61](https://github.com/BaryoDev/Verdict/issues/61))
 
 ### Changed
 
-- `Verdict.AspNetCore` is now `IsTrimmable` and `IsAotCompatible`. The existing
-  `ToHttpResult<T>` overloads keep their signatures and are marked
-  `RequiresUnreferencedCode` and `RequiresDynamicCode`, so a trimmed or AOT app
-  sees a warning when it calls one. Problem documents are written through a
-  source-generated context. A `ProblemDetails` subclass other than
-  `ValidationProblemDetails` is written as a plain `ProblemDetails`.
+- `Verdict.AspNetCore` is now `IsTrimmable` and `IsAotCompatible`. Every existing
+  `ToHttpResult` overload keeps its signature and its output, and is now marked
+  `RequiresUnreferencedCode` and `RequiresDynamicCode`. An app that is trimmed or
+  published with Native AOT, and builds with warnings as errors, will fail to
+  build after upgrading until it switches to a `JsonTypeInfo` overload or
+  suppresses IL2026 and IL3050 at the call.
 
 ## [3.0.1] - 2026-09-29
 

@@ -194,13 +194,16 @@ netstandard2.0.
 Native AOT and trimming: every package is annotated `IsTrimmable` and
 `IsAotCompatible` on its .NET targets, and `tests/Verdict.Aot.Smoke` is a
 `PublishAot` console app that CI publishes and runs on every push. In
-`Verdict.AspNetCore`, the `ToHttpResult<T>` overloads that take a
-`JsonTypeInfo<T>` are trim and AOT safe, and so is every error path (the
-problem document is written through a source-generated context). The overloads
-without a `JsonTypeInfo<T>` serialise the success value by reflection and are
-marked `RequiresUnreferencedCode` and `RequiresDynamicCode`, so a trimmed or AOT
-app gets a build warning if it calls one. The `JsonTypeInfo<T>` overloads use
-the naming policy of the context you pass, not `HttpJsonOptions`.
+`Verdict.AspNetCore`, the `ToHttpResult` overloads that take a `JsonTypeInfo`
+are trim and AOT safe. The older overloads keep their exact behaviour
+(reflective serialisation with your `HttpJsonOptions`) and are marked
+`RequiresUnreferencedCode` and `RequiresDynamicCode`, so a trimmed or AOT app
+gets a build warning if it calls one. The `JsonTypeInfo` overloads use the
+naming policy of the context you pass. Their error body is written through a
+source-generated context: properties of a `ProblemDetails` subclass are not
+written (`ValidationProblemDetails` is), extension values must be primitives,
+and `HttpJsonOptions` is not applied. Pass your own
+`JsonTypeInfo<ProblemDetails>` to change that.
 
 `Verdict.Json` needs its converters
 registered explicitly under AOT, through the `JsonTypeInfo` overload rather than

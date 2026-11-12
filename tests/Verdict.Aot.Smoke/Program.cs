@@ -119,8 +119,8 @@ public static class Program
         Check("ToHttpResult context typeInfo success",
             await BodyAsync(ok.ToHttpResult(context, WidgetJsonContext.Default.Widget)) == "200 {\"id\":7,\"name\":\"gear\"}");
 
-        var plain = await BodyAsync(Result.Failure(new Error("CONFLICT", "taken")).ToHttpResult());
-        Check("ToHttpResult non-generic error",
+        var plain = await BodyAsync(Result.Failure(new Error("CONFLICT", "taken")).ToHttpResult(context, null));
+        Check("ToHttpResult non-generic error (no reflection)",
             plain.StartsWith("409 ", StringComparison.Ordinal)
             && plain.Contains("\"detail\":\"taken\"", StringComparison.Ordinal));
     }
