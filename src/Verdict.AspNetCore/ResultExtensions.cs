@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
+using System.Text.Json.Serialization.Metadata;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
@@ -10,6 +12,9 @@ namespace Verdict.AspNetCore;
 /// </summary>
 public static class ResultExtensions
 {
+    private const string ReflectionJsonMessage =
+        "Serialises the response body with reflection-based System.Text.Json. Under trimming or Native AOT use the overload that takes a JsonTypeInfo.";
+
     /// <summary>
     /// Converts Result{T} to IResult (Minimal API).
     /// Success -> 200 OK with value
@@ -18,6 +23,8 @@ public static class ResultExtensions
     /// <typeparam name="T">The result value type.</typeparam>
     /// <param name="result">The result to convert.</param>
     /// <returns>An IResult for Minimal API endpoints.</returns>
+    [RequiresUnreferencedCode(ReflectionJsonMessage)]
+    [RequiresDynamicCode(ReflectionJsonMessage)]
     public static IResult ToHttpResult<T>(this Result<T> result)
     {
         return result.ToHttpResult(200, null);
@@ -31,6 +38,8 @@ public static class ResultExtensions
     /// <param name="successStatusCode">HTTP status code for success (default: 200).</param>
     /// <param name="errorStatusCodeMapper">Function to map errors to status codes.</param>
     /// <returns>An IResult for Minimal API endpoints.</returns>
+    [RequiresUnreferencedCode(ReflectionJsonMessage)]
+    [RequiresDynamicCode(ReflectionJsonMessage)]
     public static IResult ToHttpResult<T>(
         this Result<T> result,
         int successStatusCode = 200,
@@ -71,6 +80,8 @@ public static class ResultExtensions
     /// <param name="context">The current request, used to resolve the registered configuration.</param>
     /// <param name="successStatusCode">HTTP status code for success (default: 200).</param>
     /// <returns>An IResult for Minimal API endpoints.</returns>
+    [RequiresUnreferencedCode(ReflectionJsonMessage)]
+    [RequiresDynamicCode(ReflectionJsonMessage)]
     public static IResult ToHttpResult<T>(
         this Result<T> result,
         HttpContext context,
@@ -97,6 +108,8 @@ public static class ResultExtensions
     /// <param name="context">The current request, used to resolve the registered configuration.</param>
     /// <param name="successStatusCode">HTTP status code for success (default: 204).</param>
     /// <returns>An IResult for Minimal API endpoints.</returns>
+    [RequiresUnreferencedCode(ReflectionJsonMessage)]
+    [RequiresDynamicCode(ReflectionJsonMessage)]
     public static IResult ToHttpResult(
         this Result result,
         HttpContext context,
@@ -111,6 +124,111 @@ public static class ResultExtensions
 
         var (statusCode, problemDetails) = Describe(context, result.Error);
         return Results.Json(problemDetails, statusCode: statusCode, contentType: "application/problem+json");
+    }
+
+    /// <summary>
+    /// Converts Result{T} to IResult, serialising the success value with a
+    /// caller-supplied <see cref="JsonTypeInfo{T}"/>. Safe under trimming and
+    /// Native AOT.
+    /// </summary>
+    /// <remarks>
+    /// The error body is a problem document written through a source-generated
+    /// context, which has limits the reflective overloads do not: properties of a
+    /// <see cref="ProblemDetails"/> subclass are not written (only
+    /// <see cref="ValidationProblemDetails"/> is recognised), extension values must
+    /// be one of string, int, long, bool, double, decimal, Guid, DateTime,
+    /// DateTimeOffset, int[] or string[] (any other type throws
+    /// <see cref="NotSupportedException"/> when the result executes), and
+    /// <c>HttpJsonOptions</c> is not applied. For an arbitrary object, pass
+    /// <paramref name="problemDetailsTypeInfo"/> from your own context that lists it.
+    /// </remarks>
+    /// <typeparam name="T">The result value type.</typeparam>
+    /// <param name="result">The result to convert.</param>
+    /// <param name="jsonTypeInfo">Metadata for <typeparamref name="T"/>, usually from a source-generated context.</param>
+    /// <param name="successStatusCode">HTTP status code for success (default: 200).</param>
+    /// <param name="errorStatusCodeMapper">Function to map errors to status codes.</param>
+    /// <param name="problemDetailsTypeInfo">Optional metadata for every error body. Null uses the built-in context, which keeps the errors of a ValidationProblemDetails; a value here writes it as a base ProblemDetails.</param>
+    /// <returns>An IResult for Minimal API endpoints.</returns>
+    public static IResult ToHttpResult<T>(
+        this Result<T> result,
+        JsonTypeInfo<T> jsonTypeInfo,
+        int successStatusCode = 200,
+        Func<Error, int>? errorStatusCodeMapper = null,
+        JsonTypeInfo<ProblemDetails>? problemDetailsTypeInfo = null)
+    {
+        if (jsonTypeInfo is null) throw new ArgumentNullException(nameof(jsonTypeInfo));
+
+        if (result.IsSuccess)
+        {
+            return ForbidsBody(successStatusCode)
+                ? Results.StatusCode(successStatusCode)
+                : Results.Json(result.Value, jsonTypeInfo, statusCode: successStatusCode);
+        }
+
+        var statusCode = errorStatusCodeMapper?.Invoke(result.Error)
+            ?? ErrorStatusCodeMapper.GetStatusCode(result.Error);
+        return SafeProblemResult(ProblemDetailsFactory.CreateFromError(result.Error, statusCode), statusCode, problemDetailsTypeInfo);
+    }
+
+    /// <summary>
+    /// Converts Result{T} to IResult using the configuration registered in this
+    /// request's container, serialising the success value with a caller-supplied
+    /// <see cref="JsonTypeInfo{T}"/>. Safe under trimming and Native AOT. The
+    /// error body has the limits described on the overload without a context.
+    /// </summary>
+    /// <typeparam name="T">The result value type.</typeparam>
+    /// <param name="result">The result to convert.</param>
+    /// <param name="context">The current request, used to resolve the registered configuration.</param>
+    /// <param name="jsonTypeInfo">Metadata for <typeparamref name="T"/>, usually from a source-generated context.</param>
+    /// <param name="successStatusCode">HTTP status code for success (default: 200).</param>
+    /// <param name="problemDetailsTypeInfo">Optional metadata for every error body. Null uses the built-in context, which keeps the errors of a ValidationProblemDetails; a value here writes it as a base ProblemDetails.</param>
+    /// <returns>An IResult for Minimal API endpoints.</returns>
+    public static IResult ToHttpResult<T>(
+        this Result<T> result,
+        HttpContext context,
+        JsonTypeInfo<T> jsonTypeInfo,
+        int successStatusCode = 200,
+        JsonTypeInfo<ProblemDetails>? problemDetailsTypeInfo = null)
+    {
+        if (context is null) throw new ArgumentNullException(nameof(context));
+        if (jsonTypeInfo is null) throw new ArgumentNullException(nameof(jsonTypeInfo));
+
+        if (result.IsSuccess)
+        {
+            return ForbidsBody(successStatusCode)
+                ? Results.StatusCode(successStatusCode)
+                : Results.Json(result.Value, jsonTypeInfo, statusCode: successStatusCode);
+        }
+
+        var (statusCode, problemDetails) = Describe(context, result.Error);
+        return SafeProblemResult(problemDetails, statusCode, problemDetailsTypeInfo);
+    }
+
+    /// <summary>
+    /// Converts a non-generic Result to IResult without reflection. Safe under
+    /// trimming and Native AOT. The error body has the limits described on
+    /// <see cref="ToHttpResult{T}(Result{T}, JsonTypeInfo{T}, int, Func{Error, int}?, JsonTypeInfo{ProblemDetails}?)"/>.
+    /// </summary>
+    /// <param name="result">The result to convert.</param>
+    /// <param name="context">The current request, used to resolve the registered configuration.</param>
+    /// <param name="problemDetailsTypeInfo">Optional metadata for every error body. Null uses the built-in context, which keeps the errors of a ValidationProblemDetails; a value here writes it as a base ProblemDetails.</param>
+    /// <param name="successStatusCode">HTTP status code for success (default: 204).</param>
+    /// <returns>An IResult for Minimal API endpoints.</returns>
+    public static IResult ToHttpResult(
+        this Result result,
+        HttpContext context,
+        JsonTypeInfo<ProblemDetails>? problemDetailsTypeInfo,
+        int successStatusCode = 204)
+    {
+        if (context is null) throw new ArgumentNullException(nameof(context));
+
+        if (result.IsSuccess)
+        {
+            return Results.StatusCode(successStatusCode);
+        }
+
+        var (statusCode, problemDetails) = Describe(context, result.Error);
+        return SafeProblemResult(problemDetails, statusCode, problemDetailsTypeInfo);
     }
 
     /// <summary>
@@ -155,6 +273,20 @@ public static class ResultExtensions
     /// </summary>
     private static bool ForbidsBody(int statusCode) =>
         statusCode == 204 || statusCode == 304 || (statusCode >= 100 && statusCode < 200);
+
+    // Source-generated, so no reflection. A ValidationProblemDetails keeps its
+    // errors; any other subclass is written as a plain ProblemDetails.
+    private static IResult SafeProblemResult(ProblemDetails details, int statusCode, JsonTypeInfo<ProblemDetails>? typeInfo)
+    {
+        if (typeInfo is not null)
+        {
+            return Results.Json(details, typeInfo, "application/problem+json", statusCode);
+        }
+
+        return details is ValidationProblemDetails validation
+            ? Results.Json(validation, VerdictProblemJsonContext.Default.ValidationProblemDetails, "application/problem+json", statusCode)
+            : Results.Json(details, VerdictProblemJsonContext.Default.ProblemDetails, "application/problem+json", statusCode);
+    }
 
     private static (int StatusCode, ProblemDetails Details) Describe(HttpContext context, Error error)
     {
@@ -244,6 +376,8 @@ public static class ResultExtensions
     /// </summary>
     /// <param name="result">The result to convert.</param>
     /// <returns>An IResult for Minimal API endpoints.</returns>
+    [RequiresUnreferencedCode(ReflectionJsonMessage)]
+    [RequiresDynamicCode(ReflectionJsonMessage)]
     public static IResult ToHttpResult(this Result result)
     {
         if (result.IsSuccess)

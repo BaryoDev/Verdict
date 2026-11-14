@@ -1,8 +1,12 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.DependencyInjection;
+using Verdict.AspNetCore;
 using Verdict;
 using Verdict.Async;
 using Verdict.Extensions;
@@ -32,6 +36,14 @@ namespace Verdict.Aot.Smoke;
 internal partial class AppJsonContext : JsonSerializerContext
 {
 }
+
+[JsonSourceGenerationOptions(JsonSerializerDefaults.Web)]
+[JsonSerializable(typeof(Widget))]
+internal partial class WidgetJsonContext : JsonSerializerContext
+{
+}
+
+internal sealed record Widget(int Id, string Name);
 
 public static class Program
 {
@@ -80,7 +92,52 @@ public static class Program
         var sanitized = Error.FromException(new InvalidOperationException("secret"), sanitize: true);
         Check("Sanitised error hides the cause", !sanitized.ToString().Contains("secret", StringComparison.Ordinal));
 
+        await CheckHttpResultsAsync();
+
         Console.WriteLine(_failures == 0 ? "AOT smoke passed" : $"AOT smoke failed: {_failures}");
         return _failures;
+    }
+
+    // Runs the AspNetCore overloads that take a JsonTypeInfo, and the error path,
+    // which goes through the package's own source-generated context. Each result
+    // is executed against a real response body, so a missing metadata entry fails
+    // here at run time and not only in a consumer's production.
+    private static async Task CheckHttpResultsAsync()
+    {
+        var ok = Result<Widget>.Success(new Widget(7, "gear"));
+        Check("ToHttpResult typeInfo success",
+            await BodyAsync(ok.ToHttpResult(WidgetJsonContext.Default.Widget)) == "200 {\"id\":7,\"name\":\"gear\"}");
+
+        var failed = Result<Widget>.Failure(new Error("NOT_FOUND", "no such widget"));
+        var problem = await BodyAsync(failed.ToHttpResult(WidgetJsonContext.Default.Widget));
+        Check("ToHttpResult typeInfo error is a problem document",
+            problem.StartsWith("404 ", StringComparison.Ordinal)
+            && problem.Contains("\"detail\":\"no such widget\"", StringComparison.Ordinal)
+            && problem.Contains("\"errorCode\":\"NOT_FOUND\"", StringComparison.Ordinal));
+
+        var context = new DefaultHttpContext();
+        Check("ToHttpResult context typeInfo success",
+            await BodyAsync(ok.ToHttpResult(context, WidgetJsonContext.Default.Widget)) == "200 {\"id\":7,\"name\":\"gear\"}");
+
+        var plain = await BodyAsync(Result.Failure(new Error("CONFLICT", "taken")).ToHttpResult(context, null));
+        Check("ToHttpResult non-generic error (no reflection)",
+            plain.StartsWith("409 ", StringComparison.Ordinal)
+            && plain.Contains("\"detail\":\"taken\"", StringComparison.Ordinal));
+    }
+
+    private static async Task<string> BodyAsync(IResult result)
+    {
+        var services = new ServiceCollection()
+            .AddLogging()
+            .BuildServiceProvider();
+        var context = new DefaultHttpContext { RequestServices = services };
+        using var body = new MemoryStream();
+        context.Response.Body = body;
+
+        await result.ExecuteAsync(context);
+
+        body.Position = 0;
+        using var reader = new StreamReader(body);
+        return $"{context.Response.StatusCode} {await reader.ReadToEndAsync()}";
     }
 }

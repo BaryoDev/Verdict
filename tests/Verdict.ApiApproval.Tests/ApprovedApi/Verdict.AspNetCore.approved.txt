@@ -31,11 +31,34 @@ namespace Verdict.AspNetCore
         public static Microsoft.AspNetCore.Mvc.ActionResult<T> ToActionResult<T>(this Verdict.Result<T> result) { }
         public static Microsoft.AspNetCore.Mvc.ActionResult<T> ToActionResult<T>(this Verdict.Result<T> result, Microsoft.AspNetCore.Http.HttpContext context, int successStatusCode = 200) { }
         public static Microsoft.AspNetCore.Mvc.ActionResult<T> ToActionResult<T>(this Verdict.Result<T> result, int successStatusCode = 200, System.Func<Verdict.Error, int>? errorStatusCodeMapper = null, string? locationUri = null) { }
+        [System.Diagnostics.CodeAnalysis.RequiresDynamicCode("Serialises the response body with reflection-based System.Text.Json. Under trimmi" +
+            "ng or Native AOT use the overload that takes a JsonTypeInfo.")]
+        [System.Diagnostics.CodeAnalysis.RequiresUnreferencedCode("Serialises the response body with reflection-based System.Text.Json. Under trimmi" +
+            "ng or Native AOT use the overload that takes a JsonTypeInfo.")]
         public static Microsoft.AspNetCore.Http.IResult ToHttpResult(this Verdict.Result result) { }
+        [System.Diagnostics.CodeAnalysis.RequiresDynamicCode("Serialises the response body with reflection-based System.Text.Json. Under trimmi" +
+            "ng or Native AOT use the overload that takes a JsonTypeInfo.")]
+        [System.Diagnostics.CodeAnalysis.RequiresUnreferencedCode("Serialises the response body with reflection-based System.Text.Json. Under trimmi" +
+            "ng or Native AOT use the overload that takes a JsonTypeInfo.")]
         public static Microsoft.AspNetCore.Http.IResult ToHttpResult(this Verdict.Result result, Microsoft.AspNetCore.Http.HttpContext context, int successStatusCode = 204) { }
+        public static Microsoft.AspNetCore.Http.IResult ToHttpResult(this Verdict.Result result, Microsoft.AspNetCore.Http.HttpContext context, System.Text.Json.Serialization.Metadata.JsonTypeInfo<Microsoft.AspNetCore.Mvc.ProblemDetails>? problemDetailsTypeInfo, int successStatusCode = 204) { }
+        [System.Diagnostics.CodeAnalysis.RequiresDynamicCode("Serialises the response body with reflection-based System.Text.Json. Under trimmi" +
+            "ng or Native AOT use the overload that takes a JsonTypeInfo.")]
+        [System.Diagnostics.CodeAnalysis.RequiresUnreferencedCode("Serialises the response body with reflection-based System.Text.Json. Under trimmi" +
+            "ng or Native AOT use the overload that takes a JsonTypeInfo.")]
         public static Microsoft.AspNetCore.Http.IResult ToHttpResult<T>(this Verdict.Result<T> result) { }
+        [System.Diagnostics.CodeAnalysis.RequiresDynamicCode("Serialises the response body with reflection-based System.Text.Json. Under trimmi" +
+            "ng or Native AOT use the overload that takes a JsonTypeInfo.")]
+        [System.Diagnostics.CodeAnalysis.RequiresUnreferencedCode("Serialises the response body with reflection-based System.Text.Json. Under trimmi" +
+            "ng or Native AOT use the overload that takes a JsonTypeInfo.")]
         public static Microsoft.AspNetCore.Http.IResult ToHttpResult<T>(this Verdict.Result<T> result, Microsoft.AspNetCore.Http.HttpContext context, int successStatusCode = 200) { }
+        [System.Diagnostics.CodeAnalysis.RequiresDynamicCode("Serialises the response body with reflection-based System.Text.Json. Under trimmi" +
+            "ng or Native AOT use the overload that takes a JsonTypeInfo.")]
+        [System.Diagnostics.CodeAnalysis.RequiresUnreferencedCode("Serialises the response body with reflection-based System.Text.Json. Under trimmi" +
+            "ng or Native AOT use the overload that takes a JsonTypeInfo.")]
         public static Microsoft.AspNetCore.Http.IResult ToHttpResult<T>(this Verdict.Result<T> result, int successStatusCode = 200, System.Func<Verdict.Error, int>? errorStatusCodeMapper = null) { }
+        public static Microsoft.AspNetCore.Http.IResult ToHttpResult<T>(this Verdict.Result<T> result, Microsoft.AspNetCore.Http.HttpContext context, System.Text.Json.Serialization.Metadata.JsonTypeInfo<T> jsonTypeInfo, int successStatusCode = 200, System.Text.Json.Serialization.Metadata.JsonTypeInfo<Microsoft.AspNetCore.Mvc.ProblemDetails>? problemDetailsTypeInfo = null) { }
+        public static Microsoft.AspNetCore.Http.IResult ToHttpResult<T>(this Verdict.Result<T> result, System.Text.Json.Serialization.Metadata.JsonTypeInfo<T> jsonTypeInfo, int successStatusCode = 200, System.Func<Verdict.Error, int>? errorStatusCodeMapper = null, System.Text.Json.Serialization.Metadata.JsonTypeInfo<Microsoft.AspNetCore.Mvc.ProblemDetails>? problemDetailsTypeInfo = null) { }
     }
     public static class ServiceCollectionExtensions
     {

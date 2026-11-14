@@ -194,13 +194,26 @@ is deterministic, so that is gated on every push instead.
 `Verdict.AspNetCore` targets net8.0 and net10.0 only; the rest add
 netstandard2.0.
 
-Native AOT and trimming: every package except `Verdict.AspNetCore` is annotated
-`IsTrimmable` and `IsAotCompatible` on its .NET targets, and
-`tests/Verdict.Aot.Smoke` is a `PublishAot` console app that CI publishes and
-runs on every push. `Verdict.AspNetCore` is explicitly neither: every path ends
-in `Results.Json(T)`, which serialises an arbitrary `T` reflectively, so it
-cannot be trim safe without taking a `JsonTypeInfo` through its public API.
-Tracked in [#61](https://github.com/BaryoDev/Verdict/issues/61).
+Native AOT and trimming: every package is annotated `IsTrimmable` and
+`IsAotCompatible` on its .NET targets, and `tests/Verdict.Aot.Smoke` is a
+`PublishAot` console app that CI publishes and runs on every push. In
+`Verdict.AspNetCore`, the `ToHttpResult` overloads that take a `JsonTypeInfo`
+are trim and AOT safe. The older overloads keep their exact behaviour
+(reflective serialisation with your `HttpJsonOptions`) and are marked
+`RequiresUnreferencedCode` and `RequiresDynamicCode`, so a trimmed or AOT app
+gets a build warning if it calls one. The `JsonTypeInfo` overloads use the
+naming policy of the context you pass. Their error body is written through a
+source-generated context: properties of a `ProblemDetails` subclass are not
+written (`ValidationProblemDetails` is), extension values must be one of
+string, int, long, bool, double, decimal, Guid, DateTime, DateTimeOffset, int[]
+or string[] (anything else throws when the result executes), and
+`HttpJsonOptions` is not applied. An arbitrary object as an extension value
+needs your own `JsonTypeInfo<ProblemDetails>` from a context that lists it.
+That type info is used for every error body, so a `ValidationProblemDetails`
+is written as a base `ProblemDetails` and loses `errors`. Pass `null` to keep
+`errors`, with the extension value limits above.
+The MVC `ToActionResult` overloads are not trim or AOT safe, because MVC
+formatters are reflective.
 
 `Verdict.Json` needs its converters
 registered explicitly under AOT, through the `JsonTypeInfo` overload rather than
