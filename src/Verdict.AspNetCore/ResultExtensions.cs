@@ -136,8 +136,11 @@ public static class ResultExtensions
     /// context, which has limits the reflective overloads do not: properties of a
     /// <see cref="ProblemDetails"/> subclass are not written (only
     /// <see cref="ValidationProblemDetails"/> is recognised), extension values must
-    /// be strings or other primitives, and <c>HttpJsonOptions</c> is not applied.
-    /// Pass <paramref name="problemDetailsTypeInfo"/> to supply your own metadata.
+    /// be one of string, int, long, bool, double, decimal, Guid, DateTime,
+    /// DateTimeOffset, int[] or string[] (any other type throws
+    /// <see cref="NotSupportedException"/> when the result executes), and
+    /// <c>HttpJsonOptions</c> is not applied. For an arbitrary object, pass
+    /// <paramref name="problemDetailsTypeInfo"/> from your own context that lists it.
     /// </remarks>
     /// <typeparam name="T">The result value type.</typeparam>
     /// <param name="result">The result to convert.</param>

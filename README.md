@@ -201,9 +201,13 @@ are trim and AOT safe. The older overloads keep their exact behaviour
 gets a build warning if it calls one. The `JsonTypeInfo` overloads use the
 naming policy of the context you pass. Their error body is written through a
 source-generated context: properties of a `ProblemDetails` subclass are not
-written (`ValidationProblemDetails` is), extension values must be primitives,
-and `HttpJsonOptions` is not applied. Pass your own
-`JsonTypeInfo<ProblemDetails>` to change that.
+written (`ValidationProblemDetails` is), extension values must be one of
+string, int, long, bool, double, decimal, Guid, DateTime, DateTimeOffset, int[]
+or string[] (anything else throws when the result executes), and
+`HttpJsonOptions` is not applied. An arbitrary object as an extension value
+needs your own `JsonTypeInfo<ProblemDetails>` from a context that lists it.
+The MVC `ToActionResult` overloads are not trim or AOT safe, because MVC
+formatters are reflective.
 
 `Verdict.Json` needs its converters
 registered explicitly under AOT, through the `JsonTypeInfo` overload rather than

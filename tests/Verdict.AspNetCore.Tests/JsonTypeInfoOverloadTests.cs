@@ -147,11 +147,129 @@ public class JsonTypeInfoOverloadTests
     [Fact]
     public void TypeInfoOverloadsRejectNull()
     {
-        var result = Result<Gadget>.Success(new Gadget(1, "x"));
+        // A failure never touches jsonTypeInfo, so only the explicit check can throw.
+        var ok = Result<Gadget>.Failure("E", "m");
+        var plain = Result.Success();
+        var ctx = new DefaultHttpContext();
+        var info = GadgetJsonContext.Default.Gadget;
 
-        var act = () => result.ToHttpResult((System.Text.Json.Serialization.Metadata.JsonTypeInfo<Gadget>)null!);
+        var nullInfo = (System.Text.Json.Serialization.Metadata.JsonTypeInfo<Gadget>)null!;
+        var nullContext = (HttpContext)null!;
 
-        act.Should().Throw<ArgumentNullException>();
+        new Action(() => ok.ToHttpResult(nullInfo)).Should().Throw<ArgumentNullException>().WithParameterName("jsonTypeInfo");
+        new Action(() => ok.ToHttpResult(ctx, nullInfo)).Should().Throw<ArgumentNullException>().WithParameterName("jsonTypeInfo");
+        new Action(() => ok.ToHttpResult(nullContext, info)).Should().Throw<ArgumentNullException>().WithParameterName("context");
+        new Action(() => plain.ToHttpResult(nullContext, null)).Should().Throw<ArgumentNullException>().WithParameterName("context");
+    }
+
+    // ---- error path through the three JsonTypeInfo overloads ----
+
+    // Writes a property only this metadata knows about, so a body containing it
+    // proves the caller's JsonTypeInfo was used and not the built-in one.
+    private sealed class MarkerProblemConverter : JsonConverter<ProblemDetails>
+    {
+        public override ProblemDetails? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options) =>
+            throw new NotSupportedException();
+
+        public override void Write(Utf8JsonWriter writer, ProblemDetails value, JsonSerializerOptions options)
+        {
+            writer.WriteStartObject();
+            writer.WriteString("marker", "custom-" + value.Status);
+            writer.WriteEndObject();
+        }
+    }
+
+    private static System.Text.Json.Serialization.Metadata.JsonTypeInfo<ProblemDetails> CustomProblemInfo() =>
+        (System.Text.Json.Serialization.Metadata.JsonTypeInfo<ProblemDetails>)new JsonSerializerOptions
+        {
+            Converters = { new MarkerProblemConverter() },
+            TypeInfoResolver = new System.Text.Json.Serialization.Metadata.DefaultJsonTypeInfoResolver()
+        }.GetTypeInfo(typeof(ProblemDetails));
+
+    private static Func<HttpContext, IResult>[] ErrorOverloads(
+        System.Text.Json.Serialization.Metadata.JsonTypeInfo<ProblemDetails>? problemInfo) => new Func<HttpContext, IResult>[]
+    {
+        _ => Result<Gadget>.Failure("E", "m").ToHttpResult(GadgetJsonContext.Default.Gadget, 200, null, problemInfo),
+        ctx => Result<Gadget>.Failure("E", "m").ToHttpResult(ctx, GadgetJsonContext.Default.Gadget, 200, problemInfo),
+        ctx => Result.Failure("E", "m").ToHttpResult(ctx, problemInfo),
+    };
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(2)]
+    public async Task ErrorBodyUsesTheSuppliedProblemTypeInfo(int overload)
+    {
+        var make = ErrorOverloads(CustomProblemInfo())[overload];
+
+        var (status, contentType, body) = await RunAsync(make, null);
+
+        body.Should().Be("{\"marker\":\"custom-" + status + "\"}");
+        contentType.Should().Be("application/problem+json");
+    }
+
+    // Overload 0 takes no HttpContext, so it cannot see a registered factory.
+    [Theory]
+    [InlineData(1)]
+    [InlineData(2)]
+    public async Task ValidationProblemDetailsKeepsItsErrors(int overload)
+    {
+        var details = new ValidationProblemDetails(new System.Collections.Generic.Dictionary<string, string[]>
+        {
+            ["Name"] = new[] { "required" }
+        }) { Status = 422, Title = "t" };
+
+        var (status, contentType, body) = await RunAsync(
+            ErrorOverloads(null)[overload],
+            c => c.AddSingleton<IVerdictProblemDetailsFactory>(new FixedFactory(details)));
+
+        status.Should().Be(400);
+        contentType.Should().Be("application/problem+json");
+        body.Should().Contain("\"errors\":{\"Name\":[\"required\"]}");
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(2)]
+    public async Task ErrorPathSetsStatusAndContentType(int overload)
+    {
+        var (status, contentType, body) = await RunAsync(ErrorOverloads(null)[overload], null);
+
+        status.Should().Be(400);
+        contentType.Should().Be("application/problem+json");
+        body.Should().Contain("\"status\":400");
+    }
+
+    public static TheoryData<string, object> ExtensionValues => new()
+    {
+        { "long", 5_000_000_000L },
+        { "bool", true },
+        { "double", 1.5d },
+        { "decimal", 2.25m },
+        { "guid", Guid.Parse("11111111-2222-3333-4444-555555555555") },
+        { "datetime", new DateTime(2026, 1, 2, 3, 4, 5, DateTimeKind.Utc) },
+        { "datetimeoffset", new DateTimeOffset(2026, 1, 2, 3, 4, 5, TimeSpan.Zero) },
+        { "int", 7 },
+        { "intarray", new[] { 1, 2 } },
+        { "stringarray", new[] { "a", "b" } },
+        { "string", "s" },
+    };
+
+    [Theory]
+    [MemberData(nameof(ExtensionValues))]
+    public async Task BuiltInContextWritesPrimitiveExtensionValues(string name, object value)
+    {
+        var details = new ProblemDetails { Status = 400, Title = "t" };
+        details.Extensions["k"] = value;
+
+        var (status, _, body) = await RunAsync(
+            ctx => Result<Gadget>.Failure("E", "m").ToHttpResult(ctx, GadgetJsonContext.Default.Gadget),
+            c => c.AddSingleton<IVerdictProblemDetailsFactory>(new FixedFactory(details)));
+
+        status.Should().Be(400, name);
+        var expected = JsonSerializer.Serialize(value);
+        body.Should().Contain("\"k\":" + expected, name);
     }
 
     [Fact]
