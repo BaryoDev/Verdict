@@ -13,12 +13,12 @@ on:
         type: boolean
         default: true
 
-concurrency:
-  group: publish
-  cancel-in-progress: false
-
 jobs:
   dry-run:
+    # Own group, so a dry run never replaces a pending publish.
+    concurrency:
+      group: publish-dry-run-${{ github.ref }}
+      cancel-in-progress: false
     # Dispatch with dry_run on. Builds, tests and packs only: no key exchange and no push,
     # and no environment, so it runs from any branch.
     if: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run }}
@@ -52,7 +52,6 @@ jobs:
           TAG: ${{ github.ref_name }}
           VERSION: ${{ steps.version.outputs.version }}
           IS_TAG: ${{ startsWith(github.ref, 'refs/tags/v') }}
-          DRY_RUN: ${{ inputs.dry_run }}
         run: |
           if [ "$IS_TAG" = "true" ]; then
             if [ "$TAG" != "v$VERSION" ]; then
@@ -63,11 +62,7 @@ jobs:
             exit 0
           fi
 
-          # Not a tag. Packing and dry running is fine; publishing is not.
-          if [ "$DRY_RUN" = "false" ]; then
-            echo "::error::Refusing to publish from $GITHUB_REF. Push a v$VERSION tag instead."
-            exit 1
-          fi
+          # Not a tag. Packing only.
           echo "Not a tag, and dry_run is on. Packing only."
 
       - run: dotnet restore
@@ -94,6 +89,9 @@ jobs:
     if: ${{ github.event_name == 'push' || !inputs.dry_run }}
     runs-on: ubuntu-latest
     environment: nuget-release
+    concurrency:
+      group: publish
+      cancel-in-progress: false
     permissions:
       contents: read
       # Lets the runner mint the OIDC token nuget.org exchanges for a
@@ -102,6 +100,20 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # A tag can be pushed on any commit, and the environment only checks the tag name.
+      # The commit has to be on the default branch before anything else runs.
+      - name: Require the commit to be on the default branch
+        env:
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          git fetch --no-tags origin "$DEFAULT_BRANCH"
+          if ! git merge-base --is-ancestor "$GITHUB_SHA" "origin/$DEFAULT_BRANCH"; then
+            echo "::error::$GITHUB_SHA is not on $DEFAULT_BRANCH. Publish from a commit that was merged."
+            exit 1
+          fi
 
       - uses: actions/setup-dotnet@v4
         with:
