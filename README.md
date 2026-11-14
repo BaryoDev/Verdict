@@ -209,6 +209,9 @@ string, int, long, bool, double, decimal, Guid, DateTime, DateTimeOffset, int[]
 or string[] (anything else throws when the result executes), and
 `HttpJsonOptions` is not applied. An arbitrary object as an extension value
 needs your own `JsonTypeInfo<ProblemDetails>` from a context that lists it.
+That type info is used for every error body, so a `ValidationProblemDetails`
+is written as a base `ProblemDetails` and loses `errors`. Pass `null` to keep
+`errors`, with the extension value limits above.
 The MVC `ToActionResult` overloads are not trim or AOT safe, because MVC
 formatters are reflective.
 

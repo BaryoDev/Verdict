@@ -19,10 +19,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `ToHttpResult` overload keeps its signature and its output, and is now marked
   `RequiresUnreferencedCode` and `RequiresDynamicCode`. An app that is trimmed or
   published with Native AOT, and builds with warnings as errors, will fail to
-  build after upgrading until it switches to a `JsonTypeInfo` overload or
-  suppresses IL2026 and IL3050 at the call. To migrate, pass a generated type
-  (`result.ToHttpResult(AppJson.Default.Order)`) or, if reflection is fine,
-  add `#pragma warning disable IL2026, IL3050` around `result.ToHttpResult()`.
+  build after upgrading until it switches to a `JsonTypeInfo` overload. To
+  migrate, pass a generated type (`result.ToHttpResult(AppJson.Default.Order)`).
+  Suppressing IL2026 and IL3050 is not a fix for a trimmed app: `PublishTrimmed`
+  turns reflection-based serialisation off by default, so the old overload can
+  throw at run time. A `#pragma` also does not reach the publish-time trimmer;
+  if you suppress, use `UnconditionalSuppressMessage` and only in an app that is
+  not trimmed.
 
 ### Fixed
 

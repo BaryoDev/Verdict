@@ -147,7 +147,7 @@ public static class ResultExtensions
     /// <param name="jsonTypeInfo">Metadata for <typeparamref name="T"/>, usually from a source-generated context.</param>
     /// <param name="successStatusCode">HTTP status code for success (default: 200).</param>
     /// <param name="errorStatusCodeMapper">Function to map errors to status codes.</param>
-    /// <param name="problemDetailsTypeInfo">Optional metadata for the error body. Null uses the built-in context.</param>
+    /// <param name="problemDetailsTypeInfo">Optional metadata for every error body. Null uses the built-in context, which keeps the errors of a ValidationProblemDetails; a value here writes it as a base ProblemDetails.</param>
     /// <returns>An IResult for Minimal API endpoints.</returns>
     public static IResult ToHttpResult<T>(
         this Result<T> result,
@@ -181,7 +181,7 @@ public static class ResultExtensions
     /// <param name="context">The current request, used to resolve the registered configuration.</param>
     /// <param name="jsonTypeInfo">Metadata for <typeparamref name="T"/>, usually from a source-generated context.</param>
     /// <param name="successStatusCode">HTTP status code for success (default: 200).</param>
-    /// <param name="problemDetailsTypeInfo">Optional metadata for the error body. Null uses the built-in context.</param>
+    /// <param name="problemDetailsTypeInfo">Optional metadata for every error body. Null uses the built-in context, which keeps the errors of a ValidationProblemDetails; a value here writes it as a base ProblemDetails.</param>
     /// <returns>An IResult for Minimal API endpoints.</returns>
     public static IResult ToHttpResult<T>(
         this Result<T> result,
@@ -211,7 +211,7 @@ public static class ResultExtensions
     /// </summary>
     /// <param name="result">The result to convert.</param>
     /// <param name="context">The current request, used to resolve the registered configuration.</param>
-    /// <param name="problemDetailsTypeInfo">Optional metadata for the error body. Null uses the built-in context.</param>
+    /// <param name="problemDetailsTypeInfo">Optional metadata for every error body. Null uses the built-in context, which keeps the errors of a ValidationProblemDetails; a value here writes it as a base ProblemDetails.</param>
     /// <param name="successStatusCode">HTTP status code for success (default: 204).</param>
     /// <returns>An IResult for Minimal API endpoints.</returns>
     public static IResult ToHttpResult(
