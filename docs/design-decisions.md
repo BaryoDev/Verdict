@@ -93,7 +93,7 @@ replacement, and why `AsTask()` exists.
 ## Why the allocation gate is a table rather than a benchmark
 
 A benchmark is read by a person, occasionally. A test fails a build. The gate
-holds 41 operations that must allocate nothing and 15 with a named byte budget,
+holds 46 operations that must allocate nothing and 15 with a named byte budget,
 and changing a budget is a deliberate edit that shows up in review.
 
 Two things about it are load bearing. Delegates and inputs are created before the

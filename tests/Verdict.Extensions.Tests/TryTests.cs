@@ -189,4 +189,14 @@ public class TryTests
         result.Error.Code.Should().Be("CUSTOM_CODE");
         result.Error.Message.Should().Be("Custom message");
     }
+
+    [Fact]
+    public void Try_Cancellation_IsReturnedAsFailureNotThrown()
+    {
+        // Documented on TryExtensions: the synchronous helpers catch everything.
+        var result = TryExtensions.Try<int>(() => throw new OperationCanceledException());
+
+        result.IsFailure.Should().BeTrue();
+        result.Error.Code.Should().Be("UNHANDLED_EXCEPTION");
+    }
 }

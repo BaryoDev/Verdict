@@ -127,8 +127,11 @@ public readonly record struct Error
     /// Control characters are removed rather than rejected. A carriage return in
     /// a message forges a line in any plain-text log sink, and throwing instead
     /// would turn a logging concern into a crash at the worst possible moment.
-    /// The error code still throws on bad input, because a code is chosen by the
-    /// programmer and a message usually is not.
+    /// The constructor does not touch the code, because a code is chosen by the
+    /// programmer and a message usually is not. A code read from an untrusted
+    /// payload is checked where it is read: the JSON converter rejects a code
+    /// with a control character. <see cref="ValidateErrorCode"/> is there for
+    /// callers that want the strict check.
     /// </para>
     /// </remarks>
     private static string Normalize(string? message)

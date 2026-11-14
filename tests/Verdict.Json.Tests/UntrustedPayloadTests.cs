@@ -124,3 +124,22 @@ public class UntrustedPayloadTests
         }
     }
 }
+
+public class ErrorCodeControlCharacterTests
+{
+    private static readonly JsonSerializerOptions Options =
+        VerdictJsonExtensions.CreateVerdictJsonOptions();
+
+    [Theory]
+    [InlineData("A\\r\\n2026-11-12 ERROR forged line")]
+    [InlineData("A\\nB")]
+    [InlineData("A\\u2028B")]
+    public void AnErrorCodeWithAControlCharacterIsRejected(string escapedCode)
+    {
+        var payload = "{\"isSuccess\":false,\"error\":{\"code\":\"" + escapedCode + "\",\"message\":\"m\"}}";
+
+        Assert.Throws<JsonException>(() => JsonSerializer.Deserialize<Result<int>>(payload, Options));
+        Assert.Throws<JsonException>(() => JsonSerializer.Deserialize<Error>(
+            "{\"code\":\"" + escapedCode + "\",\"message\":\"m\"}", Options));
+    }
+}
